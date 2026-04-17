@@ -1,0 +1,49 @@
+rss:
+  - name: "Hacker News"
+    url: "https://news.ycombinator.com/rss"
+    category_hint: "Geral dev"
+
+  - name: "The Changelog"
+    url: "https://changelog.com/feed"
+    category_hint: "Open Source"
+
+  - name: "InfoQ"
+    url: "https://feed.infoq.com"
+    category_hint: "Arquitetura"
+
+  - name: "dev.to"
+    url: "https://dev.to/feed"
+    category_hint: "Community"
+
+  - name: "Lobste.rs"
+    url: "https://lobste.rs/rss"
+    category_hint: "Geral dev"
+
+  - name: "Martin Fowler"
+    url: "https://martinfowler.com/feed.atom"
+    category_hint: "Arquitetura"
+
+  - name: "ThoughtWorks Radar"
+    url: "https://www.thoughtworks.com/rss/insights.xml"
+    category_hint: "Tendências"
+
+reddit:
+  - subreddit: "programming"
+    limit: 15
+
+  - subreddit: "webdev"
+    limit: 10
+
+  - subreddit: "MachineLearning"
+    limit: 10
+
+  - subreddit: "devops"
+    limit: 10
+
+github_trending:
+  languages:
+    - ""          # todas as linguagens
+    - "python"
+    - "typescript"
+    - "go"
+  since: "weekly"  # daily | weekly | monthly
