@@ -3,9 +3,10 @@ import Layout from '@/layouts/Layout.astro'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
 import { formatFullDate, formatMediumDate, formatShortDate, formatEditionNumber } from '@/lib/date'
+import { groupByCategory, getOrderedCategories } from '@/lib/articles'
 import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
-// \u00daltima edi\u00e7\u00e3o
+// Última edição
 const { data: latestData } = await supabase
   .from('editions')
   .select('*')
@@ -15,7 +16,7 @@ const { data: latestData } = await supabase
 
 const latest = latestData as Edition | null
 
-// Artigos da \u00faltima edi\u00e7\u00e3o
+// Artigos da última edição
 let articles: Article[] = []
 if (latest) {
   const { data } = await supabase
@@ -27,10 +28,11 @@ if (latest) {
 }
 
 const hero = articles[0] ?? null
-const sidebarArticles = articles.slice(1, 3)
-const gridArticles = articles.slice(3, 6)
+const remainingArticles = articles.slice(1)
+const grouped = groupByCategory(remainingArticles)
+const orderedCategories = getOrderedCategories(grouped)
 
-// Edi\u00e7\u00f5es anteriores para o arquivo
+// Edições anteriores
 const { data: archiveData } = await supabase
   .from('editions')
   .select('id, slug, edition_number, title, created_at')
@@ -47,124 +49,138 @@ const today = formatFullDate(new Date())
 
 <Layout>
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-4xl px-6 py-10">
+    <div class="mx-auto max-w-5xl px-4 sm:px-6 py-8 sm:py-10">
 
       {/* ── MASTHEAD ── */}
-      <header class="border-b-2 border-foreground/40 pb-5 mb-1">
+      <header class="pb-4 mb-1">
         <div class="flex items-center justify-between mb-3">
-          <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
+          <p class="font-mono text-[0.6rem] sm:text-[0.65rem] tracking-widest uppercase text-muted-foreground">
             {today}
           </p>
           <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hidden sm:block">
             {SITE_TAGLINE}
           </p>
         </div>
-        <div class="text-center py-2">
-          <h1 class="font-serif text-[clamp(3rem,10vw,6.5rem)] font-black leading-none tracking-tighter uppercase">
+        <div class="border-y-2 border-foreground/50 py-3 sm:py-4 text-center">
+          <h1 class="font-serif text-[clamp(2.5rem,10vw,6rem)] font-black leading-none tracking-tighter uppercase">
             {SITE_NAME.toUpperCase()}
           </h1>
-          <div class="mt-3 flex items-center gap-3 justify-center">
-            <div class="h-px w-16 bg-foreground/25"></div>
-            <p class="font-mono text-[0.6rem] tracking-[0.25em] uppercase text-muted-foreground">
-              {MASTHEAD_SUBTITLE}
-            </p>
-            <div class="h-px w-16 bg-foreground/25"></div>
-          </div>
+        </div>
+        <div class="flex items-center gap-3 justify-center mt-3">
+          <div class="h-px w-12 bg-foreground/20"></div>
+          <p class="font-mono text-[0.55rem] sm:text-[0.6rem] tracking-[0.25em] uppercase text-muted-foreground">
+            {MASTHEAD_SUBTITLE}
+          </p>
+          <div class="h-px w-12 bg-foreground/20"></div>
         </div>
       </header>
-      <div class="border-t border-foreground/20 mt-1 mb-8"></div>
+
+      <div class="border-t border-foreground/15 mt-2 mb-6 sm:mb-8"></div>
 
       {latest && hero ? (
         <>
-          {/* ── EDI\u00c7\u00c3O ATUAL: LABEL ── */}
-          <div class="flex items-center gap-3 mb-6">
-            <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground shrink-0">
-              Edição nº {latest.edition_number} &mdash;{' '}
-              {formatMediumDate(latest.created_at)}
+          {/* ── EDIÇÃO ATUAL ── */}
+          <div class="flex items-center gap-3 mb-5">
+            <p class="font-mono text-[0.55rem] sm:text-[0.6rem] tracking-widest uppercase text-muted-foreground shrink-0">
+              Edição nº {latest.edition_number} &mdash; {formatMediumDate(latest.created_at)}
             </p>
-            <div class="h-px flex-1 bg-border"></div>
+            <div class="h-px flex-1 bg-foreground/15"></div>
           </div>
 
-          {/* ── HERO + SIDEBAR ── */}
-          <div class="grid grid-cols-1 lg:grid-cols-5 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-border mb-0">
+          {/* ── HERO (manchete principal) ── */}
+          <article class="mb-8 sm:mb-10">
+            <span class="inline-block font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground border border-foreground/20 px-2 py-0.5 mb-3">
+              {hero.category}
+            </span>
+            <a href={`/${latest.slug}`}>
+              <h2 class="font-serif text-3xl sm:text-5xl font-bold leading-tight tracking-tight mb-3 hover:opacity-60 transition-opacity">
+                {hero.title}
+              </h2>
+            </a>
+            <p class="font-mono text-[0.6rem] text-muted-foreground mb-3 flex items-center gap-2">
+              <span>{hero.source}</span>
+              {hero.reading_time_min && (
+                <>
+                  <span>&middot;</span>
+                  <span>{hero.reading_time_min} min de leitura</span>
+                </>
+              )}
+            </p>
+            <p class="text-base sm:text-lg leading-relaxed text-foreground/75 max-w-3xl">
+              {hero.summary_ptbr}
+            </p>
+          </article>
 
-            {/* Hero article */}
-            <article class="lg:col-span-3 lg:pr-8 pb-8 lg:pb-0">
-              <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-2">
-                {hero.category}
-              </p>
-              <a href={`/${latest.slug}`}>
-                <h2 class="font-serif text-3xl sm:text-4xl font-bold leading-tight tracking-tight mb-3 hover:opacity-60 transition-opacity">
-                  {hero.title}
-                </h2>
-              </a>
-              <p class="font-mono text-[0.65rem] text-muted-foreground mb-4 flex items-center gap-2">
-                <span>{hero.source}</span>
-                {hero.reading_time_min && (
-                  <>
-                    <span>&middot;</span>
-                    <span>{hero.reading_time_min} min de leitura</span>
-                  </>
-                )}
-              </p>
-              <p class="text-base leading-relaxed text-foreground/80 line-clamp-5">
-                {hero.summary_ptbr}
-              </p>
-              <a
-                href={`/${latest.slug}`}
-                class="mt-5 inline-block font-mono text-[0.65rem] tracking-widest uppercase border-b border-foreground pb-px hover:opacity-60 transition-opacity"
-              >
-                Ler edição completa &rarr;
-              </a>
-            </article>
+          <div class="border-t border-foreground/15 mb-8 sm:mb-10"></div>
 
-            {/* Sidebar: 2 artigos secund\u00e1rios */}
-            {sidebarArticles.length > 0 && (
-              <aside class="lg:col-span-2 lg:pl-8 pt-8 lg:pt-0 space-y-6">
-                {sidebarArticles.map((article) => (
-                  <a href={`/${latest.slug}`} class="block group">
-                    <p class="font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground mb-1">
-                      {article.category}
-                    </p>
-                    <h3 class="font-serif text-lg font-semibold leading-snug group-hover:opacity-60 transition-opacity mb-2">
-                      {article.title}
-                    </h3>
-                    <p class="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                      {article.summary_ptbr}
-                    </p>
-                  </a>
-                ))}
-              </aside>
-            )}
-          </div>
+          {/* ── ARTIGOS POR CATEGORIA (layout jornal) ── */}
+          {orderedCategories.length > 0 && (
+            <div class="space-y-8 sm:space-y-10">
+              {orderedCategories.map((cat) => {
+                const catArticles = grouped[cat]!
+                const isMultiple = catArticles.length > 1
+                return (
+                  <section>
+                    {/* Cabeçalho de categoria */}
+                    <div class="flex items-center gap-3 mb-5">
+                      <h3 class="font-mono text-[0.65rem] sm:text-xs tracking-widest uppercase font-bold text-foreground shrink-0">
+                        {cat}
+                      </h3>
+                      <div class="h-px flex-1 bg-foreground/15"></div>
+                    </div>
 
-          {/* ── GRID 3 COLUNAS ── */}
-          {gridArticles.length > 0 && (
-            <>
-              <div class="border-t border-foreground/20 my-8"></div>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border">
-                {gridArticles.map((article) => (
-                  <a
-                    href={`/${latest.slug}`}
-                    class="block group py-6 sm:py-0 sm:px-6 first:sm:pl-0 last:sm:pr-0"
-                  >
-                    <p class="font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground mb-1">
-                      {article.category}
-                    </p>
-                    <h3 class="font-serif text-base font-semibold leading-snug group-hover:opacity-60 transition-opacity mb-2">
-                      {article.title}
-                    </h3>
-                    <p class="text-sm text-muted-foreground line-clamp-4 leading-relaxed">
-                      {article.summary_ptbr}
-                    </p>
-                  </a>
-                ))}
-              </div>
-            </>
+                    {isMultiple ? (
+                      <div class="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-foreground/10">
+                        {catArticles.map((article) => (
+                          <a
+                            href={`/${latest.slug}`}
+                            class="block group py-4 sm:py-0 sm:px-6 first:sm:pl-0 last:sm:pr-0"
+                          >
+                            <p class="font-mono text-[0.55rem] tracking-widest text-muted-foreground mb-1">
+                              {article.source}
+                              {article.reading_time_min ? ` · ${article.reading_time_min} min` : ''}
+                            </p>
+                            <h4 class="font-serif text-lg sm:text-xl font-semibold leading-snug group-hover:opacity-60 transition-opacity mb-2">
+                              {article.title}
+                            </h4>
+                            <p class="text-sm text-foreground/60 line-clamp-3 leading-relaxed">
+                              {article.summary_ptbr}
+                            </p>
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <a href={`/${latest.slug}`} class="block group">
+                        <p class="font-mono text-[0.55rem] tracking-widest text-muted-foreground mb-1">
+                          {catArticles[0].source}
+                          {catArticles[0].reading_time_min ? ` · ${catArticles[0].reading_time_min} min` : ''}
+                        </p>
+                        <h4 class="font-serif text-lg sm:text-xl font-semibold leading-snug group-hover:opacity-60 transition-opacity mb-2">
+                          {catArticles[0].title}
+                        </h4>
+                        <p class="text-sm text-foreground/60 line-clamp-3 leading-relaxed max-w-2xl">
+                          {catArticles[0].summary_ptbr}
+                        </p>
+                      </a>
+                    )}
+                  </section>
+                )
+              })}
+            </div>
           )}
+
+          {/* ── LINK EDIÇÃO COMPLETA ── */}
+          <div class="border-t border-foreground/15 mt-8 sm:mt-10 pt-6 text-center">
+            <a
+              href={`/${latest.slug}`}
+              class="font-mono text-[0.65rem] tracking-widest uppercase border-b border-foreground/40 pb-px hover:border-foreground hover:opacity-80 transition-all"
+            >
+              Ler edição completa &rarr;
+            </a>
+          </div>
         </>
       ) : (
-        <div class="py-16 text-center border-y border-border">
+        <div class="py-16 text-center">
           <p class="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-3">
             Em breve
           </p>
@@ -178,15 +194,15 @@ const today = formatFullDate(new Date())
       )}
 
       {/* ── SUBSCRIBE ── */}
-      <div class="py-14 my-10 text-center">
+      <div class="py-10 sm:py-14 my-8 sm:my-10 text-center">
         <div class="max-w-sm mx-auto">
-          <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
+          <p class="font-mono text-[0.55rem] sm:text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
             Receba toda segunda-feira
           </p>
-          <h2 class="font-serif text-2xl sm:text-3xl font-bold mb-2">
+          <h2 class="font-serif text-xl sm:text-2xl font-bold mb-2">
             Assine o {SITE_NAME}
           </h2>
-          <p class="text-sm text-muted-foreground mb-8">
+          <p class="text-sm text-muted-foreground mb-6">
             Curadoria semanal gratuita, direto no seu email.
           </p>
           <form id="subscribe-form" class="flex flex-col sm:flex-row gap-3">
@@ -208,29 +224,29 @@ const today = formatFullDate(new Date())
         </div>
       </div>
 
-      {/* ── EDI\u00c7\u00d5ES ANTERIORES ── */}
+      {/* ── EDIÇÕES ANTERIORES ── */}
       {recentEditions.length > 0 && (
         <section class="mb-10">
           <div class="flex items-center gap-3 mb-5">
-            <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground shrink-0">
+            <h3 class="font-mono text-[0.65rem] sm:text-xs tracking-widest uppercase font-bold text-foreground shrink-0">
               Edições anteriores
-            </p>
-            <div class="h-px flex-1 bg-border"></div>
+            </h3>
+            <div class="h-px flex-1 bg-foreground/15"></div>
           </div>
-          <ul class="divide-y divide-border">
+          <ul class="divide-y divide-foreground/10">
             {recentEditions.map((edition) => (
               <li>
                 <a
                   href={`/${edition.slug}`}
-                  class="flex items-baseline justify-between py-4 hover:opacity-60 transition-opacity group"
+                  class="flex items-baseline justify-between py-3 sm:py-4 hover:opacity-60 transition-opacity group"
                 >
-                  <span class="font-mono text-[0.65rem] text-muted-foreground mr-4 shrink-0">
+                  <span class="font-mono text-[0.6rem] sm:text-[0.65rem] text-muted-foreground mr-3 sm:mr-4 shrink-0">
                     #{formatEditionNumber(edition.edition_number)}
                   </span>
-                  <span class="font-serif text-base font-semibold flex-1 group-hover:underline underline-offset-2">
+                  <span class="font-serif text-sm sm:text-base font-semibold flex-1 group-hover:underline underline-offset-2">
                     {edition.title}
                   </span>
-                  <span class="font-mono text-[0.65rem] text-muted-foreground ml-4 shrink-0">
+                  <span class="font-mono text-[0.6rem] sm:text-[0.65rem] text-muted-foreground ml-3 sm:ml-4 shrink-0 hidden sm:inline">
                     {formatShortDate(edition.created_at)}
                   </span>
                 </a>
@@ -240,7 +256,7 @@ const today = formatFullDate(new Date())
           <div class="mt-5 text-center">
             <a
               href="/archive"
-              class="font-mono text-[0.65rem] tracking-widest uppercase border-b border-muted-foreground pb-px text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+              class="font-mono text-[0.65rem] tracking-widest uppercase border-b border-foreground/30 pb-px text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
             >
               Ver todas as edições &rarr;
             </a>
