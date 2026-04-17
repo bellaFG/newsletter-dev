@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
-import { resend } from '@/lib/resend'
+import { sgMail } from '@/lib/sendgrid'
+import { render } from '@react-email/render'
 import { createServerClient } from '@/lib/supabase'
 import { NewsletterEmail } from '../../../emails/NewsletterEmail'
 import type { Article, Edition } from '@/lib/types'
@@ -8,11 +9,10 @@ import { EMAIL_FROM, EMAIL_BATCH_SIZE, DEFAULT_SITE_URL } from '@/lib/config'
 /**
  * POST /api/send-newsletter
  *
- * Envia a newsletter para todos os subscribers ativos.
+ * Envia a newsletter para todos os subscribers ativos via SendGrid.
  *
  * Autenticacao: Bearer token via header Authorization (NEWSLETTER_API_SECRET).
  * Idempotencia: se a edicao ja foi enviada (sent_at != null), retorna 200 sem reenviar.
- * Falha parcial: continua enviando batches mesmo se um falhar; so marca sent_at se todos tiveram sucesso.
  */
 export const POST: APIRoute = async ({ request }) => {
   // ── Autenticacao via Bearer token ──
@@ -75,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const baseUrl = import.meta.env.SITE_URL ?? DEFAULT_SITE_URL
 
-  // ── Envio em batches com tratamento de falha parcial ──
+  // ── Envio em batches ──
   const allSubscribers = subscribers.map((s) => s.email)
   let totalSent = 0
   const batchErrors: string[] = []
@@ -84,23 +84,30 @@ export const POST: APIRoute = async ({ request }) => {
     const batch = allSubscribers.slice(i, i + EMAIL_BATCH_SIZE)
     const batchIndex = Math.floor(i / EMAIL_BATCH_SIZE) + 1
 
-    const emails = batch.map((email) => ({
-      from: EMAIL_FROM,
-      to: email,
-      subject: edition.title,
-      react: NewsletterEmail({
-        edition: edition as Edition,
-        articles: (articles ?? []) as Article[],
-        unsubscribeUrl: `${baseUrl}/unsubscribe?email=${encodeURIComponent(email)}`,
-      }),
-    }))
+    try {
+      const messages = await Promise.all(
+        batch.map(async (email) => {
+          const html = await render(
+            NewsletterEmail({
+              edition: edition as Edition,
+              articles: (articles ?? []) as Article[],
+              unsubscribeUrl: `${baseUrl}/unsubscribe?email=${encodeURIComponent(email)}`,
+            }),
+          )
+          return {
+            to: email,
+            from: EMAIL_FROM,
+            subject: edition.title,
+            html,
+          }
+        }),
+      )
 
-    const { error: sendError } = await resend.batch.send(emails)
-
-    if (sendError) {
-      batchErrors.push(`Batch ${batchIndex}: ${sendError.message}`)
-    } else {
+      await sgMail.send(messages)
       totalSent += batch.length
+    } catch (err: any) {
+      const msg = err?.response?.body?.errors?.[0]?.message ?? err?.message ?? 'Unknown error'
+      batchErrors.push(`Batch ${batchIndex}: ${msg}`)
     }
   }
 
@@ -114,7 +121,6 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ success: true, sent_to: totalSent }))
   }
 
-  // Falha parcial: alguns emails foram enviados, outros nao
   return new Response(
     JSON.stringify({
       error: 'Partial send failure',

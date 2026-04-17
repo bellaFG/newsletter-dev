@@ -13,7 +13,7 @@ export const SITE_DESCRIPTION =
 export const MASTHEAD_SUBTITLE = 'Newsletter \u00b7 Semanal \u00b7 IA & Dev'
 
 /** Remetente dos emails enviados via Resend */
-export const EMAIL_FROM = 'DevPulse <onboarding@resend.dev>'
+export const EMAIL_FROM = 'isabella.ferzales@gmail.com'
 
 /** Limite de emails por chamada da Resend batch API */
 export const EMAIL_BATCH_SIZE = 100
