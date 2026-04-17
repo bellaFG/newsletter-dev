@@ -1,15 +1,20 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from './types'
+import { requireEnv } from './env'
 
-const supabaseUrl = process.env.SUPABASE_URL!
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!
+/** Cliente publico (anon key) — seguro para uso em paginas server-side */
+export const supabase = createClient<Database>(
+  requireEnv('SUPABASE_URL'),
+  requireEnv('SUPABASE_ANON_KEY'),
+)
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey)
-
-// Cliente com service role — usar apenas em API routes (server-side)
-export function createServiceClient() {
+/**
+ * Cliente com service role — APENAS para API routes (server-side).
+ * Bypassa RLS e tem acesso total ao banco. Nunca expor no client.
+ */
+export function createServerClient() {
   return createClient<Database>(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    requireEnv('SUPABASE_URL'),
+    requireEnv('SUPABASE_SERVICE_ROLE_KEY'),
   )
 }

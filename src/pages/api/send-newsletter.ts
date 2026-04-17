@@ -1,10 +1,21 @@
 import type { APIRoute } from 'astro'
 import { resend } from '@/lib/resend'
-import { createServiceClient } from '@/lib/supabase'
+import { createServerClient } from '@/lib/supabase'
 import { NewsletterEmail } from '../../../emails/NewsletterEmail'
 import type { Article, Edition } from '@/lib/types'
+import { EMAIL_FROM, EMAIL_BATCH_SIZE, DEFAULT_SITE_URL } from '@/lib/config'
 
+/**
+ * POST /api/send-newsletter
+ *
+ * Envia a newsletter para todos os subscribers ativos.
+ *
+ * Autenticacao: Bearer token via header Authorization (NEWSLETTER_API_SECRET).
+ * Idempotencia: se a edicao ja foi enviada (sent_at != null), retorna 200 sem reenviar.
+ * Falha parcial: continua enviando batches mesmo se um falhar; so marca sent_at se todos tiveram sucesso.
+ */
 export const POST: APIRoute = async ({ request }) => {
+  // ── Autenticacao via Bearer token ──
   const authHeader = request.headers.get('authorization')
   const expectedSecret = `Bearer ${import.meta.env.NEWSLETTER_API_SECRET}`
 
@@ -18,8 +29,9 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'edition_id is required' }), { status: 400 })
   }
 
-  const supabase = createServiceClient()
+  const supabase = createServerClient()
 
+  // ── Busca a edicao ──
   const { data: edition, error: editionError } = await supabase
     .from('editions')
     .select('*')
@@ -28,6 +40,14 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (editionError || !edition) {
     return new Response(JSON.stringify({ error: 'Edition not found' }), { status: 404 })
+  }
+
+  // ── Idempotencia: evita envio duplicado ──
+  if (edition.sent_at) {
+    return new Response(
+      JSON.stringify({ message: 'Newsletter already sent', sent_at: edition.sent_at }),
+      { status: 200 },
+    )
   }
 
   const { data: articles, error: articlesError } = await supabase
@@ -53,19 +73,19 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ message: 'No active subscribers' }), { status: 200 })
   }
 
-  const baseUrl = import.meta.env.SITE_URL ?? 'https://devpulse.com.br'
+  const baseUrl = import.meta.env.SITE_URL ?? DEFAULT_SITE_URL
 
-  // Envia um email por subscriber para gerar URL de unsubscribe personalizada
-  // Resend batch: máximo 100 por chamada
-  const BATCH_SIZE = 100
+  // ── Envio em batches com tratamento de falha parcial ──
   const allSubscribers = subscribers.map((s) => s.email)
   let totalSent = 0
+  const batchErrors: string[] = []
 
-  for (let i = 0; i < allSubscribers.length; i += BATCH_SIZE) {
-    const batch = allSubscribers.slice(i, i + BATCH_SIZE)
+  for (let i = 0; i < allSubscribers.length; i += EMAIL_BATCH_SIZE) {
+    const batch = allSubscribers.slice(i, i + EMAIL_BATCH_SIZE)
+    const batchIndex = Math.floor(i / EMAIL_BATCH_SIZE) + 1
 
     const emails = batch.map((email) => ({
-      from: 'DevPulse <newsletter@devpulse.com.br>',
+      from: EMAIL_FROM,
       to: email,
       subject: edition.title,
       react: NewsletterEmail({
@@ -78,16 +98,29 @@ export const POST: APIRoute = async ({ request }) => {
     const { error: sendError } = await resend.batch.send(emails)
 
     if (sendError) {
-      return new Response(JSON.stringify({ error: sendError.message }), { status: 500 })
+      batchErrors.push(`Batch ${batchIndex}: ${sendError.message}`)
+    } else {
+      totalSent += batch.length
     }
-
-    totalSent += batch.length
   }
 
-  await supabase
-    .from('editions')
-    .update({ sent_at: new Date().toISOString() })
-    .eq('id', edition_id)
+  // So marca como enviado se TODOS os batches tiveram sucesso
+  if (batchErrors.length === 0) {
+    await supabase
+      .from('editions')
+      .update({ sent_at: new Date().toISOString() })
+      .eq('id', edition_id)
 
-  return new Response(JSON.stringify({ success: true, sent_to: totalSent }))
+    return new Response(JSON.stringify({ success: true, sent_to: totalSent }))
+  }
+
+  // Falha parcial: alguns emails foram enviados, outros nao
+  return new Response(
+    JSON.stringify({
+      error: 'Partial send failure',
+      sent_to: totalSent,
+      batch_errors: batchErrors,
+    }),
+    { status: 207 },
+  )
 }
