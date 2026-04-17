@@ -1,5 +1,10 @@
-// Tipos gerados manualmente a partir do schema do Supabase
-// Quando tiver as credenciais, substitua com: npx supabase gen types typescript --linked
+/**
+ * Tipos do banco de dados Supabase.
+ * Espelham as tabelas definidas em supabase/schema.sql.
+ *
+ * Gerados manualmente — para gerar automaticamente com credenciais:
+ *   npx supabase gen types typescript --linked
+ */
 
 export type Database = {
   public: {

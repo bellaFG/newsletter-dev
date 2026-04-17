@@ -1,5 +1,5 @@
 -- DevPulse — Schema completo
--- Rode no SQL Editor do Supabase (app.supabase.com → SQL Editor)
+-- Rode no SQL Editor do Supabase (app.supabase.com -> SQL Editor)
 
 -- =============================================
 -- TABELAS
@@ -7,11 +7,11 @@
 
 CREATE TABLE editions (
   id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  slug           TEXT UNIQUE NOT NULL,
+  slug           TEXT UNIQUE NOT NULL,        -- formato: "YYYY-MM-DD"
   edition_number INTEGER NOT NULL,
-  title          TEXT NOT NULL,
+  title          TEXT NOT NULL,               -- ex: "DevPulse #001"
   summary        TEXT,
-  sent_at        TIMESTAMPTZ,
+  sent_at        TIMESTAMPTZ,                 -- preenchido apos envio dos emails
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -20,24 +20,24 @@ CREATE TABLE articles (
   edition_id        UUID REFERENCES editions(id) ON DELETE CASCADE,
   title             TEXT NOT NULL,
   url               TEXT NOT NULL,
-  summary_ptbr      TEXT NOT NULL,
-  source            TEXT NOT NULL,
-  category          TEXT NOT NULL,
+  summary_ptbr      TEXT NOT NULL,            -- resumo traduzido/curado em pt-BR
+  source            TEXT NOT NULL,            -- ex: "Hacker News", "dev.to"
+  category          TEXT NOT NULL,            -- uma das 9 categorias editoriais
   original_language TEXT DEFAULT 'en',
   reading_time_min  INTEGER,
-  position          INTEGER,
+  position          INTEGER,                  -- ordem de exibicao dentro da edicao
   created_at        TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE subscribers (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email      TEXT UNIQUE NOT NULL,
-  active     BOOLEAN DEFAULT TRUE,
+  active     BOOLEAN DEFAULT TRUE,           -- false = cancelou inscricao
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- =============================================
--- ÍNDICES
+-- INDICES
 -- =============================================
 
 CREATE INDEX idx_articles_edition_id ON articles(edition_id);
@@ -46,14 +46,21 @@ CREATE INDEX idx_editions_slug ON editions(slug);
 CREATE INDEX idx_editions_created_at ON editions(created_at DESC);
 
 -- =============================================
--- ROW LEVEL SECURITY
+-- ROW LEVEL SECURITY (RLS)
+--
+-- Estrategia:
+-- - editions/articles: leitura publica (site), escrita via service role (pipeline)
+-- - subscribers: insercao anonima (formulario), leitura/atualizacao via service role
+--
+-- O anon NAO pode SELECT em subscribers, prevenindo exfiltracao de emails.
+-- A insercao anonima permite o formulario de inscricao funcionar sem autenticacao.
 -- =============================================
 
 ALTER TABLE editions    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE articles    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 
--- editions: leitura pública, escrita apenas via service role
+-- editions: leitura publica (paginas do site), escrita apenas via service role (pipeline)
 CREATE POLICY "editions_select_public"
   ON editions FOR SELECT
   TO anon, authenticated
@@ -69,7 +76,7 @@ CREATE POLICY "editions_update_service"
   TO service_role
   USING (true);
 
--- articles: leitura pública, escrita apenas via service role
+-- articles: leitura publica (paginas do site), escrita apenas via service role (pipeline)
 CREATE POLICY "articles_select_public"
   ON articles FOR SELECT
   TO anon, authenticated
@@ -80,12 +87,14 @@ CREATE POLICY "articles_insert_service"
   TO service_role
   WITH CHECK (true);
 
--- subscribers: anon pode inserir (formulário de inscrição), service role lê tudo
+-- subscribers: anon pode INSERIR (formulario publico de inscricao)
+-- Nao pode SELECT — impede enumeracao de emails por clientes anonimos
 CREATE POLICY "subscribers_insert_anon"
   ON subscribers FOR INSERT
   TO anon
   WITH CHECK (true);
 
+-- subscribers: service role pode ler (envio de newsletter) e atualizar (unsubscribe)
 CREATE POLICY "subscribers_select_service"
   ON subscribers FOR SELECT
   TO service_role
