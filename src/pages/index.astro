@@ -49,7 +49,7 @@ const today = formatFullDate(new Date())
 
 <Layout>
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-5xl px-4 sm:px-6 py-6 sm:py-8">
+    <div class="mx-auto max-w-6xl px-6 sm:px-10 py-6 sm:py-8">
 
       {/* ── MASTHEAD ── */}
       <header class="mb-8">
@@ -62,7 +62,7 @@ const today = formatFullDate(new Date())
           </p>
         </div>
         <div class="border-b-4 border-double border-foreground py-4 sm:py-5 text-center">
-          <h1 class="font-serif text-[clamp(3rem,12vw,5rem)] font-black leading-[0.85] tracking-tighter uppercase">
+          <h1 class="font-serif text-[clamp(3.5rem,14vw,7rem)] font-black leading-[0.85] tracking-tighter uppercase">
             {SITE_NAME.toUpperCase()}
           </h1>
           <p class="font-mono text-xs tracking-[0.3em] uppercase text-muted-foreground mt-2">
@@ -148,10 +148,10 @@ const today = formatFullDate(new Date())
           <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground mb-3">
             Em breve
           </p>
-          <h2 class="font-serif text-3xl font-bold mb-4">
+          <h2 class="font-serif text-4xl sm:text-5xl font-bold mb-4">
             A primeira edição chega segunda-feira.
           </h2>
-          <p class="text-muted-foreground max-w-sm mx-auto">
+          <p class="text-muted-foreground max-w-lg mx-auto">
             Inscreva-se para receber {SITE_NAME} diretamente no seu email.
           </p>
         </section>
@@ -168,7 +168,7 @@ const today = formatFullDate(new Date())
         <p class="text-sm text-muted-foreground mb-6">
           Curadoria semanal gratuita de artigos, ferramentas e tendências dev.
         </p>
-        <form id="subscribe-form" class="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+        <form id="subscribe-form" class="flex flex-col sm:flex-row gap-2 max-w-xl mx-auto">
           <input
             type="email"
             name="email"
