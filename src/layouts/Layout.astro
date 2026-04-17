@@ -1,0 +1,26 @@
+---
+import '@/styles/globals.css'
+
+interface Props {
+  title?: string
+  description?: string
+}
+
+const {
+  title = 'DevPulse — Newsletter semanal para devs brasileiros',
+  description = 'Curadoria semanal de artigos, ferramentas e tendências do mundo dev, traduzida e resumida por IA. Toda sexta-feira.',
+} = Astro.props
+---
+
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+  </head>
+  <body class="antialiased">
+    <slot />
+  </body>
+</html>

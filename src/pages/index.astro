@@ -1,0 +1,76 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import { supabase } from '@/lib/supabase'
+import type { Edition } from '@/lib/types'
+
+const { data } = await supabase
+  .from('editions')
+  .select('*')
+  .order('edition_number', { ascending: false })
+  .limit(1)
+  .single()
+
+const latest = data as Edition | null
+---
+
+<Layout>
+  <div class="min-h-screen bg-background text-foreground">
+    <div class="mx-auto max-w-2xl px-6 py-20">
+      <!-- Header -->
+      <header class="mb-16 text-center">
+        <p class="mb-3 text-sm font-mono tracking-widest text-muted-foreground uppercase">
+          newsletter
+        </p>
+        <h1 class="mb-4 text-5xl font-bold tracking-tight">DevPulse</h1>
+        <p class="text-lg text-muted-foreground leading-relaxed">
+          Curadoria semanal de artigos, ferramentas e tendências do mundo dev —
+          traduzida e resumida por IA. Toda sexta-feira.
+        </p>
+      </header>
+
+      <!-- Latest edition -->
+      {latest ? (
+        <section class="mb-12">
+          <p class="mb-3 text-xs font-mono tracking-widest text-muted-foreground uppercase">
+            Última edição
+          </p>
+          <a
+            href={`/${latest.slug}`}
+            class="block rounded-lg border border-border p-6 transition-colors hover:bg-muted"
+          >
+            <p class="mb-1 text-sm text-muted-foreground font-mono">
+              {new Date(latest.created_at).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+            <h2 class="mb-2 text-xl font-semibold">{latest.title}</h2>
+            {latest.summary && (
+              <p class="text-muted-foreground leading-relaxed text-sm">
+                {latest.summary}
+              </p>
+            )}
+            <span class="mt-4 inline-block text-sm font-medium">
+              Ler edição →
+            </span>
+          </a>
+        </section>
+      ) : (
+        <section class="mb-12 rounded-lg border border-border p-6 text-center text-muted-foreground">
+          <p>Nenhuma edição publicada ainda. Volte na próxima sexta!</p>
+        </section>
+      )}
+
+      <!-- Archive link -->
+      <div class="text-center">
+        <a
+          href="/archive"
+          class="text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          Ver todas as edições →
+        </a>
+      </div>
+    </div>
+  </div>
+</Layout>

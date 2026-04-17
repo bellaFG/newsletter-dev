@@ -13,7 +13,7 @@ def publish(curation: CurationOutput) -> str:
     Retorna o edition_id gerado.
     """
     supabase = create_client(
-        os.environ["NEXT_PUBLIC_SUPABASE_URL"],
+        os.environ["SUPABASE_URL"],
         os.environ["SUPABASE_SERVICE_ROLE_KEY"],
     )
 
@@ -57,7 +57,7 @@ def publish(curation: CurationOutput) -> str:
     logger.info(f"[Publisher] {len(articles_payload)} artigos salvos")
 
     # ── 4. Dispara o envio do e-mail via API do Next.js ───────────────────────
-    web_url = os.environ.get("NEXT_PUBLIC_SITE_URL", "http://localhost:3000")
+    web_url = os.environ.get("SITE_URL", "http://localhost:4321")
     api_secret = os.environ["NEWSLETTER_API_SECRET"]
 
     response = requests.post(
