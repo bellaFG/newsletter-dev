@@ -32,12 +32,12 @@ const grouped = groupByCategory(articles)
 const orderedCategories = getOrderedCategories(grouped)
 ---
 
-<Layout title={`${edition.title} \u2014 ${SITE_NAME}`} description={edition.summary ?? undefined}>
+<Layout title={`${edition.title} — ${SITE_NAME}`} description={edition.summary ?? undefined}>
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
 
       {/* ── MASTHEAD COMPACTO ── */}
-      <header class="border-b-2 border-foreground pb-4 mb-8">
+      <header class="border-b border-foreground/30 pb-4 mb-8">
         <div class="flex items-baseline justify-between">
           <a
             href="/"
@@ -46,12 +46,12 @@ const orderedCategories = getOrderedCategories(grouped)
             {SITE_NAME.toUpperCase()}
           </a>
           <span class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
-            Edi\u00e7\u00e3o #{formatEditionNumber(edition.edition_number)}
+            Edição #{formatEditionNumber(edition.edition_number)}
           </span>
         </div>
       </header>
 
-      {/* ── CABE\u00c7ALHO DA EDI\u00c7\u00c3O ── */}
+      {/* ── CABEÇALHO DA EDIÇÃO ── */}
       <div class="mb-10">
         <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground mb-3">
           {formatFullDate(edition.created_at)}
@@ -66,7 +66,7 @@ const orderedCategories = getOrderedCategories(grouped)
         )}
       </div>
 
-      <div class="border-t-2 border-foreground mb-10"></div>
+      <div class="border-t border-foreground/20 mb-10"></div>
 
       {/* ── ARTIGOS POR CATEGORIA ── */}
       <main>
@@ -74,11 +74,11 @@ const orderedCategories = getOrderedCategories(grouped)
           <section class="mb-12">
             {/* Divisor de categoria estilo jornal */}
             <div class="flex items-center gap-3 mb-7">
-              <div class="h-px flex-1 bg-foreground"></div>
-              <p class="font-mono text-[0.6rem] tracking-[0.25em] uppercase font-bold text-foreground shrink-0 px-2">
+              <div class="h-px flex-1 bg-foreground/20"></div>
+              <p class="font-mono text-[0.6rem] tracking-[0.25em] uppercase font-bold text-foreground/70 shrink-0 px-2">
                 {cat}
               </p>
-              <div class="h-px flex-1 bg-foreground"></div>
+              <div class="h-px flex-1 bg-foreground/20"></div>
             </div>
 
             <div class="space-y-10">
@@ -114,19 +114,19 @@ const orderedCategories = getOrderedCategories(grouped)
         ))}
       </main>
 
-      {/* ── RODAP\u00c9 ── */}
-      <footer class="border-t-2 border-foreground pt-8 mt-4 flex items-center justify-between">
+      {/* ── RODAPÉ ── */}
+      <footer class="border-t border-foreground/20 pt-8 mt-4 flex items-center justify-between">
         <a
           href="/"
           class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
         >
-          &larr; In\u00edcio
+          &larr; Início
         </a>
         <a
           href="/archive"
           class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
         >
-          Todas as edi\u00e7\u00f5es &rarr;
+          Todas as edições &rarr;
         </a>
       </footer>
 

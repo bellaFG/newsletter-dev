@@ -50,7 +50,7 @@ const today = formatFullDate(new Date())
     <div class="mx-auto max-w-4xl px-6 py-10">
 
       {/* ── MASTHEAD ── */}
-      <header class="border-b-4 border-foreground pb-5 mb-1">
+      <header class="border-b-2 border-foreground/40 pb-5 mb-1">
         <div class="flex items-center justify-between mb-3">
           <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
             {today}
@@ -64,22 +64,22 @@ const today = formatFullDate(new Date())
             {SITE_NAME.toUpperCase()}
           </h1>
           <div class="mt-3 flex items-center gap-3 justify-center">
-            <div class="h-px w-16 bg-foreground"></div>
+            <div class="h-px w-16 bg-foreground/25"></div>
             <p class="font-mono text-[0.6rem] tracking-[0.25em] uppercase text-muted-foreground">
               {MASTHEAD_SUBTITLE}
             </p>
-            <div class="h-px w-16 bg-foreground"></div>
+            <div class="h-px w-16 bg-foreground/25"></div>
           </div>
         </div>
       </header>
-      <div class="border-t border-foreground mt-1 mb-8"></div>
+      <div class="border-t border-foreground/20 mt-1 mb-8"></div>
 
       {latest && hero ? (
         <>
           {/* ── EDI\u00c7\u00c3O ATUAL: LABEL ── */}
           <div class="flex items-center gap-3 mb-6">
             <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground shrink-0">
-              Edi\u00e7\u00e3o n\u00ba {latest.edition_number} &mdash;{' '}
+              Edição nº {latest.edition_number} &mdash;{' '}
               {formatMediumDate(latest.created_at)}
             </p>
             <div class="h-px flex-1 bg-border"></div>
@@ -114,7 +114,7 @@ const today = formatFullDate(new Date())
                 href={`/${latest.slug}`}
                 class="mt-5 inline-block font-mono text-[0.65rem] tracking-widest uppercase border-b border-foreground pb-px hover:opacity-60 transition-opacity"
               >
-                Ler edi\u00e7\u00e3o completa &rarr;
+                Ler edição completa &rarr;
               </a>
             </article>
 
@@ -141,7 +141,7 @@ const today = formatFullDate(new Date())
           {/* ── GRID 3 COLUNAS ── */}
           {gridArticles.length > 0 && (
             <>
-              <div class="border-t border-foreground my-8"></div>
+              <div class="border-t border-foreground/20 my-8"></div>
               <div class="grid grid-cols-1 sm:grid-cols-3 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-border">
                 {gridArticles.map((article) => (
                   <a
@@ -169,7 +169,7 @@ const today = formatFullDate(new Date())
             Em breve
           </p>
           <h2 class="font-serif text-3xl font-bold mb-4">
-            A primeira edi\u00e7\u00e3o chega segunda-feira.
+            A primeira edição chega segunda-feira.
           </h2>
           <p class="text-muted-foreground max-w-sm mx-auto">
             Inscreva-se para receber {SITE_NAME} diretamente no seu email.
@@ -178,29 +178,34 @@ const today = formatFullDate(new Date())
       )}
 
       {/* ── SUBSCRIBE ── */}
-      <div class="border-y-2 border-foreground py-10 my-10 text-center">
-        <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-2">
-          Receba toda segunda-feira
-        </p>
-        <h2 class="font-serif text-2xl sm:text-3xl font-bold mb-6">
-          Assine o {SITE_NAME} \u2014 \u00e9 gratuito
-        </h2>
-        <form id="subscribe-form" class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-          <input
-            type="email"
-            name="email"
-            placeholder="seu@email.com"
-            required
-            class="flex-1 border border-border bg-background px-4 py-3 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <button
-            type="submit"
-            class="bg-foreground text-background font-mono text-[0.65rem] tracking-widest uppercase px-6 py-3 hover:opacity-75 transition-opacity cursor-pointer"
-          >
-            Assinar
-          </button>
-        </form>
-        <p id="subscribe-msg" class="mt-4 text-sm font-mono hidden"></p>
+      <div class="py-14 my-10 text-center">
+        <div class="max-w-sm mx-auto">
+          <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
+            Receba toda segunda-feira
+          </p>
+          <h2 class="font-serif text-2xl sm:text-3xl font-bold mb-2">
+            Assine o {SITE_NAME}
+          </h2>
+          <p class="text-sm text-muted-foreground mb-8">
+            Curadoria semanal gratuita, direto no seu email.
+          </p>
+          <form id="subscribe-form" class="flex flex-col sm:flex-row gap-3">
+            <input
+              type="email"
+              name="email"
+              placeholder="seu@email.com"
+              required
+              class="flex-1 border border-foreground/20 bg-background px-4 py-3 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-foreground/50 transition-colors"
+            />
+            <button
+              type="submit"
+              class="bg-foreground text-background font-mono text-[0.65rem] tracking-widest uppercase px-6 py-3 hover:opacity-75 transition-opacity cursor-pointer"
+            >
+              Assinar
+            </button>
+          </form>
+          <p id="subscribe-msg" class="mt-4 text-sm font-mono hidden"></p>
+        </div>
       </div>
 
       {/* ── EDI\u00c7\u00d5ES ANTERIORES ── */}
@@ -208,7 +213,7 @@ const today = formatFullDate(new Date())
         <section class="mb-10">
           <div class="flex items-center gap-3 mb-5">
             <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground shrink-0">
-              Edi\u00e7\u00f5es anteriores
+              Edições anteriores
             </p>
             <div class="h-px flex-1 bg-border"></div>
           </div>
@@ -237,7 +242,7 @@ const today = formatFullDate(new Date())
               href="/archive"
               class="font-mono text-[0.65rem] tracking-widest uppercase border-b border-muted-foreground pb-px text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
             >
-              Ver todas as edi\u00e7\u00f5es &rarr;
+              Ver todas as edições &rarr;
             </a>
           </div>
         </section>
@@ -265,7 +270,7 @@ const today = formatFullDate(new Date())
 
       msg.classList.remove('hidden')
       if (res.ok) {
-        msg.textContent = 'Inscrito com sucesso! At\u00e9 segunda-feira.'
+        msg.textContent = 'Inscrito com sucesso! Até segunda-feira.'
         msg.className = 'mt-4 text-sm font-mono text-foreground'
         form.reset()
       } else {
@@ -274,7 +279,7 @@ const today = formatFullDate(new Date())
       }
     } catch {
       msg.classList.remove('hidden')
-      msg.textContent = 'Erro de conex\u00e3o. Tente novamente.'
+      msg.textContent = 'Erro de conexão. Tente novamente.'
       msg.className = 'mt-4 text-sm font-mono text-destructive'
     }
   })
