@@ -1,6 +1,6 @@
 ---
 import '@/styles/globals.css'
-import { SITE_TITLE, SITE_DESCRIPTION } from '@/lib/config'
+import { SITE_NAME, SITE_TITLE, SITE_DESCRIPTION } from '@/lib/config'
 
 interface Props {
   title?: string
@@ -40,6 +40,11 @@ const {
   </head>
   <body class="antialiased">
     <slot />
+
+    <!-- Footer -->
+    <footer class="border-t border-foreground/10 py-6 text-center font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground">
+      &copy; {new Date().getFullYear()} {SITE_NAME}. Todos os direitos reservados.
+    </footer>
 
     <!-- Toggle de tema fixo -->
     <button

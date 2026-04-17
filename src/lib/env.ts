@@ -12,7 +12,8 @@
  * const url = requireEnv('SUPABASE_URL')
  */
 export function requireEnv(key: string): string {
-  const value = process.env[key]
+  // import.meta.env (Astro/Vite dev) tem prioridade, fallback para process.env (produção)
+  const value = (import.meta as any).env?.[key] ?? process.env[key]
   if (!value) {
     throw new Error(
       `[env] Variavel de ambiente obrigatoria ausente: ${key}. ` +
