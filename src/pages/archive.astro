@@ -9,51 +9,108 @@ const { data } = await supabase
   .order('edition_number', { ascending: false })
 
 const editions = (data ?? []) as Edition[]
+
+// Agrupa edições por ano
+const byYear = editions.reduce<Record<string, Edition[]>>((acc, e) => {
+  const year = new Date(e.created_at).getFullYear().toString()
+  if (!acc[year]) acc[year] = []
+  acc[year].push(e)
+  return acc
+}, {})
+
+const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
 ---
 
 <Layout title="Arquivo — DevPulse">
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-2xl px-6 py-16">
-      <!-- Nav -->
-      <nav class="mb-12">
-        <a
-          href="/"
-          class="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ← DevPulse
-        </a>
-      </nav>
+    <div class="mx-auto max-w-3xl px-6 py-10">
 
-      <header class="mb-12">
-        <h1 class="text-3xl font-bold tracking-tight">Todas as edições</h1>
-        <p class="mt-2 text-muted-foreground">
-          {editions.length} {editions.length === 1 ? 'edição publicada' : 'edições publicadas'}
-        </p>
+      {/* ── MASTHEAD COMPACTO ── */}
+      <header class="border-b-2 border-foreground pb-4 mb-8">
+        <div class="flex items-baseline justify-between">
+          <a
+            href="/"
+            class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity"
+          >
+            DEVPULSE
+          </a>
+          <span class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
+            Arquivo
+          </span>
+        </div>
       </header>
 
+      {/* ── CABEÇALHO ── */}
+      <div class="mb-10">
+        <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
+          {editions.length} {editions.length === 1 ? 'edição publicada' : 'edições publicadas'}
+        </p>
+        <h1 class="font-serif text-4xl font-bold tracking-tight">
+          Todas as edições
+        </h1>
+      </div>
+
       {editions.length === 0 ? (
-        <p class="text-muted-foreground">Nenhuma edição publicada ainda.</p>
+        <div class="py-16 text-center border-y border-border">
+          <p class="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-3">
+            Em breve
+          </p>
+          <p class="font-serif text-2xl font-bold">Nenhuma edição publicada ainda.</p>
+        </div>
       ) : (
-        <ul class="space-y-3">
-          {editions.map((edition) => (
-            <li>
-              <a
-                href={`/${edition.slug}`}
-                class="flex items-baseline justify-between rounded-lg border border-border px-5 py-4 transition-colors hover:bg-muted"
-              >
-                <span class="font-medium">{edition.title}</span>
-                <span class="ml-4 shrink-0 text-sm font-mono text-muted-foreground">
-                  {new Date(edition.created_at).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </span>
-              </a>
-            </li>
+        <div class="space-y-10">
+          {years.map((year) => (
+            <section>
+              {/* Divisor de ano */}
+              <div class="flex items-center gap-3 mb-5">
+                <div class="h-px flex-1 bg-foreground"></div>
+                <p class="font-mono text-[0.6rem] tracking-[0.25em] uppercase font-bold text-foreground shrink-0 px-2">
+                  {year}
+                </p>
+                <div class="h-px flex-1 bg-foreground"></div>
+              </div>
+
+              <ul class="divide-y divide-border">
+                {byYear[year].map((edition) => (
+                  <li>
+                    <a
+                      href={`/${edition.slug}`}
+                      class="flex items-baseline justify-between py-4 group hover:opacity-60 transition-opacity"
+                    >
+                      <span class="font-mono text-[0.65rem] text-muted-foreground mr-4 shrink-0">
+                        #{String(edition.edition_number).padStart(3, '0')}
+                      </span>
+                      <span class="font-serif text-base font-semibold flex-1 group-hover:underline underline-offset-2">
+                        {edition.title}
+                      </span>
+                      <span class="font-mono text-[0.65rem] text-muted-foreground ml-4 shrink-0">
+                        {new Date(edition.created_at).toLocaleDateString('pt-BR', {
+                          day: '2-digit',
+                          month: 'short',
+                        })}
+                      </span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
           ))}
-        </ul>
+        </div>
       )}
+
+      {/* ── SUBSCRIBE STRIP ── */}
+      <div class="border-t-2 border-foreground pt-8 mt-12 text-center">
+        <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
+          Ainda não assinou?
+        </p>
+        <a
+          href="/"
+          class="font-serif text-xl font-bold hover:opacity-60 transition-opacity"
+        >
+          Receba DevPulse toda segunda-feira &rarr;
+        </a>
+      </div>
+
     </div>
   </div>
 </Layout>

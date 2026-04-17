@@ -1,9 +1,10 @@
 import type { APIRoute } from 'astro'
 import { resend } from '@/lib/resend'
 import { createServiceClient } from '@/lib/supabase'
+import { NewsletterEmail } from '../../../emails/NewsletterEmail'
+import type { Article, Edition } from '@/lib/types'
 
 export const POST: APIRoute = async ({ request }) => {
-  // Valida o secret para que só o pipeline Python consiga chamar essa rota
   const authHeader = request.headers.get('authorization')
   const expectedSecret = `Bearer ${import.meta.env.NEWSLETTER_API_SECRET}`
 
@@ -19,7 +20,6 @@ export const POST: APIRoute = async ({ request }) => {
 
   const supabase = createServiceClient()
 
-  // Busca a edição e seus artigos
   const { data: edition, error: editionError } = await supabase
     .from('editions')
     .select('*')
@@ -40,7 +40,6 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ error: 'Failed to fetch articles' }), { status: 500 })
   }
 
-  // Busca todos os subscribers ativos
   const { data: subscribers, error: subscribersError } = await supabase
     .from('subscribers')
     .select('email')
@@ -54,42 +53,41 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response(JSON.stringify({ message: 'No active subscribers' }), { status: 200 })
   }
 
-  // Envia o e-mail — por enquanto HTML simples; na Fase 7 substituímos pelo template React Email
-  const emailList = subscribers.map((s) => s.email)
+  const baseUrl = import.meta.env.SITE_URL ?? 'https://devpulse.com.br'
 
-  const { error: sendError } = await resend.emails.send({
-    from: 'DevPulse <onboarding@resend.dev>', // trocar pelo domínio verificado em produção
-    to: emailList,
-    subject: edition.title,
-    html: `
-      <h1>${edition.title}</h1>
-      ${edition.summary ? `<p>${edition.summary}</p>` : ''}
-      <hr />
-      ${(articles ?? [])
-        .map(
-          (a) => `
-        <div>
-          <h2>${a.title}</h2>
-          <p><strong>${a.category}</strong> · ${a.source} · ${a.reading_time_min ? `${a.reading_time_min} min` : ''}</p>
-          <p>${a.summary_ptbr}</p>
-          <a href="${a.url}">Leia completo →</a>
-        </div>
-        <hr />
-      `,
-        )
-        .join('')}
-    `,
-  })
+  // Envia um email por subscriber para gerar URL de unsubscribe personalizada
+  // Resend batch: máximo 100 por chamada
+  const BATCH_SIZE = 100
+  const allSubscribers = subscribers.map((s) => s.email)
+  let totalSent = 0
 
-  if (sendError) {
-    return new Response(JSON.stringify({ error: sendError.message }), { status: 500 })
+  for (let i = 0; i < allSubscribers.length; i += BATCH_SIZE) {
+    const batch = allSubscribers.slice(i, i + BATCH_SIZE)
+
+    const emails = batch.map((email) => ({
+      from: 'DevPulse <newsletter@devpulse.com.br>',
+      to: email,
+      subject: edition.title,
+      react: NewsletterEmail({
+        edition: edition as Edition,
+        articles: (articles ?? []) as Article[],
+        unsubscribeUrl: `${baseUrl}/unsubscribe?email=${encodeURIComponent(email)}`,
+      }),
+    }))
+
+    const { error: sendError } = await resend.batch.send(emails)
+
+    if (sendError) {
+      return new Response(JSON.stringify({ error: sendError.message }), { status: 500 })
+    }
+
+    totalSent += batch.length
   }
 
-  // Atualiza sent_at da edição
   await supabase
     .from('editions')
     .update({ sent_at: new Date().toISOString() })
     .eq('id', edition_id)
 
-  return new Response(JSON.stringify({ success: true, sent_to: emailList.length }))
+  return new Response(JSON.stringify({ success: true, sent_to: totalSent }))
 }
