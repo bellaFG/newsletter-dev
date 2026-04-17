@@ -1,10 +1,24 @@
 import os
+import re
+import unicodedata
 import requests
 from datetime import date
 from loguru import logger
 from supabase import create_client
 
 from pipeline.models import CurationOutput
+
+
+def slugify(text: str, max_length: int = 80) -> str:
+    """Gera um slug URL-safe a partir de texto."""
+    text = unicodedata.normalize("NFD", text)
+    text = text.encode("ascii", "ignore").decode("ascii")
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9]+", "-", text)
+    text = text.strip("-")
+    if len(text) > max_length:
+        text = text[:max_length].rsplit("-", 1)[0]
+    return text
 
 
 def publish(curation: CurationOutput) -> str:
@@ -38,10 +52,20 @@ def publish(curation: CurationOutput) -> str:
     logger.info(f"[Publisher] Edição criada com id={edition_id}")
 
     # ── 3. Insere os artigos ──────────────────────────────────────────────────
-    articles_payload = [
-        {
+    used_slugs: set[str] = set()
+    articles_payload = []
+    for i, a in enumerate(curation.articles):
+        base_slug = slugify(a.title)
+        slug = base_slug
+        counter = 2
+        while slug in used_slugs:
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        used_slugs.add(slug)
+        articles_payload.append({
             "edition_id": edition_id,
             "title": a.title,
+            "title_ptbr": a.title_ptbr,
             "url": a.url,
             "summary_ptbr": a.summary_ptbr,
             "source": a.source,
@@ -49,9 +73,8 @@ def publish(curation: CurationOutput) -> str:
             "original_language": a.original_language,
             "reading_time_min": a.reading_time_min,
             "position": i + 1,
-        }
-        for i, a in enumerate(curation.articles)
-    ]
+            "slug": slug,
+        })
 
     supabase.table("articles").insert(articles_payload).execute()
     logger.info(f"[Publisher] {len(articles_payload)} artigos salvos")

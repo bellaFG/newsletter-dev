@@ -59,6 +59,7 @@ export type Article = {
   id: string
   edition_id: string
   title: string
+  title_ptbr: string | null
   url: string
   summary_ptbr: string
   source: string
@@ -66,6 +67,7 @@ export type Article = {
   original_language: string
   reading_time_min: number | null
   position: number | null
+  slug: string
   created_at: string
 }
 
@@ -73,6 +75,7 @@ export type ArticleInsert = {
   id?: string
   edition_id: string
   title: string
+  title_ptbr?: string | null
   url: string
   summary_ptbr: string
   source: string
@@ -80,6 +83,7 @@ export type ArticleInsert = {
   original_language?: string
   reading_time_min?: number | null
   position?: number | null
+  slug: string
   created_at?: string
 }
 

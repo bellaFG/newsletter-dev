@@ -33,6 +33,7 @@ const config: Config = {
         destructive: {
           DEFAULT: "var(--destructive)",
         },
+        link: "var(--link)",
         border: "var(--border)",
         input: "var(--input)",
         ring: "var(--ring)",

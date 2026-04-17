@@ -2,8 +2,8 @@
 import Layout from '@/layouts/Layout.astro'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
-import { formatFullDate, formatMediumDate, formatShortDate, formatEditionNumber } from '@/lib/date'
-import { groupByCategory, getOrderedCategories } from '@/lib/articles'
+import { formatFullDate, formatMediumDate, formatShortDate, formatEditionNumber, formatRelativeTime } from '@/lib/date'
+import { CATEGORY_ORDER, CATEGORY_SLUGS } from '@/lib/articles'
 import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
 // Última edição
@@ -27,11 +27,6 @@ if (latest) {
   articles = (data ?? []) as Article[]
 }
 
-const hero = articles[0] ?? null
-const remainingArticles = articles.slice(1)
-const grouped = groupByCategory(remainingArticles)
-const orderedCategories = getOrderedCategories(grouped)
-
 // Edições anteriores
 const { data: archiveData } = await supabase
   .from('editions')
@@ -52,7 +47,7 @@ const today = formatFullDate(new Date())
     <div class="mx-auto max-w-6xl px-6 sm:px-10 py-6 sm:py-8">
 
       {/* ── MASTHEAD ── */}
-      <header class="mb-8">
+      <header class="mb-6">
         <div class="flex items-center justify-between pb-2 border-b border-foreground/10">
           <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
             {today}
@@ -69,77 +64,113 @@ const today = formatFullDate(new Date())
             {MASTHEAD_SUBTITLE}
           </p>
         </div>
+
+        {/* ── CATEGORIAS ── */}
+        <nav class="flex flex-wrap justify-center gap-x-4 gap-y-1.5 py-3 font-mono text-[0.6rem] tracking-widest uppercase">
+          {CATEGORY_ORDER.map((cat, i) => (
+            <>
+              {i > 0 && <span class="text-foreground/20 select-none" aria-hidden="true">|</span>}
+              <a
+                href={`/categoria/${CATEGORY_SLUGS[cat]}`}
+                class="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+              >
+                {cat}
+              </a>
+            </>
+          ))}
+        </nav>
+        <div class="h-px bg-foreground/15"></div>
       </header>
 
-      {latest && hero ? (
+      {/* ── SEARCH BAR ── */}
+      <div class="mb-8">
+        <div class="relative max-w-md mx-auto">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input
+            id="search-input"
+            type="text"
+            placeholder="Buscar na newsletter..."
+            class="w-full border border-foreground/20 bg-background px-4 py-2.5 pl-10 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-foreground/40 transition-colors"
+          />
+        </div>
+        <div id="search-results" class="hidden mt-4 max-w-2xl mx-auto space-y-2"></div>
+      </div>
+
+      {latest && articles.length > 0 ? (
         <>
-          {/* ── EDIÇÃO ATUAL ── */}
+          {/* ── FEATURED WEEKLY EDITION ── */}
           <section class="mb-10">
-            <p class="font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground mb-6 text-center">
-              Edição nº {latest.edition_number} &mdash; {formatMediumDate(latest.created_at)}
-            </p>
+            <div class="border-2 border-foreground/15 p-8 sm:p-10">
+              <div class="flex flex-wrap items-center gap-3 mb-5">
+                <span class="font-mono text-[0.55rem] tracking-widest uppercase font-bold bg-foreground text-background px-2 py-1">
+                  Edição #{formatEditionNumber(latest.edition_number)}
+                </span>
+                <span class="font-mono text-[0.55rem] tracking-widest uppercase text-link">
+                  {formatMediumDate(latest.created_at)}
+                </span>
+                <span class="font-mono text-[0.55rem] tracking-widest uppercase text-link">
+                  Newsletter Semanal
+                </span>
+              </div>
 
-            {/* Hero */}
-            <article class="text-center mb-10">
-              <span class="inline-block font-mono text-[0.5rem] tracking-widest uppercase text-muted-foreground border border-foreground/20 px-2 py-0.5 mb-4">
-                {hero.category}
-              </span>
-              <a href={`/${latest.slug}`} class="block group">
-                <h2 class="font-serif text-3xl sm:text-4xl font-black leading-[1.1] tracking-tight mb-4 group-hover:opacity-60 transition-opacity">
-                  {hero.title}
-                </h2>
-              </a>
-              <p class="text-base leading-relaxed text-foreground/70 mb-3">
-                {hero.summary_ptbr}
+              {/* Artigo destaque */}
+              {articles[0] && (
+                <div class="mb-5">
+                  <p class="font-mono text-[0.5rem] tracking-widest uppercase text-link mb-2">
+                    {articles[0].category} &middot; {articles[0].source}
+                  </p>
+                  <h2 class="font-serif text-2xl sm:text-3xl font-black leading-[1.15] tracking-tight mb-2">
+                    {articles[0].title_ptbr ?? articles[0].title}
+                  </h2>
+                  <p class="text-sm leading-relaxed text-foreground/70 line-clamp-2">
+                    {articles[0].summary_ptbr}
+                  </p>
+                </div>
+              )}
+
+              <div class="h-px bg-foreground/10 mb-5"></div>
+
+              {/* Resumo da edição */}
+              <p class="text-sm text-foreground/50 mb-5">
+                + {articles.length - 1} artigos sobre {[...new Set(articles.slice(1).map(a => a.category))].slice(0, 3).join(', ')} e mais
               </p>
-              <p class="font-mono text-[0.55rem] text-muted-foreground">
-                {hero.source}
-                {hero.reading_time_min && <> &middot; {hero.reading_time_min} min de leitura</>}
-              </p>
-            </article>
 
-            <div class="h-px bg-foreground/15 mb-10"></div>
-
-            {/* Artigos restantes — empilhados */}
-            {orderedCategories.map((cat, catIdx) => {
-              const catArticles = grouped[cat]!
-              return (
-                <section class:list={[catIdx > 0 && "border-t border-foreground/15 pt-8 mt-8"]}>
-                  <div class="flex items-center gap-3 mb-5">
-                    <h3 class="font-mono text-[0.6rem] tracking-widest uppercase font-bold shrink-0 bg-foreground text-background px-2 py-1">
-                      {cat}
-                    </h3>
-                    <div class="h-px flex-1 bg-foreground/15"></div>
-                  </div>
-
-                  <div class="space-y-6">
-                    {catArticles.map((article) => (
-                      <a href={`/${latest.slug}`} class="block group">
-                        <h4 class="font-serif text-xl font-bold leading-snug group-hover:opacity-60 transition-opacity mb-2">
-                          {article.title}
-                        </h4>
-                        <p class="text-sm text-foreground/60 line-clamp-3 leading-relaxed mb-2">
-                          {article.summary_ptbr}
-                        </p>
-                        <p class="font-mono text-[0.5rem] text-muted-foreground">
-                          {article.source}
-                          {article.reading_time_min ? ` · ${article.reading_time_min} min` : ''}
-                        </p>
-                      </a>
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
-
-            {/* Link edição completa */}
-            <div class="border-y-2 border-foreground/20 py-4 mt-10 text-center">
               <a
                 href={`/${latest.slug}`}
-                class="font-mono text-[0.65rem] tracking-widest uppercase hover:opacity-60 transition-opacity font-bold"
+                class="inline-block bg-link text-white font-mono text-[0.5rem] tracking-widest uppercase px-4 py-2 hover:opacity-75 transition-opacity font-bold"
               >
-                Ler edição completa &rarr;
+                Read Full Edition &rarr;
               </a>
+            </div>
+          </section>
+
+          {/* ── GRID DE CARDS ── */}
+          <section class="mb-10" id="articles-grid">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {articles.map((article) => (
+                <a
+                  href={`/edicao/${latest.slug}/${article.slug}`}
+                  class="block border border-foreground/10 p-5 hover:border-foreground/30 transition-colors group"
+                  data-title={(article.title_ptbr ?? article.title).toLowerCase()}
+                  data-summary={(article.summary_ptbr ?? '').toLowerCase()}
+                >
+                  <h3 class="font-serif text-lg font-bold leading-snug mb-2 group-hover:opacity-60 transition-opacity">
+                    {article.title_ptbr ?? article.title}
+                  </h3>
+                  <p class="text-sm text-foreground/60 line-clamp-2 leading-relaxed mb-3">
+                    {article.summary_ptbr}
+                  </p>
+                  <div class="flex items-center justify-between font-mono text-[0.5rem] text-muted-foreground">
+                    <span class="text-link">{article.source}</span>
+                    <div class="flex items-center gap-2 text-link">
+                      {article.reading_time_min && <span>{article.reading_time_min} min</span>}
+                      <span>{formatRelativeTime(article.created_at)}</span>
+                    </div>
+                  </div>
+                </a>
+              ))}
             </div>
           </section>
         </>
@@ -157,35 +188,6 @@ const today = formatFullDate(new Date())
         </section>
       )}
 
-      {/* ── SUBSCRIBE ── */}
-      <section class="border-t border-foreground/15 py-10 text-center">
-        <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground mb-1">
-          Toda segunda-feira no seu inbox
-        </p>
-        <h2 class="font-serif text-2xl sm:text-3xl font-black mb-2">
-          Assine o {SITE_NAME}
-        </h2>
-        <p class="text-sm text-muted-foreground mb-6">
-          Curadoria semanal gratuita de artigos, ferramentas e tendências dev.
-        </p>
-        <form id="subscribe-form" class="flex flex-col sm:flex-row gap-2 max-w-xl mx-auto">
-          <input
-            type="email"
-            name="email"
-            placeholder="seu@email.com"
-            required
-            class="flex-1 border-2 border-foreground/20 bg-background px-4 py-3 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-foreground transition-colors"
-          />
-          <button
-            type="submit"
-            class="bg-foreground text-background font-mono text-[0.6rem] tracking-widest uppercase px-8 py-3 hover:opacity-75 transition-opacity cursor-pointer font-bold"
-          >
-            Assinar
-          </button>
-        </form>
-        <p id="subscribe-msg" class="mt-3 text-sm font-mono hidden"></p>
-      </section>
-
       {/* ── EDIÇÕES ANTERIORES ── */}
       {recentEditions.length > 0 && (
         <section class="border-t border-foreground/15 pt-8 pb-4">
@@ -202,13 +204,13 @@ const today = formatFullDate(new Date())
                   href={`/${edition.slug}`}
                   class="flex items-baseline justify-between py-3 hover:opacity-60 transition-opacity group"
                 >
-                  <span class="font-mono text-[0.55rem] text-muted-foreground mr-3 shrink-0">
+                  <span class="font-mono text-[0.55rem] text-link mr-3 shrink-0">
                     #{formatEditionNumber(edition.edition_number)}
                   </span>
                   <span class="font-serif text-sm font-semibold flex-1 group-hover:underline underline-offset-2">
                     {edition.title}
                   </span>
-                  <span class="font-mono text-[0.55rem] text-muted-foreground ml-3 shrink-0 hidden sm:inline">
+                  <span class="font-mono text-[0.55rem] text-link ml-3 shrink-0 hidden sm:inline">
                     {formatShortDate(edition.created_at)}
                   </span>
                 </a>
@@ -218,7 +220,7 @@ const today = formatFullDate(new Date())
           <div class="mt-5 text-center">
             <a
               href="/archive"
-              class="font-mono text-[0.6rem] tracking-widest uppercase border-b border-foreground/30 pb-px text-muted-foreground hover:text-foreground hover:border-foreground transition-colors"
+              class="font-mono text-[0.6rem] tracking-widest uppercase border-b border-link/50 pb-px text-link hover:opacity-70 transition-colors"
             >
               Ver todas as edições &rarr;
             </a>
@@ -231,43 +233,38 @@ const today = formatFullDate(new Date())
 </Layout>
 
 <script>
-  const form = document.getElementById('subscribe-form') as HTMLFormElement
-  const msg = document.getElementById('subscribe-msg') as HTMLParagraphElement
+  const input = document.getElementById('search-input') as HTMLInputElement | null
+  const resultsContainer = document.getElementById('search-results')
+  const grid = document.getElementById('articles-grid')
 
-  const EMAIL_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/
+  if (input && resultsContainer && grid) {
+    const cards = Array.from(grid.querySelectorAll('a[data-title]')) as HTMLAnchorElement[]
+    let debounceTimer: ReturnType<typeof setTimeout>
 
-  form?.addEventListener('submit', async (e) => {
-    e.preventDefault()
-    const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim().toLowerCase()
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        const query = input.value.trim().toLowerCase()
 
-    if (!email || !EMAIL_RE.test(email)) {
-      msg.classList.remove('hidden')
-      msg.textContent = 'Digite um email válido.'
-      msg.className = 'mt-3 text-sm font-mono text-destructive'
-      return
-    }
+        if (!query) {
+          // Mostra todos os cards
+          cards.forEach(card => card.style.display = '')
+          resultsContainer.classList.add('hidden')
+          return
+        }
 
-    try {
-      const res = await fetch('/api/subscribe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      })
-      const data = await res.json()
+        let matchCount = 0
+        cards.forEach(card => {
+          const title = card.dataset.title ?? ''
+          const summary = card.dataset.summary ?? ''
+          const matches = title.includes(query) || summary.includes(query)
+          card.style.display = matches ? '' : 'none'
+          if (matches) matchCount++
+        })
 
-      msg.classList.remove('hidden')
-      if (res.ok) {
-        msg.textContent = 'Inscrito com sucesso! Até segunda-feira.'
-        msg.className = 'mt-3 text-sm font-mono text-foreground'
-        form.reset()
-      } else {
-        msg.textContent = data.error ?? 'Erro ao inscrever. Tente novamente.'
-        msg.className = 'mt-3 text-sm font-mono text-destructive'
-      }
-    } catch {
-      msg.classList.remove('hidden')
-      msg.textContent = 'Erro de conexão. Tente novamente.'
-      msg.className = 'mt-3 text-sm font-mono text-destructive'
-    }
-  })
+        resultsContainer.innerHTML = `<p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">${matchCount} resultado${matchCount !== 1 ? 's' : ''} para "${input.value.trim()}"</p>`
+        resultsContainer.classList.remove('hidden')
+      }, 200)
+    })
+  }
 </script>

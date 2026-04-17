@@ -63,3 +63,23 @@ export function formatCompactDate(date: Date | string): string {
 export function formatEditionNumber(n: number): string {
   return String(n).padStart(3, '0')
 }
+
+/**
+ * Tempo relativo humanizado em pt-BR.
+ * @example formatRelativeTime('2025-04-12') // "2 dias atrás"
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const now = new Date()
+  const d = toDate(date)
+  const diffMs = now.getTime() - d.getTime()
+  const diffMin = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMin < 60) return 'agora mesmo'
+  if (diffHours < 24) return `${diffHours}h atrás`
+  if (diffDays === 1) return 'ontem'
+  if (diffDays < 7) return `${diffDays} dias atrás`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} sem. atrás`
+  return formatShortDate(date)
+}

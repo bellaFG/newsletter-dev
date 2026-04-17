@@ -38,40 +38,37 @@ const orderedCategories = getOrderedCategories(grouped)
 
       {/* ── MASTHEAD COMPACTO ── */}
       <header class="border-b border-foreground/30 pb-4 mb-8">
-        <div class="flex items-baseline justify-between">
+        <div class="grid grid-cols-3 items-baseline">
+          <p class="font-mono text-[0.65rem] tracking-widest uppercase text-link text-left">
+            {formatFullDate(edition.created_at)}
+          </p>
           <a
             href="/"
-            class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity"
+            class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity text-center"
           >
             {SITE_NAME.toUpperCase()}
           </a>
-          <span class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
+          <span class="font-mono text-[0.65rem] tracking-widest uppercase text-link text-right">
             Edição #{formatEditionNumber(edition.edition_number)}
           </span>
         </div>
       </header>
 
-      {/* ── CABEÇALHO DA EDIÇÃO ── */}
-      <div class="mb-10">
-        <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground mb-3">
-          {formatFullDate(edition.created_at)}
-        </p>
-        <h1 class="font-serif text-4xl sm:text-5xl font-bold leading-tight tracking-tight mb-4">
-          {edition.title}
-        </h1>
-        {edition.summary && (
+      {/* ── RESUMO DA EDIÇÃO ── */}
+      {edition.summary && (
+        <div class="mb-10">
           <p class="text-muted-foreground leading-relaxed text-lg">
             {edition.summary}
           </p>
-        )}
-      </div>
+        </div>
+      )}
 
       <div class="border-t border-foreground/20 mb-10"></div>
 
       {/* ── ARTIGOS POR CATEGORIA ── */}
       <main>
         {orderedCategories.map((cat) => (
-          <section class="mb-12">
+          <section class="mb-12 border-b border-foreground/8 pb-12 last:border-b-0 last:pb-0">
             {/* Divisor de categoria estilo jornal */}
             <div class="flex items-center gap-3 mb-7">
               <div class="h-px flex-1 bg-foreground/20"></div>
@@ -84,17 +81,17 @@ const orderedCategories = getOrderedCategories(grouped)
             <div class="space-y-10">
               {grouped[cat]!.map((article) => (
                 <article>
-                  <div class="mb-2 flex items-center gap-2 font-mono text-[0.65rem] text-muted-foreground">
+                  <div class="mb-2 flex items-center gap-2 font-mono text-[0.65rem] text-link">
                     <span class="tracking-widest">{article.source}</span>
                     {article.reading_time_min && (
                       <>
-                        <span>&middot;</span>
+                        <span class="text-foreground/40">&middot;</span>
                         <span>{article.reading_time_min} min de leitura</span>
                       </>
                     )}
                   </div>
                   <h2 class="font-serif text-2xl sm:text-3xl font-bold leading-snug mb-3">
-                    {article.title}
+                    {article.title_ptbr ?? article.title}
                   </h2>
                   <p class="leading-relaxed text-foreground/80 mb-4">
                     {article.summary_ptbr}
@@ -103,7 +100,7 @@ const orderedCategories = getOrderedCategories(grouped)
                     href={article.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="font-mono text-[0.65rem] tracking-widest uppercase border-b border-foreground pb-px hover:opacity-60 transition-opacity"
+                    class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-60 transition-opacity"
                   >
                     Leia o artigo completo &rarr;
                   </a>
@@ -118,13 +115,13 @@ const orderedCategories = getOrderedCategories(grouped)
       <footer class="border-t border-foreground/20 pt-8 mt-4 flex items-center justify-between">
         <a
           href="/"
-          class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+          class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
         >
           &larr; Início
         </a>
         <a
           href="/archive"
-          class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+          class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
         >
           Todas as edições &rarr;
         </a>

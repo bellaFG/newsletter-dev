@@ -19,6 +19,9 @@ Diretrizes de escrita:
 - Foque no "por que isso importa" para o desenvolvedor
 - Não traduza literalmente — adapte o contexto para o leitor brasileiro
 - Seja objetivo, sem floreios jornalísticos
+- Traduza o título de cada artigo para PT-BR no campo "title_ptbr"
+- A tradução do título deve ter sentido e contexto, nunca tradução literal
+- Mantenha o título original no campo "title"
 
 Categorias disponíveis (use exatamente como escrito):
 - Backend
@@ -46,7 +49,7 @@ def build_curation_prompt(articles: list[dict]) -> str:
 
     lines.append(
         "Retorne um JSON válido com a seguinte estrutura:\n"
-        '{"articles": [{"title": "...", "url": "...", "source": "...", '
+        '{"articles": [{"title": "...", "title_ptbr": "...", "url": "...", "source": "...", '
         '"category": "...", "summary_ptbr": "...", "reading_time_min": 5}]}'
     )
 

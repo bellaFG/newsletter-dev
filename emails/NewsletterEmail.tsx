@@ -32,6 +32,7 @@ interface NewsletterEmailProps {
   edition: Edition
   articles: Article[]
   unsubscribeUrl: string
+  siteUrl: string
 }
 
 const serif = "Georgia, 'Times New Roman', Times, serif"
@@ -46,8 +47,9 @@ const muted = '#8a8279'
 const bodyColor = '#3d3730'
 const paper = '#f0e8db'
 const rule = '#c8c0b4'
+const blue = '#2563EB'
 
-export function NewsletterEmail({ edition, articles, unsubscribeUrl }: NewsletterEmailProps) {
+export function NewsletterEmail({ edition, articles, unsubscribeUrl, siteUrl }: NewsletterEmailProps) {
   const grouped = groupByCategory(articles)
   const orderedCategories = getOrderedCategories(grouped)
   const editionDate = formatFullDate(edition.created_at)
@@ -74,7 +76,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                 <Column style={{ width: '50%' }}>
                   <Text style={{
                     fontFamily: mono, fontSize: 9, letterSpacing: '0.12em',
-                    textTransform: 'uppercase', color: muted, margin: 0,
+                    textTransform: 'uppercase', color: blue, margin: 0,
                   }}>
                     {editionDate}
                   </Text>
@@ -82,7 +84,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                 <Column style={{ width: '50%', textAlign: 'right' }}>
                   <Text style={{
                     fontFamily: mono, fontSize: 9, letterSpacing: '0.12em',
-                    textTransform: 'uppercase', color: muted, margin: 0,
+                    textTransform: 'uppercase', color: blue, margin: 0,
                   }}>
                     {'Edição nº'} {edition.edition_number}
                   </Text>
@@ -142,7 +144,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                   }}
                 >
                   <Link href={hero.url} style={{ color: ink, textDecoration: 'none' }}>
-                    {hero.title}
+                    {hero.title_ptbr ?? hero.title}
                   </Link>
                 </Heading>
 
@@ -157,11 +159,18 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                   fontFamily: mono, fontSize: 9, color: muted, margin: '0 0 0',
                   textAlign: 'center', letterSpacing: '0.03em',
                 }}>
-                  {hero.source}
+                  <span style={{ color: blue }}>{hero.source}</span>
                   {hero.reading_time_min ? ` · ${hero.reading_time_min} min` : ''}
                   {' · '}
-                  <Link href={hero.url} style={{ color: muted, textDecoration: 'underline' }}>
-                    {'Leia completo →'}
+                  <Link
+                    href={hero.slug ? `${siteUrl}/edicao/${edition.slug}/${hero.slug}` : `${siteUrl}/${edition.slug}`}
+                    style={{ color: blue, textDecoration: 'underline' }}
+                  >
+                    {'Leia na íntegra →'}
+                  </Link>
+                  {' · '}
+                  <Link href={hero.url} style={{ color: blue, textDecoration: 'underline' }}>
+                    {'Fonte original →'}
                   </Link>
                 </Text>
 
@@ -206,7 +215,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                         }}
                       >
                         <Link href={article.url} style={{ color: ink, textDecoration: 'none' }}>
-                          {article.title}
+                          {article.title_ptbr ?? article.title}
                         </Link>
                       </Heading>
                       <Text style={{
@@ -219,11 +228,18 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                         fontFamily: mono, fontSize: 9, color: muted, margin: '0 0 0',
                         letterSpacing: '0.03em',
                       }}>
-                        {article.source}
+                        <span style={{ color: blue }}>{article.source}</span>
                         {article.reading_time_min ? ` · ${article.reading_time_min} min` : ''}
                         {' · '}
-                        <Link href={article.url} style={{ color: muted, textDecoration: 'underline' }}>
-                          {'Leia completo →'}
+                        <Link
+                          href={article.slug ? `${siteUrl}/edicao/${edition.slug}/${article.slug}` : `${siteUrl}/${edition.slug}`}
+                          style={{ color: blue, textDecoration: 'underline' }}
+                        >
+                          {'Leia na íntegra →'}
+                        </Link>
+                        {' · '}
+                        <Link href={article.url} style={{ color: blue, textDecoration: 'underline' }}>
+                          {'Fonte original →'}
                         </Link>
                       </Text>
 

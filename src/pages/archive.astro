@@ -79,13 +79,13 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
                       href={`/${edition.slug}`}
                       class="flex items-baseline justify-between py-4 group hover:opacity-60 transition-opacity"
                     >
-                      <span class="font-mono text-[0.65rem] text-muted-foreground mr-4 shrink-0">
+                      <span class="font-mono text-[0.65rem] text-link mr-4 shrink-0">
                         #{formatEditionNumber(edition.edition_number)}
                       </span>
                       <span class="font-serif text-base font-semibold flex-1 group-hover:underline underline-offset-2">
                         {edition.title}
                       </span>
-                      <span class="font-mono text-[0.65rem] text-muted-foreground ml-4 shrink-0">
+                      <span class="font-mono text-[0.65rem] text-link ml-4 shrink-0">
                         {formatCompactDate(edition.created_at)}
                       </span>
                     </a>

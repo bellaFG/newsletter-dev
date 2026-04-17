@@ -1,0 +1,183 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import { supabase } from '@/lib/supabase'
+import type { Article, Edition } from '@/lib/types'
+import { CATEGORY_SLUGS } from '@/lib/articles'
+import { formatMediumDate, formatEditionNumber } from '@/lib/date'
+import { SITE_NAME } from '@/lib/config'
+
+const { slug, articleSlug } = Astro.params
+
+// Buscar edicao
+const { data: editionData } = await supabase
+  .from('editions')
+  .select('*')
+  .eq('slug', slug!)
+  .single()
+
+const edition = editionData as Edition | null
+if (!edition) return new Response(null, { status: 404 })
+
+// Buscar artigo
+const { data: articleData } = await supabase
+  .from('articles')
+  .select('*')
+  .eq('edition_id', edition.id)
+  .eq('slug', articleSlug!)
+  .single()
+
+const article = articleData as Article | null
+if (!article) return new Response(null, { status: 404 })
+
+// Artigos relacionados (mesma categoria, mesma edicao)
+const { data: relatedData } = await supabase
+  .from('articles')
+  .select('*')
+  .eq('edition_id', edition.id)
+  .eq('category', article.category)
+  .neq('id', article.id)
+  .order('position', { ascending: true })
+  .limit(3)
+
+const related = (relatedData ?? []) as Article[]
+
+const categorySlug = CATEGORY_SLUGS[article.category]
+---
+
+<Layout title={`${article.title_ptbr ?? article.title} — ${SITE_NAME}`} description={article.summary_ptbr.slice(0, 160)}>
+  <div class="min-h-screen bg-background text-foreground">
+    <div class="mx-auto max-w-3xl px-6 py-10">
+
+      {/* ── BREADCRUMB ── */}
+      <nav class="mb-8 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
+        <a href="/" class="text-link hover:opacity-70 transition-colors">Inicio</a>
+        <span class="mx-1">/</span>
+        <a href={`/${edition.slug}`} class="text-link hover:opacity-70 transition-colors">
+          Edicao #{formatEditionNumber(edition.edition_number)}
+        </a>
+        <span class="mx-1">/</span>
+        <span class="text-foreground/60">Artigo</span>
+      </nav>
+
+      {/* ── ARTIGO ── */}
+      <article>
+        {/* Categoria */}
+        <a
+          href={`/categoria/${categorySlug}`}
+          class="inline-block font-mono text-[0.5rem] tracking-widest uppercase text-muted-foreground border border-foreground/20 px-2 py-0.5 mb-4 hover:bg-foreground hover:text-background transition-colors"
+        >
+          {article.category}
+        </a>
+
+        {/* Titulo */}
+        <h1 class="font-serif text-3xl sm:text-4xl font-black leading-[1.1] tracking-tight mb-4">
+          {article.title_ptbr ?? article.title}
+        </h1>
+
+        {/* Metadata */}
+        <div class="flex flex-wrap items-center gap-2 font-mono text-[0.6rem] text-link mb-8">
+          <span class="tracking-widest">{article.source}</span>
+          {article.reading_time_min && (
+            <>
+              <span>&middot;</span>
+              <span>{article.reading_time_min} min de leitura</span>
+            </>
+          )}
+          <span>&middot;</span>
+          <span>{formatMediumDate(edition.created_at)}</span>
+          {article.original_language !== 'pt' && (
+            <>
+              <span>&middot;</span>
+              <span class="border border-foreground/20 px-1.5 py-0.5">
+                {article.original_language.toUpperCase()}
+              </span>
+            </>
+          )}
+        </div>
+
+        <div class="border-t border-foreground/20 mb-8"></div>
+
+        {/* Conteudo */}
+        <div class="text-base sm:text-lg leading-relaxed text-foreground/85 mb-8 whitespace-pre-line">
+          {article.summary_ptbr}
+        </div>
+
+        {/* CTAs */}
+        <div class="flex flex-col sm:flex-row gap-3 mb-10">
+          <a
+            href={article.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center bg-link text-white font-mono text-[0.6rem] tracking-widest uppercase px-6 py-3 hover:opacity-75 transition-opacity font-bold"
+          >
+            Leia o artigo original &rarr;
+          </a>
+          <a
+            href={`/${edition.slug}`}
+            class="inline-flex items-center justify-center border-2 border-link/30 text-link font-mono text-[0.6rem] tracking-widest uppercase px-6 py-3 hover:border-link transition-colors font-bold"
+          >
+            Ver edicao completa
+          </a>
+        </div>
+      </article>
+
+      {/* ── ARTIGOS RELACIONADOS ── */}
+      {related.length > 0 && (
+        <section class="border-t border-foreground/20 pt-8 mt-4">
+          <div class="flex items-center gap-3 mb-6">
+            <p class="font-mono text-[0.6rem] tracking-widest uppercase font-bold shrink-0">
+              Mais em {article.category}
+            </p>
+            <div class="h-px flex-1 bg-foreground/15"></div>
+          </div>
+
+          <div class="space-y-6">
+            {related.map((rel) => (
+              <a href={`/edicao/${edition.slug}/${rel.slug}`} class="block group">
+                <h3 class="font-serif text-lg font-bold leading-snug group-hover:opacity-60 transition-opacity mb-1">
+                  {rel.title_ptbr ?? rel.title}
+                </h3>
+                <p class="text-sm text-foreground/60 line-clamp-2 leading-relaxed mb-1">
+                  {rel.summary_ptbr}
+                </p>
+                <p class="font-mono text-[0.5rem] text-link">
+                  {rel.source}{rel.reading_time_min ? ` · ${rel.reading_time_min} min` : ''}
+                </p>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── CTA SUBSCRIBE ── */}
+      <section class="border-t border-foreground/20 pt-8 mt-8 text-center">
+        <p class="text-sm text-muted-foreground mb-3">
+          Gostou? Receba conteudo assim toda segunda-feira.
+        </p>
+        <button
+          data-subscribe-open
+          class="bg-link text-white font-mono text-[0.6rem] tracking-widest uppercase px-8 py-3 hover:opacity-75 transition-opacity cursor-pointer font-bold"
+        >
+          Assinar {SITE_NAME}
+        </button>
+      </section>
+
+      {/* ── NAVEGACAO ── */}
+      <footer class="border-t border-foreground/20 pt-8 mt-8 flex items-center justify-between">
+        <a
+          href={`/${edition.slug}`}
+          class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
+        >
+          &larr; Edicao #{formatEditionNumber(edition.edition_number)}
+        </a>
+        <a
+          href="/archive"
+          class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
+        >
+          Todas as edicoes &rarr;
+        </a>
+      </footer>
+
+    </div>
+  </div>
+</Layout>

@@ -33,6 +33,7 @@ class CuratedArticle(BaseModel):
     """Artigo após curadoria da IA — pronto para salvar no banco."""
 
     title: str
+    title_ptbr: str | None = None
     url: str
     summary_ptbr: str
     source: str

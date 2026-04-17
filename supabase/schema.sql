@@ -19,6 +19,7 @@ CREATE TABLE articles (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   edition_id        UUID REFERENCES editions(id) ON DELETE CASCADE,
   title             TEXT NOT NULL,
+  title_ptbr        TEXT,                     -- titulo traduzido em pt-BR (contextual, nao literal)
   url               TEXT NOT NULL,
   summary_ptbr      TEXT NOT NULL,            -- resumo traduzido/curado em pt-BR
   source            TEXT NOT NULL,            -- ex: "Hacker News", "dev.to"
@@ -26,6 +27,7 @@ CREATE TABLE articles (
   original_language TEXT DEFAULT 'en',
   reading_time_min  INTEGER,
   position          INTEGER,                  -- ordem de exibicao dentro da edicao
+  slug              TEXT NOT NULL,             -- slug gerado a partir do titulo (unico por edicao)
   created_at        TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -42,6 +44,7 @@ CREATE TABLE subscribers (
 
 CREATE INDEX idx_articles_edition_id ON articles(edition_id);
 CREATE INDEX idx_articles_category ON articles(category);
+CREATE UNIQUE INDEX idx_articles_slug_edition ON articles(edition_id, slug);
 CREATE INDEX idx_editions_slug ON editions(slug);
 CREATE INDEX idx_editions_created_at ON editions(created_at DESC);
 
