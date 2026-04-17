@@ -25,13 +25,44 @@ const {
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
       rel="stylesheet"
     />
+    <!-- Anti-FOUC: aplica tema antes do render -->
     <script is:inline>
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        document.documentElement.classList.add('dark')
-      }
+      ;(function () {
+        const saved = localStorage.getItem('devpulse-theme')
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (saved === 'dark' || (!saved && prefersDark)) {
+          document.documentElement.classList.add('dark')
+        }
+      })()
     </script>
   </head>
   <body class="antialiased">
     <slot />
+
+    <!-- Toggle de tema fixo -->
+    <button
+      id="theme-toggle"
+      aria-label="Alternar tema claro/escuro"
+      class="fixed bottom-6 right-6 z-50 font-mono text-[0.6rem] tracking-widest uppercase border border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground px-3 py-2 transition-colors cursor-pointer select-none"
+    >
+      <span id="theme-icon" aria-hidden="true"></span>
+    </button>
+
+    <script>
+      const html = document.documentElement
+      const icon = document.getElementById('theme-icon')
+
+      function updateIcon() {
+        if (icon) icon.textContent = html.classList.contains('dark') ? '○ CLARO' : '● ESCURO'
+      }
+
+      updateIcon()
+
+      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+        const nowDark = html.classList.toggle('dark')
+        localStorage.setItem('devpulse-theme', nowDark ? 'dark' : 'light')
+        updateIcon()
+      })
+    </script>
   </body>
 </html>
