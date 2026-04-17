@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: "class",
   content: [
     "./src/**/*.{astro,html,js,jsx,ts,tsx}",
   ],
@@ -42,8 +43,8 @@ const config: Config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans: ["'Geist Sans'", "sans-serif"],
+        mono: ["'Geist Mono'", "monospace"],
         serif: ["'Playfair Display'", "Georgia", "serif"],
       },
     },

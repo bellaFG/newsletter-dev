@@ -56,7 +56,7 @@ def publish(curation: CurationOutput) -> str:
     supabase.table("articles").insert(articles_payload).execute()
     logger.info(f"[Publisher] {len(articles_payload)} artigos salvos")
 
-    # ── 4. Dispara o envio do e-mail via API do Next.js ───────────────────────
+    # ── 4. Dispara o envio do e-mail via API do Astro ────────────────────────
     web_url = os.environ.get("SITE_URL", "http://localhost:4321")
     api_secret = os.environ["NEWSLETTER_API_SECRET"]
 
