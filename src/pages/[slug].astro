@@ -1,19 +1,10 @@
 ---
 import Layout from '@/layouts/Layout.astro'
 import { supabase } from '@/lib/supabase'
-import type { Article, ArticleCategory, Edition } from '@/lib/types'
-
-const CATEGORY_ORDER: ArticleCategory[] = [
-  'IA & Machine Learning',
-  'Backend',
-  'Frontend',
-  'DevOps & Cloud',
-  'Linguagens & Frameworks',
-  'Ferramentas & Produtividade',
-  'Open Source',
-  'Segurança',
-  'Carreira & Cultura',
-]
+import type { Article, Edition } from '@/lib/types'
+import { groupByCategory, getOrderedCategories } from '@/lib/articles'
+import { formatFullDate, formatEditionNumber } from '@/lib/date'
+import { SITE_NAME } from '@/lib/config'
 
 const { slug } = Astro.params
 
@@ -26,7 +17,7 @@ const { data: editionData } = await supabase
 const edition = editionData as Edition | null
 
 if (!edition) {
-  return Astro.redirect('/404')
+  return new Response(null, { status: 404 })
 }
 
 const { data: articlesData } = await supabase
@@ -37,17 +28,11 @@ const { data: articlesData } = await supabase
 
 const articles = (articlesData ?? []) as Article[]
 
-// Agrupa artigos por categoria na ordem editorial
-const grouped = articles.reduce<Partial<Record<ArticleCategory, Article[]>>>((acc, a) => {
-  if (!acc[a.category]) acc[a.category] = []
-  acc[a.category]!.push(a)
-  return acc
-}, {})
-
-const orderedCategories = CATEGORY_ORDER.filter((c) => grouped[c]?.length)
+const grouped = groupByCategory(articles)
+const orderedCategories = getOrderedCategories(grouped)
 ---
 
-<Layout title={`${edition.title} — DevPulse`} description={edition.summary ?? undefined}>
+<Layout title={`${edition.title} \u2014 ${SITE_NAME}`} description={edition.summary ?? undefined}>
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
 
@@ -58,23 +43,18 @@ const orderedCategories = CATEGORY_ORDER.filter((c) => grouped[c]?.length)
             href="/"
             class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity"
           >
-            DEVPULSE
+            {SITE_NAME.toUpperCase()}
           </a>
           <span class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
-            Edição #{String(edition.edition_number).padStart(3, '0')}
+            Edi\u00e7\u00e3o #{formatEditionNumber(edition.edition_number)}
           </span>
         </div>
       </header>
 
-      {/* ── CABEÇALHO DA EDIÇÃO ── */}
+      {/* ── CABE\u00c7ALHO DA EDI\u00c7\u00c3O ── */}
       <div class="mb-10">
         <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground mb-3">
-          {new Date(edition.created_at).toLocaleDateString('pt-BR', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })}
+          {formatFullDate(edition.created_at)}
         </p>
         <h1 class="font-serif text-4xl sm:text-5xl font-bold leading-tight tracking-tight mb-4">
           {edition.title}
@@ -134,19 +114,19 @@ const orderedCategories = CATEGORY_ORDER.filter((c) => grouped[c]?.length)
         ))}
       </main>
 
-      {/* ── RODAPÉ ── */}
+      {/* ── RODAP\u00c9 ── */}
       <footer class="border-t-2 border-foreground pt-8 mt-4 flex items-center justify-between">
         <a
           href="/"
           class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
         >
-          &larr; Início
+          &larr; In\u00edcio
         </a>
         <a
           href="/archive"
           class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
         >
-          Todas as edições &rarr;
+          Todas as edi\u00e7\u00f5es &rarr;
         </a>
       </footer>
 

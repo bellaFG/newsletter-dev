@@ -2,6 +2,8 @@
 import Layout from '@/layouts/Layout.astro'
 import { supabase } from '@/lib/supabase'
 import type { Edition } from '@/lib/types'
+import { formatCompactDate, formatEditionNumber } from '@/lib/date'
+import { SITE_NAME } from '@/lib/config'
 
 const { data } = await supabase
   .from('editions')
@@ -10,7 +12,7 @@ const { data } = await supabase
 
 const editions = (data ?? []) as Edition[]
 
-// Agrupa edições por ano
+// Agrupa edi\u00e7\u00f5es por ano
 const byYear = editions.reduce<Record<string, Edition[]>>((acc, e) => {
   const year = new Date(e.created_at).getFullYear().toString()
   if (!acc[year]) acc[year] = []
@@ -21,7 +23,7 @@ const byYear = editions.reduce<Record<string, Edition[]>>((acc, e) => {
 const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
 ---
 
-<Layout title="Arquivo — DevPulse">
+<Layout title={`Arquivo \u2014 ${SITE_NAME}`}>
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
 
@@ -32,7 +34,7 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
             href="/"
             class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity"
           >
-            DEVPULSE
+            {SITE_NAME.toUpperCase()}
           </a>
           <span class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
             Arquivo
@@ -40,13 +42,13 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
         </div>
       </header>
 
-      {/* ── CABEÇALHO ── */}
+      {/* ── CABE\u00c7ALHO ── */}
       <div class="mb-10">
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
-          {editions.length} {editions.length === 1 ? 'edição publicada' : 'edições publicadas'}
+          {editions.length} {editions.length === 1 ? 'edi\u00e7\u00e3o publicada' : 'edi\u00e7\u00f5es publicadas'}
         </p>
         <h1 class="font-serif text-4xl font-bold tracking-tight">
-          Todas as edições
+          Todas as edi\u00e7\u00f5es
         </h1>
       </div>
 
@@ -55,7 +57,7 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
           <p class="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-3">
             Em breve
           </p>
-          <p class="font-serif text-2xl font-bold">Nenhuma edição publicada ainda.</p>
+          <p class="font-serif text-2xl font-bold">Nenhuma edi\u00e7\u00e3o publicada ainda.</p>
         </div>
       ) : (
         <div class="space-y-10">
@@ -78,16 +80,13 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
                       class="flex items-baseline justify-between py-4 group hover:opacity-60 transition-opacity"
                     >
                       <span class="font-mono text-[0.65rem] text-muted-foreground mr-4 shrink-0">
-                        #{String(edition.edition_number).padStart(3, '0')}
+                        #{formatEditionNumber(edition.edition_number)}
                       </span>
                       <span class="font-serif text-base font-semibold flex-1 group-hover:underline underline-offset-2">
                         {edition.title}
                       </span>
                       <span class="font-mono text-[0.65rem] text-muted-foreground ml-4 shrink-0">
-                        {new Date(edition.created_at).toLocaleDateString('pt-BR', {
-                          day: '2-digit',
-                          month: 'short',
-                        })}
+                        {formatCompactDate(edition.created_at)}
                       </span>
                     </a>
                   </li>
@@ -101,13 +100,13 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
       {/* ── SUBSCRIBE STRIP ── */}
       <div class="border-t-2 border-foreground pt-8 mt-12 text-center">
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
-          Ainda não assinou?
+          Ainda n\u00e3o assinou?
         </p>
         <a
           href="/"
           class="font-serif text-xl font-bold hover:opacity-60 transition-opacity"
         >
-          Receba DevPulse toda segunda-feira &rarr;
+          Receba {SITE_NAME} toda segunda-feira &rarr;
         </a>
       </div>
 

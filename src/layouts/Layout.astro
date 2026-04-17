@@ -1,5 +1,6 @@
 ---
 import '@/styles/globals.css'
+import { SITE_TITLE, SITE_DESCRIPTION } from '@/lib/config'
 
 interface Props {
   title?: string
@@ -7,8 +8,8 @@ interface Props {
 }
 
 const {
-  title = 'DevPulse — Newsletter semanal para devs brasileiros',
-  description = 'Curadoria semanal de artigos, ferramentas e tendências do mundo dev, traduzida e resumida por IA. Toda segunda-feira.',
+  title = SITE_TITLE,
+  description = SITE_DESCRIPTION,
 } = Astro.props
 ---
 
@@ -27,6 +28,7 @@ const {
     />
     <!-- Anti-FOUC: aplica tema antes do render -->
     <script is:inline>
+      // Deve corresponder a THEME_STORAGE_KEY em lib/config.ts
       ;(function () {
         const saved = localStorage.getItem('devpulse-theme')
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -49,11 +51,12 @@ const {
     </button>
 
     <script>
+      // Deve corresponder a THEME_STORAGE_KEY em lib/config.ts
       const html = document.documentElement
       const icon = document.getElementById('theme-icon')
 
       function updateIcon() {
-        if (icon) icon.textContent = html.classList.contains('dark') ? '○ CLARO' : '● ESCURO'
+        if (icon) icon.textContent = html.classList.contains('dark') ? '\u25CB CLARO' : '\u25CF ESCURO'
       }
 
       updateIcon()

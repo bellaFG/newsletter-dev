@@ -1,3 +1,11 @@
+/**
+ * Template de email da newsletter DevPulse.
+ *
+ * Renderizado server-side pela Resend API — nunca roda no browser.
+ * Usa inline styles (obrigatorio para compatibilidade com clientes de email).
+ * Dark mode via CSS media query (prefers-color-scheme).
+ */
+
 import {
   Body,
   Container,
@@ -13,25 +21,16 @@ import {
   Text,
 } from '@react-email/components'
 import * as React from 'react'
-import type { Article, ArticleCategory, Edition } from '../src/lib/types'
+import type { Article, Edition } from '../src/lib/types'
+import { groupByCategory, getOrderedCategories } from '../src/lib/articles'
+import { formatFullDate } from '../src/lib/date'
+import { SITE_NAME, MASTHEAD_SUBTITLE } from '../src/lib/config'
 
 interface NewsletterEmailProps {
   edition: Edition
   articles: Article[]
   unsubscribeUrl: string
 }
-
-const CATEGORY_ORDER: ArticleCategory[] = [
-  'IA & Machine Learning',
-  'Backend',
-  'Frontend',
-  'DevOps & Cloud',
-  'Linguagens & Frameworks',
-  'Ferramentas & Produtividade',
-  'Open Source',
-  'Segurança',
-  'Carreira & Cultura',
-]
 
 const serif = "Georgia, 'Times New Roman', serif"
 const mono = "ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace"
@@ -58,20 +57,9 @@ const darkCSS = `
 `
 
 export function NewsletterEmail({ edition, articles, unsubscribeUrl }: NewsletterEmailProps) {
-  const grouped = articles.reduce<Partial<Record<ArticleCategory, Article[]>>>((acc, a) => {
-    if (!acc[a.category]) acc[a.category] = []
-    acc[a.category]!.push(a)
-    return acc
-  }, {})
-
-  const orderedCategories = CATEGORY_ORDER.filter((c) => grouped[c]?.length)
-
-  const editionDate = new Date(edition.created_at).toLocaleDateString('pt-BR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  })
+  const grouped = groupByCategory(articles)
+  const orderedCategories = getOrderedCategories(grouped)
+  const editionDate = formatFullDate(edition.created_at)
 
   const previewText = edition.summary
     ? edition.summary.slice(0, 90)
@@ -102,7 +90,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                 textTransform: 'uppercase', color: muted, margin: '0 0 8px', textAlign: 'center',
               }}
             >
-              {editionDate} &nbsp;·&nbsp; Edição nº {edition.edition_number}
+              {editionDate} &nbsp;&middot;&nbsp; Edi\u00e7\u00e3o n\u00ba {edition.edition_number}
             </Text>
             <Heading
               as="h1"
@@ -112,7 +100,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                 textAlign: 'center', color: ink, margin: '0 0 8px', lineHeight: 1,
               }}
             >
-              DEVPULSE
+              {SITE_NAME.toUpperCase()}
             </Heading>
             <Text
               className="em"
@@ -121,7 +109,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                 textTransform: 'uppercase', color: muted, textAlign: 'center', margin: 0,
               }}
             >
-              Newsletter · Semanal · IA &amp; Dev
+              {MASTHEAD_SUBTITLE}
             </Text>
           </Section>
           <Hr className="ehr-i" style={{ borderColor: ink, margin: '4px 0 24px' }} />
@@ -182,7 +170,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                     style={{ fontFamily: mono, fontSize: 10, color: muted, margin: '0 0 4px', letterSpacing: '0.05em' }}
                   >
                     {article.source}
-                    {article.reading_time_min ? ` · ${article.reading_time_min} min` : ''}
+                    {article.reading_time_min ? ` \u00b7 ${article.reading_time_min} min` : ''}
                   </Text>
                   <Heading
                     as="h3"
@@ -204,7 +192,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
                     href={article.url}
                     style={{ fontFamily: mono, fontSize: 11, color: ink, textDecoration: 'underline', letterSpacing: '0.05em' }}
                   >
-                    Leia completo →
+                    Leia completo \u2192
                   </Link>
                 </Section>
               ))}
@@ -219,7 +207,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
               className="em"
               style={{ fontFamily: mono, fontSize: 11, color: muted, margin: '0 0 8px', lineHeight: 1.6 }}
             >
-              Você recebe este email porque se inscreveu no DevPulse.
+              Voc\u00ea recebe este email porque se inscreveu no {SITE_NAME}.
               <br />
               Entregue toda segunda-feira.
             </Text>
@@ -227,7 +215,7 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl }: Newslette
               href={unsubscribeUrl}
               style={{ fontFamily: mono, fontSize: 11, color: muted, textDecoration: 'underline' }}
             >
-              Cancelar inscrição
+              Cancelar inscri\u00e7\u00e3o
             </Link>
           </Section>
         </Container>
