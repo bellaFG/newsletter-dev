@@ -19,7 +19,7 @@ export const EMAIL_FROM = 'DevPulse <newsletter@devpulse.com.br>'
 export const EMAIL_BATCH_SIZE = 100
 
 /** URL de fallback quando SITE_URL nao esta definida */
-export const DEFAULT_SITE_URL = 'https://devpulse.com.br'
+export const DEFAULT_SITE_URL = 'https://newsletter-dev.vercel.app'
 
 /** Chave usada no localStorage para persistir preferencia de tema */
 export const THEME_STORAGE_KEY = 'devpulse-theme'

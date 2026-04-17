@@ -1,5 +1,7 @@
 # DevPulse
 
+> **[newsletter-dev.vercel.app](https://newsletter-dev.vercel.app)**
+
 Newsletter semanal curada por IA para desenvolvedores brasileiros.
 
 **Astro 5** | **Supabase** | **Resend** | **OpenAI** | **Vercel**
@@ -209,12 +211,17 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 
 ### Web (Vercel)
 
-O projeto usa `@astrojs/vercel` como adapter. Para fazer deploy:
+O projeto esta deployado em **[newsletter-dev.vercel.app](https://newsletter-dev.vercel.app)** usando o adapter `@astrojs/vercel`.
 
+**Configuracao no painel do Vercel:**
+- **Framework Preset**: Astro
+- **Build Command**: `npm run build`
+- **Output Directory**: (vazio — o adapter gerencia automaticamente)
+
+Para configurar em um novo projeto:
 1. Conecte o repositorio ao Vercel
-2. Configure as variaveis de ambiente no painel do Vercel
-3. Build command: `npm run build`
-4. Output: `dist/`
+2. Selecione **Astro** como framework preset
+3. Configure as variaveis de ambiente no painel
 
 ### Pipeline (GitHub Actions)
 
