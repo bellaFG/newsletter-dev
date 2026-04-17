@@ -8,18 +8,25 @@ export type Database = {
         Row: Edition;
         Insert: EditionInsert;
         Update: Partial<EditionInsert>;
+        Relationships: [];
       };
       articles: {
         Row: Article;
         Insert: ArticleInsert;
         Update: Partial<ArticleInsert>;
+        Relationships: [];
       };
       subscribers: {
         Row: Subscriber;
         Insert: SubscriberInsert;
         Update: Partial<SubscriberInsert>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 };
 
