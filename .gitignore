@@ -41,3 +41,4 @@ pipeline/__pycache__/
 pipeline/**/__pycache__/
 pipeline/*.pyc
 pipeline/.env
+pipeline/logs/*.log
