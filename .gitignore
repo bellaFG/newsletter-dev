@@ -13,8 +13,9 @@
 /.next/
 /out/
 
-# production
-/build
+# astro
+/.astro/
+/dist/
 
 # misc
 .DS_Store
@@ -34,6 +35,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+astro-env.d.ts
 
 # python
 pipeline/.venv/
