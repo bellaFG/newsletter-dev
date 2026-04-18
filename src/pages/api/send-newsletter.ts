@@ -86,6 +86,7 @@ export const POST: APIRoute = async ({ request }) => {
           edition: edition as Edition,
           articles: (articles ?? []) as Article[],
           unsubscribeUrl: `${baseUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}`,
+          siteUrl: baseUrl,
         }),
       )
 
