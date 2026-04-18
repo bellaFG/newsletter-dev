@@ -62,6 +62,7 @@ export type Article = {
   title_ptbr: string | null
   url: string
   summary_ptbr: string
+  content_ptbr: string | null
   source: string
   category: ArticleCategory
   original_language: string
@@ -78,6 +79,7 @@ export type ArticleInsert = {
   title_ptbr?: string | null
   url: string
   summary_ptbr: string
+  content_ptbr?: string | null
   source: string
   category: ArticleCategory
   original_language?: string

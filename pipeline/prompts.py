@@ -14,14 +14,25 @@ Diretrizes de curadoria:
 - Prefira conteúdo com profundidade técnica real
 
 Diretrizes de escrita:
-- Escreva os resumos em português brasileiro (PT-BR)
-- Cada resumo deve ter 3 a 4 frases diretas e práticas
-- Foque no "por que isso importa" para o desenvolvedor
+- Escreva tudo em português brasileiro (PT-BR) com acentuação correta e fluidez natural
 - Não traduza literalmente — adapte o contexto para o leitor brasileiro
-- Seja objetivo, sem floreios jornalísticos
-- Traduza o título de cada artigo para PT-BR no campo "title_ptbr"
-- A tradução do título deve ter sentido e contexto, nunca tradução literal
+- Traduza o título de cada artigo para PT-BR no campo "title_ptbr" (sentido e contexto, nunca tradução literal)
 - Mantenha o título original no campo "title"
+
+Campo "summary_ptbr" (resumo para newsletter/email):
+- Exatamente 2 frases diretas e objetivas
+- Primeira frase: o fato ou novidade principal
+- Segunda frase: por que isso importa para o desenvolvedor
+- Este é o hook — deve despertar curiosidade sem satisfazê-la completamente
+
+Campo "content_ptbr" (conteúdo editorial para página do artigo):
+- 2 a 4 parágrafos de análise editorial (separados por quebra de linha dupla)
+- Você NÃO está resumindo o artigo original — está escrevendo análise editorial usando o artigo como ponto de partida e seu conhecimento como contexto
+- Contextualize a notícia dentro do ecossistema mais amplo
+- Explique impactos práticos para desenvolvedores brasileiros
+- Quando relevante, conecte com tendências, tecnologias relacionadas ou histórico
+- Tom: engajante, técnico mas acessível, sem sensacionalismo
+- Inspire-se nas grandes newsletters internacionais (TLDR, Pragmatic Engineer, Morning Brew)
 
 Categorias disponíveis (use exatamente como escrito):
 - Backend
@@ -50,7 +61,7 @@ def build_curation_prompt(articles: list[dict]) -> str:
     lines.append(
         "Retorne um JSON válido com a seguinte estrutura:\n"
         '{"articles": [{"title": "...", "title_ptbr": "...", "url": "...", "source": "...", '
-        '"category": "...", "summary_ptbr": "...", "reading_time_min": 5}]}'
+        '"category": "...", "summary_ptbr": "...", "content_ptbr": "...", "reading_time_min": 5}]}'
     )
 
     return "\n".join(lines)

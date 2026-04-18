@@ -90,20 +90,30 @@ const orderedCategories = getOrderedCategories(grouped)
                       </>
                     )}
                   </div>
-                  <h2 class="font-serif text-2xl sm:text-3xl font-bold leading-snug mb-3">
-                    {article.title_ptbr ?? article.title}
-                  </h2>
+                  <a href={`/edicao/${edition.slug}/${article.slug}`} class="block group">
+                    <h2 class="font-serif text-2xl sm:text-3xl font-bold leading-snug mb-3 group-hover:opacity-60 transition-opacity">
+                      {article.title_ptbr ?? article.title}
+                    </h2>
+                  </a>
                   <p class="leading-relaxed text-foreground/80 mb-4">
                     {article.summary_ptbr}
                   </p>
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-60 transition-opacity"
-                  >
-                    Leia o artigo completo &rarr;
-                  </a>
+                  <div class="flex items-center gap-4">
+                    <a
+                      href={`/edicao/${edition.slug}/${article.slug}`}
+                      class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-60 transition-opacity"
+                    >
+                      Leia mais &rarr;
+                    </a>
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Fonte original &nearr;
+                    </a>
+                  </div>
                 </article>
               ))}
             </div>

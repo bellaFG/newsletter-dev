@@ -112,7 +112,7 @@ const today = formatFullDate(new Date())
                 <span class="font-mono text-[0.55rem] tracking-widest uppercase text-link">
                   {formatMediumDate(latest.created_at)}
                 </span>
-                <span class="font-mono text-[0.55rem] tracking-widest uppercase text-link">
+                <span class="font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
                   Newsletter Semanal
                 </span>
               </div>
@@ -143,14 +143,14 @@ const today = formatFullDate(new Date())
                 href={`/${latest.slug}`}
                 class="inline-block bg-link text-white font-mono text-[0.5rem] tracking-widest uppercase px-4 py-2 hover:opacity-75 transition-opacity font-bold"
               >
-                Read Full Edition &rarr;
+                Ler edicao completa &rarr;
               </a>
             </div>
           </section>
 
           {/* ── GRID DE CARDS ── */}
           <section class="mb-10" id="articles-grid">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" id="articles-container">
               {articles.map((article) => (
                 <a
                   href={`/edicao/${latest.slug}/${article.slug}`}
@@ -166,7 +166,7 @@ const today = formatFullDate(new Date())
                   </p>
                   <div class="flex items-center justify-between font-mono text-[0.5rem] text-muted-foreground">
                     <span class="text-link">{article.source}</span>
-                    <div class="flex items-center gap-2 text-link">
+                    <div class="flex items-center gap-2">
                       {article.reading_time_min && <span>{article.reading_time_min} min</span>}
                       <span>{formatRelativeTime(article.created_at)}</span>
                     </div>
@@ -174,6 +174,19 @@ const today = formatFullDate(new Date())
                 </a>
               ))}
             </div>
+
+            {/* Paginacao */}
+            {articles.length > 9 && (
+              <div id="pagination" class="flex items-center justify-center gap-4 mt-8 font-mono text-[0.6rem] tracking-widest uppercase">
+                <button id="prev-page" class="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-default" disabled>
+                  &larr; Anterior
+                </button>
+                <span id="page-info" class="text-muted-foreground"></span>
+                <button id="next-page" class="text-link hover:opacity-70 transition-opacity disabled:opacity-30 disabled:cursor-default">
+                  Proxima &rarr;
+                </button>
+              </div>
+            )}
           </section>
         </>
       ) : (
@@ -235,38 +248,87 @@ const today = formatFullDate(new Date())
 </Layout>
 
 <script>
+  const PER_PAGE = 9
   const input = document.getElementById('search-input') as HTMLInputElement | null
   const resultsContainer = document.getElementById('search-results')
   const grid = document.getElementById('articles-grid')
+  const container = document.getElementById('articles-container')
+  const pagination = document.getElementById('pagination')
+  const prevBtn = document.getElementById('prev-page') as HTMLButtonElement | null
+  const nextBtn = document.getElementById('next-page') as HTMLButtonElement | null
+  const pageInfo = document.getElementById('page-info')
 
-  if (input && resultsContainer && grid) {
-    const cards = Array.from(grid.querySelectorAll('a[data-title]')) as HTMLAnchorElement[]
-    let debounceTimer: ReturnType<typeof setTimeout>
+  if (container && grid) {
+    const allCards = Array.from(container.querySelectorAll('a[data-title]')) as HTMLAnchorElement[]
+    let currentPage = 1
+    let visibleCards = allCards
+    let isSearching = false
 
-    input.addEventListener('input', () => {
-      clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => {
-        const query = input.value.trim().toLowerCase()
+    function renderPage() {
+      if (isSearching) {
+        // Durante busca, mostra todos os resultados sem paginacao
+        if (pagination) pagination.style.display = 'none'
+        return
+      }
 
-        if (!query) {
-          // Mostra todos os cards
-          cards.forEach(card => card.style.display = '')
-          resultsContainer.classList.add('hidden')
-          return
-        }
+      const totalPages = Math.ceil(visibleCards.length / PER_PAGE)
+      const start = (currentPage - 1) * PER_PAGE
+      const end = start + PER_PAGE
 
-        let matchCount = 0
-        cards.forEach(card => {
-          const title = card.dataset.title ?? ''
-          const summary = card.dataset.summary ?? ''
-          const matches = title.includes(query) || summary.includes(query)
-          card.style.display = matches ? '' : 'none'
-          if (matches) matchCount++
-        })
+      allCards.forEach(card => card.style.display = 'none')
+      visibleCards.forEach((card, i) => {
+        card.style.display = i >= start && i < end ? '' : 'none'
+      })
 
-        resultsContainer.innerHTML = `<p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">${matchCount} resultado${matchCount !== 1 ? 's' : ''} para "${input.value.trim()}"</p>`
-        resultsContainer.classList.remove('hidden')
-      }, 200)
-    })
+      if (pagination && totalPages > 1) {
+        pagination.style.display = ''
+        if (prevBtn) prevBtn.disabled = currentPage <= 1
+        if (nextBtn) nextBtn.disabled = currentPage >= totalPages
+        if (pageInfo) pageInfo.textContent = `${currentPage} / ${totalPages}`
+      } else if (pagination) {
+        pagination.style.display = 'none'
+      }
+    }
+
+    prevBtn?.addEventListener('click', () => { currentPage--; renderPage() })
+    nextBtn?.addEventListener('click', () => { currentPage++; renderPage() })
+
+    // Paginacao inicial
+    visibleCards = allCards
+    renderPage()
+
+    // Busca
+    if (input && resultsContainer) {
+      let debounceTimer: ReturnType<typeof setTimeout>
+
+      input.addEventListener('input', () => {
+        clearTimeout(debounceTimer)
+        debounceTimer = setTimeout(() => {
+          const query = input.value.trim().toLowerCase()
+
+          if (!query) {
+            isSearching = false
+            visibleCards = allCards
+            currentPage = 1
+            renderPage()
+            resultsContainer.classList.add('hidden')
+            return
+          }
+
+          isSearching = true
+          allCards.forEach(card => {
+            const title = card.dataset.title ?? ''
+            const summary = card.dataset.summary ?? ''
+            const matches = title.includes(query) || summary.includes(query)
+            card.style.display = matches ? '' : 'none'
+          })
+
+          const matchCount = allCards.filter(c => c.style.display !== 'none').length
+          resultsContainer.innerHTML = `<p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">${matchCount} resultado${matchCount !== 1 ? 's' : ''} para "${input.value.trim()}"</p>`
+          resultsContainer.classList.remove('hidden')
+          if (pagination) pagination.style.display = 'none'
+        }, 200)
+      })
+    }
   }
 </script>

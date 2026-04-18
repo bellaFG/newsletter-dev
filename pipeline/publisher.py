@@ -68,6 +68,7 @@ def publish(curation: CurationOutput) -> str:
             "title_ptbr": a.title_ptbr,
             "url": a.url,
             "summary_ptbr": a.summary_ptbr,
+            "content_ptbr": a.content_ptbr,
             "source": a.source,
             "category": a.category,
             "original_language": a.original_language,

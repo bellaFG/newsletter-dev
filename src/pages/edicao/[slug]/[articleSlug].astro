@@ -70,9 +70,14 @@ const categorySlug = CATEGORY_SLUGS[article.category]
         </a>
 
         {/* Titulo */}
-        <h1 class="font-serif text-3xl sm:text-4xl font-black leading-[1.1] tracking-tight mb-4">
+        <h1 class="font-serif text-3xl sm:text-4xl font-black leading-[1.1] tracking-tight mb-2">
           {article.title_ptbr ?? article.title}
         </h1>
+        {article.title_ptbr && article.original_language !== 'pt' && (
+          <p class="font-mono text-[0.6rem] text-muted-foreground italic mb-4">
+            {article.title}
+          </p>
+        )}
 
         {/* Metadata */}
         <div class="flex flex-wrap items-center gap-2 font-mono text-[0.6rem] text-link mb-8">
@@ -85,21 +90,15 @@ const categorySlug = CATEGORY_SLUGS[article.category]
           )}
           <span>&middot;</span>
           <span>{formatMediumDate(edition.created_at)}</span>
-          {article.original_language !== 'pt' && (
-            <>
-              <span>&middot;</span>
-              <span class="border border-foreground/20 px-1.5 py-0.5">
-                {article.original_language.toUpperCase()}
-              </span>
-            </>
-          )}
         </div>
 
         <div class="border-t border-foreground/20 mb-8"></div>
 
         {/* Conteudo */}
-        <div class="text-base sm:text-lg leading-relaxed text-foreground/85 mb-8 whitespace-pre-line">
-          {article.summary_ptbr}
+        <div class="text-base sm:text-lg leading-relaxed text-foreground/85 mb-8 space-y-4">
+          {(article.content_ptbr ?? article.summary_ptbr).split('\n\n').map((paragraph) => (
+            <p>{paragraph}</p>
+          ))}
         </div>
 
         {/* CTAs */}
@@ -108,15 +107,15 @@ const categorySlug = CATEGORY_SLUGS[article.category]
             href={article.url}
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center justify-center bg-link text-white font-mono text-[0.6rem] tracking-widest uppercase px-6 py-3 hover:opacity-75 transition-opacity font-bold"
+            class="inline-flex items-center justify-center border-2 border-link/30 text-link font-mono text-[0.6rem] tracking-widest uppercase px-6 py-3 hover:border-link transition-colors font-bold"
           >
-            Leia o artigo original &rarr;
+            Fonte original &rarr;
           </a>
           <a
             href={`/${edition.slug}`}
-            class="inline-flex items-center justify-center border-2 border-link/30 text-link font-mono text-[0.6rem] tracking-widest uppercase px-6 py-3 hover:border-link transition-colors font-bold"
+            class="inline-flex items-center justify-center font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground px-6 py-3 hover:text-foreground transition-colors"
           >
-            Ver edicao completa
+            Ver edicao #{formatEditionNumber(edition.edition_number)}
           </a>
         </div>
       </article>
@@ -150,17 +149,17 @@ const categorySlug = CATEGORY_SLUGS[article.category]
       )}
 
       {/* ── CTA SUBSCRIBE ── */}
-      <section class="border-t border-foreground/20 pt-8 mt-8 text-center">
-        <p class="text-sm text-muted-foreground mb-3">
-          Gostou? Receba conteudo assim toda segunda-feira.
+      <div class="border-t border-foreground/20 pt-6 mt-8 flex items-center justify-center gap-3">
+        <p class="text-sm text-muted-foreground">
+          Receba toda segunda-feira
         </p>
         <button
           data-subscribe-open
-          class="bg-link text-white font-mono text-[0.6rem] tracking-widest uppercase px-8 py-3 hover:opacity-75 transition-opacity cursor-pointer font-bold"
+          class="text-sm text-link border-b border-link/50 pb-px hover:opacity-70 transition-opacity cursor-pointer"
         >
-          Assinar {SITE_NAME}
+          Assinar {SITE_NAME} &rarr;
         </button>
-      </section>
+      </div>
 
       {/* ── NAVEGACAO ── */}
       <footer class="border-t border-foreground/20 pt-8 mt-8 flex items-center justify-between">

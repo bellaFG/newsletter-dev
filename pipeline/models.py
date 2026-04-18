@@ -36,6 +36,7 @@ class CuratedArticle(BaseModel):
     title_ptbr: str | None = None
     url: str
     summary_ptbr: str
+    content_ptbr: str | None = None
     source: str
     category: ArticleCategory
     original_language: str = "en"

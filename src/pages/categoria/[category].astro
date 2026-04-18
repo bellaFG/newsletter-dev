@@ -58,7 +58,7 @@ const articles = (articlesData ?? []) as ArticleWithEdition[]
           {categoryName}
         </h1>
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground">
-          {articles.length} {articles.length === 1 ? 'artigo' : 'artigos'}
+          {articles.length} {articles.length === 1 ? 'artigo' : 'artigos'} de todas as edicoes
         </p>
       </header>
 
@@ -70,13 +70,10 @@ const articles = (articlesData ?? []) as ArticleWithEdition[]
           {articles.map((article) => (
             <article class="group">
               <a href={`/edicao/${article.editions.slug}/${article.slug}`} class="block">
-                <div class="flex items-center gap-2 mb-2">
-                  <span class="font-mono text-[0.5rem] tracking-widest uppercase text-link border border-link/30 px-1.5 py-0.5">
-                    #{formatEditionNumber(article.editions.edition_number)}
-                  </span>
-                  <span class="font-mono text-[0.5rem] text-link">
-                    {formatShortDate(article.editions.created_at)}
-                  </span>
+                <div class="flex items-center gap-2 mb-2 font-mono text-[0.5rem] text-muted-foreground">
+                  <span>#{formatEditionNumber(article.editions.edition_number)}</span>
+                  <span class="text-foreground/20">&middot;</span>
+                  <span>{formatShortDate(article.editions.created_at)}</span>
                 </div>
                 <h2 class="font-serif text-xl font-bold leading-snug group-hover:opacity-60 transition-opacity mb-2">
                   {article.title_ptbr ?? article.title}
