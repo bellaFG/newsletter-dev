@@ -1,7 +1,7 @@
 /**
  * Validacao de variaveis de ambiente do servidor.
  * Falha rapido (fail-fast) se alguma variavel obrigatoria estiver ausente,
- * evitando erros obscuros em runtime nas chamadas ao Supabase/Resend.
+ * evitando erros obscuros em runtime nas chamadas ao Supabase/Brevo.
  */
 
 /**
