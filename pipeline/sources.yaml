@@ -27,6 +27,18 @@ rss:
     url: "https://www.thoughtworks.com/rss/insights.xml"
     category_hint: "Tendências"
 
+  - name: "The Verge - Tech"
+    url: "https://www.theverge.com/rss/index.xml"
+    category_hint: "Indústria"
+
+  - name: "Ars Technica"
+    url: "https://feeds.arstechnica.com/arstechnica/technology-lab"
+    category_hint: "Tecnologia"
+
+  - name: "GitHub Blog"
+    url: "https://github.blog/feed/"
+    category_hint: "Ferramentas"
+
 reddit:
   - subreddit: "programming"
     limit: 15
@@ -40,10 +52,17 @@ reddit:
   - subreddit: "devops"
     limit: 10
 
+  - subreddit: "golang"
+    limit: 8
+
+  - subreddit: "rust"
+    limit: 8
+
 github_trending:
   languages:
     - ""          # todas as linguagens
     - "python"
     - "typescript"
     - "go"
+    - "rust"
   since: "weekly"  # daily | weekly | monthly
