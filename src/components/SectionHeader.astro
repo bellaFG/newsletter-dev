@@ -1,0 +1,17 @@
+---
+/**
+ * Cabecalho de secao com titulo + linha horizontal.
+ */
+interface Props {
+  title: string
+}
+
+const { title } = Astro.props
+---
+
+<div class="flex items-center gap-3 mb-5">
+  <h3 class="font-mono text-[0.6rem] tracking-widest uppercase font-bold text-foreground shrink-0">
+    {title}
+  </h3>
+  <div class="h-px flex-1 bg-foreground/15"></div>
+</div>

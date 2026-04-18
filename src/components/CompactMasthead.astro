@@ -1,0 +1,36 @@
+---
+/**
+ * Masthead compacto usado nas paginas internas (edicao, arquivo, artigo).
+ * Exibe: lado esquerdo | centro (nome do site) | lado direito.
+ */
+import { SITE_NAME } from '@/lib/config'
+
+interface Props {
+  left?: string
+  right?: string
+  leftHref?: string
+}
+
+const { left, right, leftHref } = Astro.props
+---
+
+<header class="border-b border-foreground/30 pb-4 mb-8">
+  <div class="grid grid-cols-3 items-baseline">
+    <p class="font-mono text-[0.65rem] tracking-widest uppercase text-link text-left">
+      {leftHref ? (
+        <a href={leftHref} class="hover:opacity-70 transition-colors">{left}</a>
+      ) : (
+        left
+      )}
+    </p>
+    <a
+      href="/"
+      class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity text-center"
+    >
+      {SITE_NAME.toUpperCase()}
+    </a>
+    <span class="font-mono text-[0.65rem] tracking-widest uppercase text-link text-right">
+      {right}
+    </span>
+  </div>
+</header>

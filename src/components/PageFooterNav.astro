@@ -1,0 +1,30 @@
+---
+/**
+ * Rodape de navegacao consistente usado em paginas internas.
+ */
+interface Props {
+  leftLabel: string
+  leftHref: string
+  rightLabel?: string
+  rightHref?: string
+}
+
+const { leftLabel, leftHref, rightLabel = 'Todas as edições →', rightHref = '/archive' } = Astro.props
+---
+
+<footer class="border-t border-foreground/20 pt-8 mt-8 flex items-center justify-between">
+  <a
+    href={leftHref}
+    class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
+  >
+    {leftLabel}
+  </a>
+  {rightHref && (
+    <a
+      href={rightHref}
+      class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
+    >
+      {rightLabel}
+    </a>
+  )}
+</footer>
