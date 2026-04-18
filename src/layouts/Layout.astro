@@ -5,12 +5,17 @@ import { SITE_NAME, SITE_TITLE, SITE_DESCRIPTION } from '@/lib/config'
 interface Props {
   title?: string
   description?: string
+  ogTitle?: string
 }
 
 const {
   title = SITE_TITLE,
   description = SITE_DESCRIPTION,
+  ogTitle,
 } = Astro.props
+
+const socialTitle = ogTitle ?? title
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://newsletter-dev.vercel.app')
 ---
 
 <html lang="pt-BR">
@@ -20,6 +25,18 @@ const {
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl.href} />
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={socialTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl.href} />
+    <meta property="og:site_name" content={SITE_NAME} />
+    <meta property="og:locale" content="pt_BR" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={socialTitle} />
+    <meta name="twitter:description" content={description} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

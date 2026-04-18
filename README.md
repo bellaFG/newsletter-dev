@@ -4,7 +4,7 @@
 
 Newsletter semanal curada por IA para desenvolvedores brasileiros.
 
-**Astro 5** | **Supabase** | **Resend** | **OpenAI** | **Vercel**
+**Astro 5** | **Supabase** | **Brevo** | **OpenAI** | **Vercel**
 
 ---
 
@@ -40,8 +40,8 @@ O projeto tem duas partes independentes:
     +--------+-----------+    +---------+----------+
              |                          |
     +--------v-----------+    +---------v----------+
-    |   Site Publico     |    |     Resend         |
-    |   (Astro SSR)      |    |   (batch email)    |
+    |   Site Publico     |    |     Brevo          |
+    |   (Astro SSR)      |    |   (SMTP email)     |
     +--------------------+    +--------------------+
 ```
 
@@ -54,7 +54,7 @@ O projeto tem duas partes independentes:
 | Framework web | Astro 5 (SSR) |
 | Estilizacao | Tailwind CSS 3.4 + oklch color tokens |
 | Email template | React Email |
-| Envio de email | Resend (batch API) |
+| Envio de email | Brevo (ex-Sendinblue) API |
 | Banco de dados | Supabase (PostgreSQL + RLS) |
 | Curadoria IA | OpenAI GPT-4o mini |
 | Pipeline | Python 3.11 (feedparser, requests, BeautifulSoup, Pydantic) |
@@ -70,27 +70,39 @@ newsletter/
 |
 |-- src/
 |   |-- pages/
-|   |   |-- index.astro              # Homepage: edicao atual + subscribe
+|   |   |-- index.astro              # Homepage: edicao atual + busca + subscribe
 |   |   |-- archive.astro            # Todas as edicoes por ano
 |   |   |-- [slug].astro             # Detalhe de uma edicao
 |   |   |-- unsubscribe.astro        # Cancelamento de inscricao
 |   |   |-- 404.astro                # Pagina de erro 404
+|   |   |-- categoria/
+|   |   |   +-- [category].astro     # Arquivo por categoria
+|   |   |-- edicao/
+|   |   |   +-- [slug]/
+|   |   |       +-- [articleSlug].astro # Detalhe de um artigo
 |   |   +-- api/
 |   |       |-- subscribe.ts         # POST: registrar subscriber
 |   |       +-- send-newsletter.ts   # POST: enviar emails (autenticado)
 |   |
 |   |-- layouts/
-|   |   +-- Layout.astro             # Layout base (fonts, tema, meta tags)
+|   |   +-- Layout.astro             # Layout base (fonts, tema, meta tags, modal)
+|   |
+|   |-- components/
+|   |   |-- ArticleCard.astro        # Card de artigo na grid
+|   |   |-- CategoryNav.astro        # Navegacao por categorias (pills/links)
+|   |   |-- CompactMasthead.astro    # Masthead de paginas internas
+|   |   |-- CategoryDivider.astro    # Divisor estilo jornal
+|   |   |-- SectionHeader.astro      # Cabecalho de secao
+|   |   +-- PageFooterNav.astro      # Rodape de navegacao
 |   |
 |   |-- lib/
 |   |   |-- config.ts                # Constantes centralizadas do site
 |   |   |-- env.ts                   # Validacao de variaveis de ambiente
 |   |   |-- supabase.ts              # Clientes Supabase (anon + server)
-|   |   |-- resend.ts                # Cliente Resend
+|   |   |-- brevo.ts                 # Cliente Brevo (envio de email)
 |   |   |-- types.ts                 # Tipos TypeScript do banco
 |   |   |-- articles.ts              # Agrupamento e ordenacao de artigos
-|   |   |-- date.ts                  # Formatacao de datas pt-BR
-|   |   +-- utils.ts                 # Utilitario cn() para Tailwind
+|   |   +-- date.ts                  # Formatacao de datas pt-BR
 |   |
 |   +-- styles/
 |       +-- globals.css              # Tailwind + CSS variables (light/dark)
@@ -107,12 +119,15 @@ newsletter/
 |   |-- sources.yaml                 # Fontes de artigos (RSS, Reddit, GitHub)
 |   |-- requirements.txt             # Dependencias Python
 |   +-- collectors/
-|       |-- rss.py                   # Coletor RSS (7 feeds)
+|       |-- rss.py                   # Coletor RSS (10 feeds)
 |       |-- github_trending.py       # Coletor GitHub Trending
-|       +-- reddit.py                # Coletor Reddit (4 subreddits)
+|       +-- reddit.py                # Coletor Reddit (6 subreddits)
 |
 |-- supabase/
-|   +-- schema.sql                   # Schema do banco + politicas RLS
+|   |-- schema.sql                   # Schema do banco + politicas RLS
+|   +-- migrations/
+|       |-- 001_add_article_slug.sql # Coluna slug + indice unico
+|       +-- 002_add_article_content.sql # Coluna content_ptbr
 |
 |-- public/
 |   +-- fonts/                       # Geist Sans e Geist Mono (woff)
@@ -131,7 +146,7 @@ newsletter/
 - Node.js 18+
 - Python 3.11+
 - Conta no [Supabase](https://supabase.com) (plano gratuito)
-- Conta no [Resend](https://resend.com) (plano gratuito)
+- Conta no [Brevo](https://brevo.com) (plano gratuito — 300 emails/dia)
 - Chave da API [OpenAI](https://platform.openai.com) (para o pipeline)
 
 ### 1. Clone e instale
@@ -153,6 +168,10 @@ Preencha todas as variaveis no `.env.local`. Veja a secao [Variaveis de Ambiente
 ### 3. Configure o banco de dados
 
 No Supabase Dashboard, va em **SQL Editor** e execute o conteudo de `supabase/schema.sql`. Isso cria as tabelas, indices e politicas RLS.
+
+Em seguida, aplique as migrations na ordem:
+1. `supabase/migrations/001_add_article_slug.sql`
+2. `supabase/migrations/002_add_article_content.sql`
 
 ### 4. Inicie o servidor de desenvolvimento
 
@@ -179,7 +198,7 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 
 ### Fluxo
 
-1. **Coleta** — Busca artigos de 7 feeds RSS, GitHub Trending (4 linguagens) e Reddit (4 subreddits)
+1. **Coleta** — Busca artigos de 10 feeds RSS, GitHub Trending (5 linguagens) e Reddit (6 subreddits)
 2. **Curadoria** — GPT-4o mini seleciona 8-10 artigos, categoriza e gera resumos em pt-BR
 3. **Publicacao** — Insere edicao e artigos no Supabase, depois chama `POST /api/send-newsletter`
 
@@ -187,9 +206,9 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 
 | Tipo | Fontes |
 |------|--------|
-| RSS | Hacker News, The Changelog, InfoQ, dev.to, Lobste.rs, Martin Fowler, ThoughtWorks Radar |
-| GitHub | Trending (all, Python, TypeScript, Go) |
-| Reddit | r/programming, r/webdev, r/MachineLearning, r/devops |
+| RSS | Hacker News, The Changelog, InfoQ, dev.to, Lobste.rs, Martin Fowler, ThoughtWorks Radar, The Verge, Ars Technica, GitHub Blog |
+| GitHub | Trending (all, Python, TypeScript, Go, Rust) |
+| Reddit | r/programming, r/webdev, r/MachineLearning, r/devops, r/golang, r/rust |
 
 ---
 
@@ -200,7 +219,7 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 | `SUPABASE_URL` | Sim | Web + Pipeline | URL da instancia Supabase |
 | `SUPABASE_ANON_KEY` | Sim | Web | Chave anonima (client publico) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Sim | Web + Pipeline | Chave service role (bypassa RLS) |
-| `RESEND_API_KEY` | Sim | Web | Chave da API Resend |
+| `BREVO_API_KEY` | Sim | Web | Chave da API Brevo |
 | `NEWSLETTER_API_SECRET` | Sim | Web + Pipeline | Token Bearer para `/api/send-newsletter` |
 | `OPENAI_API_KEY` | Sim | Pipeline | Chave da API OpenAI |
 | `SITE_URL` | Sim | Pipeline | URL base do site (ex: `https://devpulse.com.br`) |
@@ -234,7 +253,7 @@ Configure as secrets no repositorio GitHub:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `OPENAI_API_KEY`
-- `RESEND_API_KEY`
+- `BREVO_API_KEY`
 - `NEWSLETTER_API_SECRET`
 - `SITE_URL`
 
@@ -244,7 +263,7 @@ Configure as secrets no repositorio GitHub:
 
 ### Autenticacao da API
 
-O endpoint `POST /api/send-newsletter` requer um header `Authorization: Bearer {NEWSLETTER_API_SECRET}`. Apenas o pipeline Python e chamadas autorizadas podem disparar o envio.
+O endpoint `POST /api/send-newsletter` requer um header `Authorization: Bearer {NEWSLETTER_API_SECRET}`. A comparacao do token usa `timingSafeEqual` para prevenir timing attacks. Apenas o pipeline Python e chamadas autorizadas podem disparar o envio.
 
 ### Row Level Security (RLS)
 
@@ -255,7 +274,11 @@ Todas as tabelas tem RLS habilitado no Supabase:
 
 ### Protecao contra enumeracao
 
-O endpoint `POST /api/subscribe` retorna a mesma resposta independente de o email ja existir ou nao, impedindo que atacantes descubram quais emails estao cadastrados.
+O endpoint `POST /api/subscribe` retorna a mesma resposta (200 + success) independente de o email ja existir, estar inativo ou ser novo, impedindo que atacantes descubram quais emails estao cadastrados.
+
+### Validacao de email
+
+Alem de validacao por regex (RFC 5322), o endpoint verifica registros MX/A do dominio via DNS para rejeitar dominios inexistentes.
 
 ### Idempotencia no envio
 

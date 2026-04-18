@@ -2,11 +2,13 @@ import type { APIRoute } from 'astro'
 import { promises as dns } from 'node:dns'
 import { createServerClient } from '@/lib/supabase'
 
+const jsonHeaders = { 'Content-Type': 'application/json' }
+
 /**
  * POST /api/subscribe
  *
  * Registra um novo subscriber ou reativa um que cancelou a inscricao.
- * Retorna 409 se o email ja estiver inscrito.
+ * Resposta identica para email novo, reativado ou ja ativo (anti-enumeracao).
  */
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -19,7 +21,7 @@ export const POST: APIRoute = async ({ request }) => {
       email.length > 254 ||
       !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/.test(email)
     ) {
-      return new Response(JSON.stringify({ error: 'Email inv\u00e1lido' }), { status: 400 })
+      return new Response(JSON.stringify({ error: 'Email inválido' }), { status: 400, headers: jsonHeaders })
     }
 
     // Verifica se o dominio aceita emails (tem registros MX ou A)
@@ -30,7 +32,7 @@ export const POST: APIRoute = async ({ request }) => {
       try {
         await dns.resolve4(domain)
       } catch {
-        return new Response(JSON.stringify({ error: 'Domínio de email não existe.' }), { status: 400 })
+        return new Response(JSON.stringify({ error: 'Domínio de email não existe.' }), { status: 400, headers: jsonHeaders })
       }
     }
 
@@ -54,13 +56,13 @@ export const POST: APIRoute = async ({ request }) => {
         if (error) {
           console.error('[subscribe] Erro ao reativar subscriber:', error)
           return new Response(JSON.stringify({ error: 'Erro ao cadastrar. Tente novamente.' }), {
-            status: 500,
+            status: 500, headers: jsonHeaders,
           })
         }
-        return new Response(JSON.stringify({ success: true }), { status: 200 })
+        return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders })
       }
-      // Ja ativo — avisa o usuario
-      return new Response(JSON.stringify({ error: 'Este email já está inscrito.' }), { status: 409 })
+      // Ja ativo — retorna sucesso (anti-enumeracao: mesma resposta que novo subscriber)
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders })
     }
 
     // Novo subscriber
@@ -73,7 +75,7 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    return new Response(JSON.stringify({ success: true }), { status: 200 })
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders })
   } catch (err) {
     console.error('[subscribe] Erro inesperado:', err)
     return new Response(JSON.stringify({ error: 'Erro ao cadastrar. Tente novamente.' }), {

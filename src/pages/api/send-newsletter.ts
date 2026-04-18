@@ -1,10 +1,20 @@
 import type { APIRoute } from 'astro'
+import { timingSafeEqual } from 'node:crypto'
 import { sendEmail } from '@/lib/brevo'
 import { render } from '@react-email/render'
 import { createServerClient } from '@/lib/supabase'
 import { NewsletterEmail } from '../../../emails/NewsletterEmail'
 import type { Article, Edition } from '@/lib/types'
 import { EMAIL_FROM, DEFAULT_SITE_URL } from '@/lib/config'
+import { requireEnv } from '@/lib/env'
+
+const jsonHeaders = { 'Content-Type': 'application/json' }
+
+/** Comparacao de strings em tempo constante (previne timing attacks) */
+function safeCompare(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  return timingSafeEqual(Buffer.from(a), Buffer.from(b))
+}
 
 /**
  * POST /api/send-newsletter
@@ -16,17 +26,18 @@ import { EMAIL_FROM, DEFAULT_SITE_URL } from '@/lib/config'
  */
 export const POST: APIRoute = async ({ request }) => {
   // ── Autenticacao via Bearer token ──
-  const authHeader = request.headers.get('authorization')
-  const expectedSecret = `Bearer ${import.meta.env.NEWSLETTER_API_SECRET}`
+  const authHeader = request.headers.get('authorization') ?? ''
+  const expectedSecret = `Bearer ${requireEnv('NEWSLETTER_API_SECRET')}`
 
-  if (authHeader !== expectedSecret) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+  if (!safeCompare(authHeader, expectedSecret)) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: jsonHeaders })
   }
 
-  const { edition_id } = await request.json()
+  const body = await request.json().catch(() => null)
+  const edition_id = body?.edition_id
 
   if (!edition_id) {
-    return new Response(JSON.stringify({ error: 'edition_id is required' }), { status: 400 })
+    return new Response(JSON.stringify({ error: 'edition_id is required' }), { status: 400, headers: jsonHeaders })
   }
 
   const supabase = createServerClient()
@@ -39,14 +50,14 @@ export const POST: APIRoute = async ({ request }) => {
     .single()
 
   if (editionError || !edition) {
-    return new Response(JSON.stringify({ error: 'Edition not found' }), { status: 404 })
+    return new Response(JSON.stringify({ error: 'Edition not found' }), { status: 404, headers: jsonHeaders })
   }
 
   // ── Idempotencia: evita envio duplicado ──
   if (edition.sent_at) {
     return new Response(
       JSON.stringify({ message: 'Newsletter already sent', sent_at: edition.sent_at }),
-      { status: 200 },
+      { status: 200, headers: jsonHeaders },
     )
   }
 
@@ -57,7 +68,7 @@ export const POST: APIRoute = async ({ request }) => {
     .order('position', { ascending: true })
 
   if (articlesError) {
-    return new Response(JSON.stringify({ error: 'Failed to fetch articles' }), { status: 500 })
+    return new Response(JSON.stringify({ error: 'Failed to fetch articles' }), { status: 500, headers: jsonHeaders })
   }
 
   const { data: subscribers, error: subscribersError } = await supabase
@@ -66,11 +77,11 @@ export const POST: APIRoute = async ({ request }) => {
     .eq('active', true)
 
   if (subscribersError) {
-    return new Response(JSON.stringify({ error: 'Failed to fetch subscribers' }), { status: 500 })
+    return new Response(JSON.stringify({ error: 'Failed to fetch subscribers' }), { status: 500, headers: jsonHeaders })
   }
 
   if (!subscribers || subscribers.length === 0) {
-    return new Response(JSON.stringify({ message: 'No active subscribers' }), { status: 200 })
+    return new Response(JSON.stringify({ message: 'No active subscribers' }), { status: 200, headers: jsonHeaders })
   }
 
   const baseUrl = import.meta.env.SITE_URL ?? DEFAULT_SITE_URL
@@ -110,7 +121,7 @@ export const POST: APIRoute = async ({ request }) => {
       .update({ sent_at: new Date().toISOString() })
       .eq('id', edition_id)
 
-    return new Response(JSON.stringify({ success: true, sent_to: totalSent }))
+    return new Response(JSON.stringify({ success: true, sent_to: totalSent }), { headers: jsonHeaders })
   }
 
   return new Response(
@@ -119,6 +130,6 @@ export const POST: APIRoute = async ({ request }) => {
       sent_to: totalSent,
       errors,
     }),
-    { status: 207 },
+    { status: 207, headers: jsonHeaders },
   )
 }

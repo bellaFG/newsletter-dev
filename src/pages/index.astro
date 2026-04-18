@@ -176,15 +176,15 @@ const today = formatFullDate(new Date())
               <li>
                 <a
                   href={`/${edition.slug}`}
-                  class="flex items-baseline justify-between py-3 hover:opacity-60 transition-opacity group"
+                  class="flex items-baseline justify-between py-3 hover:opacity-60 transition-opacity group gap-x-3"
                 >
-                  <span class="font-mono text-[0.55rem] text-link mr-3 shrink-0">
+                  <span class="font-mono text-[0.55rem] text-link shrink-0">
                     #{formatEditionNumber(edition.edition_number)}
                   </span>
-                  <span class="font-serif text-sm font-semibold flex-1 group-hover:underline underline-offset-2">
+                  <span class="font-serif text-sm font-semibold flex-1 min-w-0 group-hover:underline underline-offset-2">
                     {edition.title}
                   </span>
-                  <span class="font-mono text-[0.55rem] text-link ml-3 shrink-0 hidden sm:inline">
+                  <span class="font-mono text-[0.55rem] text-link shrink-0">
                     {formatShortDate(edition.created_at)}
                   </span>
                 </a>
@@ -280,7 +280,8 @@ const today = formatFullDate(new Date())
           })
 
           const matchCount = allCards.filter(c => c.style.display !== 'none').length
-          resultsContainer.innerHTML = `<p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">${matchCount} resultado${matchCount !== 1 ? 's' : ''} para "${input.value.trim()}"</p>`
+          const safeQuery = input.value.trim().replace(/[&<>"']/g, (c: string) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] ?? c))
+          resultsContainer.innerHTML = `<p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">${matchCount} resultado${matchCount !== 1 ? 's' : ''} para "${safeQuery}"</p>`
           resultsContainer.classList.remove('hidden')
           if (pagination) pagination.style.display = 'none'
         }, 200)

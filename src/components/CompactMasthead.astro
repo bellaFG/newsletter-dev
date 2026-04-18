@@ -15,8 +15,8 @@ const { left, right, leftHref } = Astro.props
 ---
 
 <header class="border-b border-foreground/30 pb-4 mb-8">
-  <div class="grid grid-cols-3 items-baseline">
-    <p class="font-mono text-[0.65rem] tracking-widest uppercase text-link text-left">
+  <div class="flex flex-col sm:grid sm:grid-cols-3 items-center sm:items-baseline gap-1 sm:gap-0">
+    <p class="font-mono text-[0.65rem] tracking-widest uppercase text-link text-center sm:text-left order-2 sm:order-1">
       {leftHref ? (
         <a href={leftHref} class="hover:opacity-70 transition-colors">{left}</a>
       ) : (
@@ -25,11 +25,11 @@ const { left, right, leftHref } = Astro.props
     </p>
     <a
       href="/"
-      class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity text-center"
+      class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity text-center order-1 sm:order-2"
     >
       {SITE_NAME.toUpperCase()}
     </a>
-    <span class="font-mono text-[0.65rem] tracking-widest uppercase text-link text-right">
+    <span class="font-mono text-[0.65rem] tracking-widest uppercase text-link text-center sm:text-right order-3">
       {right}
     </span>
   </div>

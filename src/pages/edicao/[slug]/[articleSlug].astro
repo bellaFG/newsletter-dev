@@ -48,7 +48,7 @@ const categorySlug = CATEGORY_SLUGS[article.category]
     <div class="mx-auto max-w-3xl px-6 py-10">
 
       {/* -- BREADCRUMB -- */}
-      <nav class="mb-8 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
+      <nav class="mb-8 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground flex flex-wrap items-center gap-y-1">
         <a href="/" class="text-link hover:opacity-70 transition-colors">Início</a>
         <span class="mx-1">/</span>
         <a href={`/${edition.slug}`} class="text-link hover:opacity-70 transition-colors">
@@ -137,7 +137,7 @@ const categorySlug = CATEGORY_SLUGS[article.category]
       )}
 
       {/* -- CTA SUBSCRIBE -- */}
-      <div class="border-t border-foreground/20 pt-6 mt-8 flex items-center justify-center gap-3">
+      <div class="border-t border-foreground/20 pt-6 mt-8 flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
         <p class="text-sm text-muted-foreground">
           Receba toda segunda-feira
         </p>
