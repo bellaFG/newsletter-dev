@@ -1,8 +1,10 @@
 ---
 import Layout from '@/layouts/Layout.astro'
+import CategoryNav from '@/components/CategoryNav.astro'
+import PageFooterNav from '@/components/PageFooterNav.astro'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
-import { CATEGORY_ORDER, CATEGORY_SLUGS, SLUG_TO_CATEGORY } from '@/lib/articles'
+import { SLUG_TO_CATEGORY } from '@/lib/articles'
 import { formatShortDate, formatEditionNumber } from '@/lib/date'
 import { SITE_NAME } from '@/lib/config'
 
@@ -11,7 +13,6 @@ const { category: categoryParam } = Astro.params
 const categoryName = SLUG_TO_CATEGORY[categoryParam!]
 if (!categoryName) return new Response(null, { status: 404 })
 
-// Artigos dessa categoria com dados da edicao
 const { data: articlesData } = await supabase
   .from('articles')
   .select('*, editions!inner(slug, edition_number, title, created_at)')
@@ -29,53 +30,30 @@ const articles = (articlesData ?? []) as ArticleWithEdition[]
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
 
-      {/* ── BARRA DE CATEGORIAS ── */}
-      <nav class="mb-8 overflow-x-auto -mx-6 px-6">
-        <div class="flex gap-2 min-w-max">
-          {CATEGORY_ORDER.map((cat) => {
-            const slug = CATEGORY_SLUGS[cat]
-            const isActive = cat === categoryName
-            return (
-              <a
-                href={`/categoria/${slug}`}
-                class:list={[
-                  'font-mono text-[0.5rem] tracking-widest uppercase px-3 py-1.5 border whitespace-nowrap transition-colors shrink-0',
-                  isActive
-                    ? 'bg-foreground text-background border-foreground font-bold'
-                    : 'border-foreground/20 text-muted-foreground hover:border-foreground hover:text-foreground',
-                ]}
-              >
-                {cat}
-              </a>
-            )
-          })}
-        </div>
-      </nav>
+      <CategoryNav mode="pills" active={categoryName} />
 
-      {/* ── HEADING ── */}
       <header class="mb-8">
         <h1 class="font-serif text-3xl sm:text-4xl font-black tracking-tight mb-2">
           {categoryName}
         </h1>
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground">
-          {articles.length} {articles.length === 1 ? 'artigo' : 'artigos'} de todas as edicoes
+          {articles.length} {articles.length === 1 ? 'artigo' : 'artigos'} de todas as edições
         </p>
       </header>
 
       <div class="border-t border-foreground/20 mb-8"></div>
 
-      {/* ── LISTA DE ARTIGOS ── */}
       {articles.length > 0 ? (
         <div class="space-y-8">
           {articles.map((article) => (
             <article class="group">
               <a href={`/edicao/${article.editions.slug}/${article.slug}`} class="block">
-                <div class="flex items-center gap-2 mb-2 font-mono text-[0.5rem] text-muted-foreground">
-                  <span>#{formatEditionNumber(article.editions.edition_number)}</span>
+                <div class="flex items-center gap-2 mb-2 font-mono text-[0.5rem]">
+                  <span class="text-link">#{formatEditionNumber(article.editions.edition_number)}</span>
                   <span class="text-foreground/20">&middot;</span>
-                  <span>{formatShortDate(article.editions.created_at)}</span>
+                  <span class="text-link">{formatShortDate(article.editions.created_at)}</span>
                 </div>
-                <h2 class="font-serif text-xl font-bold leading-snug group-hover:opacity-60 transition-opacity mb-2">
+                <h2 class="font-serif text-xl font-bold leading-snug group-hover:text-link transition-colors mb-2">
                   {article.title_ptbr ?? article.title}
                 </h2>
                 <p class="text-sm text-foreground/60 line-clamp-2 leading-relaxed mb-2">
@@ -94,21 +72,7 @@ const articles = (articlesData ?? []) as ArticleWithEdition[]
         </p>
       )}
 
-      {/* ── NAVEGACAO ── */}
-      <footer class="border-t border-foreground/20 pt-8 mt-10 flex items-center justify-between">
-        <a
-          href="/"
-          class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
-        >
-          &larr; Inicio
-        </a>
-        <a
-          href="/archive"
-          class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
-        >
-          Todas as edicoes &rarr;
-        </a>
-      </footer>
+      <PageFooterNav leftLabel="← Início" leftHref="/" />
 
     </div>
   </div>

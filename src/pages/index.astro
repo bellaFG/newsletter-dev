@@ -1,12 +1,13 @@
 ---
 import Layout from '@/layouts/Layout.astro'
+import CategoryNav from '@/components/CategoryNav.astro'
+import ArticleCard from '@/components/ArticleCard.astro'
+import SectionHeader from '@/components/SectionHeader.astro'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
-import { formatFullDate, formatMediumDate, formatShortDate, formatEditionNumber, formatRelativeTime } from '@/lib/date'
-import { CATEGORY_ORDER, CATEGORY_SLUGS } from '@/lib/articles'
+import { formatFullDate, formatMediumDate, formatShortDate, formatEditionNumber } from '@/lib/date'
 import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
-// Última edição
 const { data: latestData } = await supabase
   .from('editions')
   .select('*')
@@ -16,7 +17,6 @@ const { data: latestData } = await supabase
 
 const latest = latestData as Edition | null
 
-// Artigos da última edição
 let articles: Article[] = []
 if (latest) {
   const { data } = await supabase
@@ -27,7 +27,6 @@ if (latest) {
   articles = (data ?? []) as Article[]
 }
 
-// Edições anteriores
 const { data: archiveData } = await supabase
   .from('editions')
   .select('id, slug, edition_number, title, created_at')
@@ -46,7 +45,7 @@ const today = formatFullDate(new Date())
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-6xl px-6 sm:px-10 py-6 sm:py-8">
 
-      {/* ── MASTHEAD ── */}
+      {/* -- MASTHEAD -- */}
       <header class="mb-6">
         <div class="flex items-center justify-between pb-2 border-b border-foreground/10">
           <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
@@ -65,26 +64,11 @@ const today = formatFullDate(new Date())
           </p>
         </div>
 
-        {/* ── CATEGORIAS (mobile: scroll horizontal, desktop: flex-wrap centralizado) ── */}
-        <nav class="overflow-x-auto sm:overflow-x-visible -mx-6 px-6 sm:mx-0 sm:px-0 py-3">
-          <div class="flex sm:flex-wrap sm:justify-center gap-x-4 gap-y-1.5 min-w-max sm:min-w-0 font-mono text-[0.6rem] tracking-widest uppercase">
-            {CATEGORY_ORDER.map((cat, i) => (
-              <>
-                {i > 0 && <span class="text-foreground/20 select-none hidden sm:inline" aria-hidden="true">|</span>}
-                <a
-                  href={`/categoria/${CATEGORY_SLUGS[cat]}`}
-                  class="text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap shrink-0"
-                >
-                  {cat}
-                </a>
-              </>
-            ))}
-          </div>
-        </nav>
+        <CategoryNav mode="links" />
         <div class="h-px bg-foreground/15"></div>
       </header>
 
-      {/* ── SEARCH BAR ── */}
+      {/* -- SEARCH BAR -- */}
       <div class="mb-8">
         <div class="relative max-w-md mx-auto">
           <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,7 +78,7 @@ const today = formatFullDate(new Date())
             id="search-input"
             type="text"
             placeholder="Buscar na newsletter..."
-            class="w-full border border-foreground/20 bg-background px-4 py-2.5 pl-10 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-foreground/40 transition-colors"
+            class="w-full border border-foreground/20 bg-background px-4 py-2.5 pl-10 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-link transition-colors"
           />
         </div>
         <div id="search-results" class="hidden mt-4 max-w-2xl mx-auto space-y-2"></div>
@@ -102,7 +86,7 @@ const today = formatFullDate(new Date())
 
       {latest && articles.length > 0 ? (
         <>
-          {/* ── FEATURED WEEKLY EDITION ── */}
+          {/* -- FEATURED WEEKLY EDITION -- */}
           <section class="mb-10">
             <div class="border-2 border-foreground/15 p-8 sm:p-10">
               <div class="flex flex-wrap items-center gap-3 mb-5">
@@ -117,15 +101,16 @@ const today = formatFullDate(new Date())
                 </span>
               </div>
 
-              {/* Artigo destaque */}
               {articles[0] && (
                 <div class="mb-5">
                   <p class="font-mono text-[0.5rem] tracking-widest uppercase text-link mb-2">
                     {articles[0].category} &middot; {articles[0].source}
                   </p>
-                  <h2 class="font-serif text-2xl sm:text-3xl font-black leading-[1.15] tracking-tight mb-2">
-                    {articles[0].title_ptbr ?? articles[0].title}
-                  </h2>
+                  <a href={`/edicao/${latest.slug}/${articles[0].slug}`} class="block group">
+                    <h2 class="font-serif text-2xl sm:text-3xl font-black leading-[1.15] tracking-tight mb-2 group-hover:text-link transition-colors">
+                      {articles[0].title_ptbr ?? articles[0].title}
+                    </h2>
+                  </a>
                   <p class="text-sm leading-relaxed text-foreground/70 line-clamp-2">
                     {articles[0].summary_ptbr}
                   </p>
@@ -134,48 +119,27 @@ const today = formatFullDate(new Date())
 
               <div class="h-px bg-foreground/10 mb-5"></div>
 
-              {/* Resumo da edição */}
               <p class="text-sm text-foreground/50 mb-5">
                 + {articles.length - 1} artigos sobre {[...new Set(articles.slice(1).map(a => a.category))].slice(0, 3).join(', ')} e mais
               </p>
 
               <a
                 href={`/${latest.slug}`}
-                class="inline-block bg-link text-white font-mono text-[0.5rem] tracking-widest uppercase px-4 py-2 hover:opacity-75 transition-opacity font-bold"
+                class="inline-block font-mono text-[0.55rem] tracking-widest uppercase px-5 py-2.5 border-2 border-link text-link hover:bg-link hover:text-white transition-colors font-bold"
               >
-                Ler edicao completa &rarr;
+                Ler edição completa &rarr;
               </a>
             </div>
           </section>
 
-          {/* ── GRID DE CARDS ── */}
+          {/* -- GRID DE CARDS -- */}
           <section class="mb-10" id="articles-grid">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" id="articles-container">
               {articles.map((article) => (
-                <a
-                  href={`/edicao/${latest.slug}/${article.slug}`}
-                  class="block border border-foreground/10 p-5 hover:border-foreground/30 transition-colors group"
-                  data-title={(article.title_ptbr ?? article.title).toLowerCase()}
-                  data-summary={(article.summary_ptbr ?? '').toLowerCase()}
-                >
-                  <h3 class="font-serif text-lg font-bold leading-snug mb-2 group-hover:opacity-60 transition-opacity">
-                    {article.title_ptbr ?? article.title}
-                  </h3>
-                  <p class="text-sm text-foreground/60 line-clamp-2 leading-relaxed mb-3">
-                    {article.summary_ptbr}
-                  </p>
-                  <div class="flex items-center justify-between font-mono text-[0.5rem] text-muted-foreground">
-                    <span class="text-link">{article.source}</span>
-                    <div class="flex items-center gap-2">
-                      {article.reading_time_min && <span>{article.reading_time_min} min</span>}
-                      <span>{formatRelativeTime(article.created_at)}</span>
-                    </div>
-                  </div>
-                </a>
+                <ArticleCard article={article} href={`/edicao/${latest.slug}/${article.slug}`} />
               ))}
             </div>
 
-            {/* Paginacao */}
             {articles.length > 9 && (
               <div id="pagination" class="flex items-center justify-center gap-4 mt-8 font-mono text-[0.6rem] tracking-widest uppercase">
                 <button id="prev-page" class="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-default" disabled>
@@ -183,7 +147,7 @@ const today = formatFullDate(new Date())
                 </button>
                 <span id="page-info" class="text-muted-foreground"></span>
                 <button id="next-page" class="text-link hover:opacity-70 transition-opacity disabled:opacity-30 disabled:cursor-default">
-                  Proxima &rarr;
+                  Próxima &rarr;
                 </button>
               </div>
             )}
@@ -203,15 +167,10 @@ const today = formatFullDate(new Date())
         </section>
       )}
 
-      {/* ── EDIÇÕES ANTERIORES ── */}
+      {/* -- EDICOES ANTERIORES -- */}
       {recentEditions.length > 0 && (
         <section class="border-t border-foreground/15 pt-8 pb-4">
-          <div class="flex items-center gap-3 mb-5">
-            <h3 class="font-mono text-[0.6rem] tracking-widest uppercase font-bold text-foreground shrink-0">
-              Edições anteriores
-            </h3>
-            <div class="h-px flex-1 bg-foreground/15"></div>
-          </div>
+          <SectionHeader title="Edições anteriores" />
           <ul class="divide-y divide-foreground/10">
             {recentEditions.map((edition) => (
               <li>
@@ -266,7 +225,6 @@ const today = formatFullDate(new Date())
 
     function renderPage() {
       if (isSearching) {
-        // Durante busca, mostra todos os resultados sem paginacao
         if (pagination) pagination.style.display = 'none'
         return
       }
@@ -293,11 +251,9 @@ const today = formatFullDate(new Date())
     prevBtn?.addEventListener('click', () => { currentPage--; renderPage() })
     nextBtn?.addEventListener('click', () => { currentPage++; renderPage() })
 
-    // Paginacao inicial
     visibleCards = allCards
     renderPage()
 
-    // Busca
     if (input && resultsContainer) {
       let debounceTimer: ReturnType<typeof setTimeout>
 

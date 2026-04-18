@@ -7,7 +7,6 @@ const email = Astro.url.searchParams.get('email') ?? ''
 let success = false
 let message = ''
 
-// Valida formato do email (mesma regex usada no subscribe)
 const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 
 if (!email || !isValidEmail) {
@@ -26,16 +25,11 @@ if (!email || !isValidEmail) {
     message = `${email} foi removido da lista. Você não receberá mais o ${SITE_NAME}.`
   }
 }
-
-// Nota de seguranca: o link de unsubscribe usa o email diretamente na URL.
-// Qualquer pessoa com o email pode cancelar a inscricao de outro usuario.
-// Para maior seguranca, considerar HMAC-signed tokens no futuro.
 ---
 
 <Layout title={`Cancelar inscrição — ${SITE_NAME}`}>
   <div class="min-h-screen bg-background text-foreground flex flex-col">
     <div class="mx-auto max-w-2xl px-6 py-16 w-full">
-      <!-- Masthead compacto -->
       <header class="border-b border-foreground/30 pb-4 mb-12">
         <a
           href="/"
@@ -73,7 +67,7 @@ if (!email || !isValidEmail) {
         )}
         <a
           href="/"
-          class="font-mono text-xs tracking-widest uppercase border-b border-foreground pb-0.5 hover:opacity-60 transition-opacity"
+          class="font-mono text-xs tracking-widest uppercase border-b border-link pb-0.5 text-link hover:opacity-60 transition-opacity"
         >
           Voltar ao início →
         </a>

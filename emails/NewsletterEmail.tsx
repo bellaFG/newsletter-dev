@@ -1,11 +1,15 @@
 /**
  * Template de email da newsletter DevPulse.
  *
- * Renderizado server-side pelo SendGrid — nunca roda no browser.
+ * Layout espelha a pagina da edicao no site ([slug].astro).
+ * Fundo branco (Gmail) + folha com fundo do site (paper).
  * Usa inline styles (obrigatorio para compatibilidade com clientes de email).
  *
- * Estilo: editorial jornal impresso (inspirado em Tablet Magazine).
- * Fundo creme quente, headlines serif bold, categorias com fundo escuro.
+ * Design system compartilhado com o site:
+ * - Links sempre azuis
+ * - Datas e metadados temporais em azul
+ * - Botao principal: borda azul + hover preenchido
+ * - Botao secundario (fonte original): apenas borda, sem preenchimento
  */
 
 import {
@@ -22,11 +26,11 @@ import {
   Section,
   Text,
 } from '@react-email/components'
-import * as React from 'react'
+import React from 'react'
 import type { Article, Edition } from '../src/lib/types'
 import { groupByCategory, getOrderedCategories } from '../src/lib/articles'
-import { formatFullDate } from '../src/lib/date'
-import { SITE_NAME, MASTHEAD_SUBTITLE } from '../src/lib/config'
+import { formatFullDate, formatEditionNumber } from '../src/lib/date'
+import { SITE_NAME } from '../src/lib/config'
 
 interface NewsletterEmailProps {
   edition: Edition
@@ -39,21 +43,19 @@ const serif = "Georgia, 'Times New Roman', Times, serif"
 const mono = "Menlo, Consolas, 'Courier New', monospace"
 const sans = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif"
 
-// Cores — jornal impresso, tom quente
-const ink = '#1a1714'
-const darkBg = '#2a2520'
-const lightText = '#f5f0e8'
-const muted = '#8a8279'
-const bodyColor = '#3d3730'
-const paper = '#f0e8db'
-const rule = '#c8c0b4'
-const blue = '#2563EB'
+// Cores — alinhadas com o site (oklch convertido para hex)
+const ink = '#1a1816'       // --foreground
+const muted = '#6b6662'     // --muted-foreground
+const bodyColor = '#3a3735' // foreground/85
+const paper = '#faf8f5'     // --background
+const rule = '#e0ddd8'      // --border
+const blue = '#2563EB'      // --link
+const fgLight = '#8a8580'   // foreground/40
 
 export function NewsletterEmail({ edition, articles, unsubscribeUrl, siteUrl }: NewsletterEmailProps) {
   const grouped = groupByCategory(articles)
   const orderedCategories = getOrderedCategories(grouped)
   const editionDate = formatFullDate(edition.created_at)
-  const hero = articles[0]
 
   const previewText = edition.summary
     ? edition.summary.slice(0, 90)
@@ -65,15 +67,14 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl, siteUrl }: 
         <meta charSet="utf-8" />
       </Head>
       <Preview>{previewText}</Preview>
-      <Body style={{ backgroundColor: '#e8e0d4', margin: 0, padding: 0, fontFamily: sans }}>
-        <Container style={{ maxWidth: 600, margin: '0 auto', padding: '16px' }}>
-          {/* Wrapper com fundo papel */}
-          <Section style={{ backgroundColor: paper, padding: '0' }}>
+      <Body style={{ backgroundColor: '#ffffff', margin: 0, padding: 0, fontFamily: sans }}>
+        <Container style={{ maxWidth: 600, margin: '0 auto', padding: '24px 16px' }}>
+          <Section style={{ backgroundColor: paper, padding: '0', border: `1px solid ${rule}` }}>
 
-            {/* ── TOP BAR ── */}
-            <Section style={{ padding: '16px 24px 0' }}>
+            {/* -- MASTHEAD -- */}
+            <Section style={{ padding: '16px 24px', borderBottom: `1px solid ${rule}` }}>
               <Row>
-                <Column style={{ width: '50%' }}>
+                <Column style={{ width: '33%' }}>
                   <Text style={{
                     fontFamily: mono, fontSize: 9, letterSpacing: '0.12em',
                     textTransform: 'uppercase', color: blue, margin: 0,
@@ -81,183 +82,143 @@ export function NewsletterEmail({ edition, articles, unsubscribeUrl, siteUrl }: 
                     {editionDate}
                   </Text>
                 </Column>
-                <Column style={{ width: '50%', textAlign: 'right' }}>
+                <Column style={{ width: '34%', textAlign: 'center' }}>
+                  <Link href={siteUrl} style={{ textDecoration: 'none' }}>
+                    <Text style={{
+                      fontFamily: serif, fontSize: 22, fontWeight: 900,
+                      letterSpacing: '-1px', textTransform: 'uppercase',
+                      color: ink, margin: 0, lineHeight: 1,
+                    }}>
+                      {SITE_NAME}
+                    </Text>
+                  </Link>
+                </Column>
+                <Column style={{ width: '33%', textAlign: 'right' }}>
                   <Text style={{
                     fontFamily: mono, fontSize: 9, letterSpacing: '0.12em',
                     textTransform: 'uppercase', color: blue, margin: 0,
                   }}>
-                    {'Edição nº'} {edition.edition_number}
+                    {'Edição #'}{formatEditionNumber(edition.edition_number)}
                   </Text>
                 </Column>
               </Row>
             </Section>
 
-            {/* ── MASTHEAD ── */}
-            <Section style={{ padding: '0 24px' }}>
-              <Hr style={{ borderColor: ink, borderWidth: '3px 0 0', margin: '8px 0 0' }} />
-              <Hr style={{ borderColor: ink, borderWidth: '1px 0 0', margin: '3px 0 0' }} />
-
-              <Heading
-                as="h1"
-                style={{
-                  fontFamily: serif, fontSize: 56, fontWeight: 900, letterSpacing: '-3px',
-                  textAlign: 'center', color: ink, margin: '12px 0 8px', lineHeight: 1,
-                  textTransform: 'uppercase',
-                }}
-              >
-                {SITE_NAME}
-              </Heading>
-
-              <Hr style={{ borderColor: ink, borderWidth: '1px 0 0', margin: '0 0 3px' }} />
-              <Hr style={{ borderColor: ink, borderWidth: '3px 0 0', margin: '0 0 0' }} />
-
-              <Text style={{
-                fontFamily: mono, fontSize: 8, letterSpacing: '0.3em',
-                textTransform: 'uppercase', color: muted, textAlign: 'center',
-                margin: '10px 0 0',
-              }}>
-                {MASTHEAD_SUBTITLE}
-              </Text>
-            </Section>
-
-            <Section style={{ padding: '0 24px' }}>
-              <Hr style={{ borderColor: rule, margin: '14px 0 0' }} />
-            </Section>
-
-            {/* ── HERO ARTICLE ── */}
-            {hero && (
-              <Section style={{ padding: '20px 24px 0' }}>
-                <Text style={{
-                  fontFamily: mono, fontSize: 9, letterSpacing: '0.15em',
-                  textTransform: 'uppercase', color: muted, margin: '0 0 10px',
-                  textAlign: 'center',
-                }}>
-                  {hero.category}
-                </Text>
-
-                <Heading
-                  as="h2"
-                  style={{
-                    fontFamily: serif, fontSize: 28, fontWeight: 900,
-                    lineHeight: 1.15, color: ink, margin: '0 0 12px',
-                    textAlign: 'center', letterSpacing: '-0.5px',
-                  }}
-                >
-                  <Link href={hero.url} style={{ color: ink, textDecoration: 'none' }}>
-                    {hero.title_ptbr ?? hero.title}
-                  </Link>
-                </Heading>
-
-                <Text style={{
-                  fontFamily: sans, fontSize: 15, lineHeight: 1.7, color: bodyColor,
-                  margin: '0 0 8px', textAlign: 'center',
-                }}>
-                  {hero.summary_ptbr}
-                </Text>
-
-                <Text style={{
-                  fontFamily: mono, fontSize: 9, color: muted, margin: '0 0 0',
-                  textAlign: 'center', letterSpacing: '0.03em',
-                }}>
-                  <span style={{ color: blue }}>{hero.source}</span>
-                  {hero.reading_time_min ? ` · ${hero.reading_time_min} min` : ''}
-                  {' · '}
-                  <Link
-                    href={hero.slug ? `${siteUrl}/edicao/${edition.slug}/${hero.slug}` : `${siteUrl}/${edition.slug}`}
-                    style={{ color: blue, textDecoration: 'underline' }}
-                  >
-                    {'Leia na íntegra →'}
-                  </Link>
-                  {' · '}
-                  <Link href={hero.url} style={{ color: blue, textDecoration: 'underline' }}>
-                    {'Fonte original →'}
-                  </Link>
-                </Text>
-
-                <Hr style={{ borderColor: ink, borderWidth: '2px 0 0', margin: '24px 0 0' }} />
-              </Section>
-            )}
-
-            {/* ── ARTICLES BY CATEGORY ── */}
-            {orderedCategories.map((cat, catIdx) => {
+            {/* -- ARTIGOS POR CATEGORIA -- */}
+            {orderedCategories.map((cat) => {
               const catArticles = grouped[cat]!
-              // Skip hero if it's the first article in its category
-              const isHeroCategory = hero && catArticles[0]?.id === hero.id
-              const displayArticles = isHeroCategory ? catArticles.slice(1) : catArticles
-              if (displayArticles.length === 0) return null
 
               return (
                 <Section key={cat} style={{ padding: '0 24px' }}>
-                  {/* Category label — fundo escuro, texto claro (estilo jornal) */}
-                  <Section style={{ marginTop: catIdx === 0 && !hero ? 20 : 20 }}>
+                  {/* Divisor de categoria */}
+                  <Section style={{ marginTop: 28 }}>
                     <Row>
-                      <Column>
+                      <Column style={{ width: '30%', verticalAlign: 'middle' }}>
+                        <Hr style={{ borderColor: rule, margin: 0 }} />
+                      </Column>
+                      <Column style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                         <Text style={{
-                          fontFamily: mono, fontSize: 9, letterSpacing: '0.18em',
+                          fontFamily: mono, fontSize: 9, letterSpacing: '0.2em',
                           textTransform: 'uppercase', fontWeight: 700,
-                          backgroundColor: darkBg, color: lightText,
-                          padding: '5px 10px', margin: 0,
-                          display: 'inline-block',
+                          color: muted, margin: 0, padding: '0 8px',
+                          whiteSpace: 'nowrap',
                         }}>
                           {cat}
                         </Text>
                       </Column>
+                      <Column style={{ width: '30%', verticalAlign: 'middle' }}>
+                        <Hr style={{ borderColor: rule, margin: 0 }} />
+                      </Column>
                     </Row>
                   </Section>
 
-                  {displayArticles.map((article, artIdx) => (
-                    <Section key={article.id} style={{ marginTop: artIdx === 0 ? 16 : 0 }}>
-                      <Heading
-                        as="h3"
-                        style={{
-                          fontFamily: serif, fontSize: 19, fontWeight: 700,
-                          lineHeight: 1.25, color: ink, margin: '0 0 6px',
-                        }}
-                      >
-                        <Link href={article.url} style={{ color: ink, textDecoration: 'none' }}>
-                          {article.title_ptbr ?? article.title}
-                        </Link>
-                      </Heading>
-                      <Text style={{
-                        fontFamily: sans, fontSize: 14, lineHeight: 1.7, color: bodyColor,
-                        margin: '0 0 6px',
-                      }}>
-                        {article.summary_ptbr}
-                      </Text>
-                      <Text style={{
-                        fontFamily: mono, fontSize: 9, color: muted, margin: '0 0 0',
-                        letterSpacing: '0.03em',
-                      }}>
-                        <span style={{ color: blue }}>{article.source}</span>
-                        {article.reading_time_min ? ` · ${article.reading_time_min} min` : ''}
-                        {' · '}
-                        <Link
-                          href={article.slug ? `${siteUrl}/edicao/${edition.slug}/${article.slug}` : `${siteUrl}/${edition.slug}`}
-                          style={{ color: blue, textDecoration: 'underline' }}
+                  {catArticles.map((article, artIdx) => {
+                    const articleUrl = article.slug
+                      ? `${siteUrl}/edicao/${edition.slug}/${article.slug}`
+                      : `${siteUrl}/${edition.slug}`
+
+                    return (
+                      <Section key={article.id} style={{ marginTop: artIdx === 0 ? 20 : 0 }}>
+                        {/* Source + reading time — always blue */}
+                        <Text style={{
+                          fontFamily: mono, fontSize: 9, letterSpacing: '0.08em',
+                          color: blue, margin: '0 0 6px',
+                        }}>
+                          {article.source}
+                          {article.reading_time_min && (
+                            <>
+                              <span style={{ color: fgLight }}>{' · '}</span>
+                              {`${article.reading_time_min} min de leitura`}
+                            </>
+                          )}
+                        </Text>
+
+                        {/* Titulo */}
+                        <Heading
+                          as="h3"
+                          style={{
+                            fontFamily: serif, fontSize: 21, fontWeight: 700,
+                            lineHeight: 1.25, color: ink, margin: '0 0 8px',
+                          }}
                         >
-                          {'Leia na íntegra →'}
-                        </Link>
-                        {' · '}
-                        <Link href={article.url} style={{ color: blue, textDecoration: 'underline' }}>
-                          {'Fonte original →'}
-                        </Link>
-                      </Text>
+                          <Link
+                            href={articleUrl}
+                            style={{ color: ink, textDecoration: 'none' }}
+                          >
+                            {article.title_ptbr ?? article.title}
+                          </Link>
+                        </Heading>
 
-                      {artIdx < displayArticles.length - 1 && (
-                        <Hr style={{ borderColor: rule, margin: '18px 0 18px' }} />
-                      )}
-                    </Section>
-                  ))}
+                        {/* Summary */}
+                        <Text style={{
+                          fontFamily: sans, fontSize: 14, lineHeight: 1.7, color: bodyColor,
+                          margin: '0 0 12px',
+                        }}>
+                          {article.summary_ptbr}
+                        </Text>
 
-                  <Hr style={{ borderColor: ink, borderWidth: '1px 0 0', margin: '20px 0 0' }} />
+                        {/* CTAs — primary (blue border) + secondary (muted, no fill) */}
+                        <Section style={{ marginBottom: 0 }}>
+                          <Row>
+                            <Column>
+                              <Link
+                                href={articleUrl}
+                                style={{
+                                  fontFamily: mono, fontSize: 9, letterSpacing: '0.12em',
+                                  textTransform: 'uppercase', color: blue,
+                                  textDecoration: 'none', fontWeight: 700,
+                                }}
+                              >
+                                {'Leia mais →'}
+                              </Link>
+                              <span style={{ display: 'inline-block', width: 16 }}>{' '}</span>
+                              <Link
+                                href={article.url}
+                                style={{
+                                  fontFamily: mono, fontSize: 9, letterSpacing: '0.12em',
+                                  textTransform: 'uppercase', color: muted,
+                                  textDecoration: 'none',
+                                }}
+                              >
+                                {'Fonte original ↗'}
+                              </Link>
+                            </Column>
+                          </Row>
+                        </Section>
+
+                        {artIdx < catArticles.length - 1 && (
+                          <Hr style={{ borderColor: rule, margin: '20px 0 20px' }} />
+                        )}
+                      </Section>
+                    )
+                  })}
                 </Section>
               )
             })}
 
-            {/* ── FOOTER ── */}
-            <Section style={{ padding: '20px 24px 24px', textAlign: 'center' }}>
-              <Hr style={{ borderColor: ink, borderWidth: '3px 0 0', margin: '0 0 3px' }} />
-              <Hr style={{ borderColor: ink, borderWidth: '1px 0 0', margin: '0 0 16px' }} />
+            {/* -- FOOTER -- */}
+            <Section style={{ padding: '28px 24px 24px', textAlign: 'center' }}>
+              <Hr style={{ borderColor: rule, margin: '0 0 20px' }} />
 
               <Text style={{
                 fontFamily: mono, fontSize: 9, color: muted, margin: '0 0 6px',

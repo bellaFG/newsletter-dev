@@ -1,5 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro'
+import CompactMasthead from '@/components/CompactMasthead.astro'
+import CategoryDivider from '@/components/CategoryDivider.astro'
 import { supabase } from '@/lib/supabase'
 import type { Edition } from '@/lib/types'
 import { formatCompactDate, formatEditionNumber } from '@/lib/date'
@@ -12,7 +14,6 @@ const { data } = await supabase
 
 const editions = (data ?? []) as Edition[]
 
-// Agrupa edições por ano
 const byYear = editions.reduce<Record<string, Edition[]>>((acc, e) => {
   const year = new Date(e.created_at).getFullYear().toString()
   if (!acc[year]) acc[year] = []
@@ -27,22 +28,8 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
 
-      {/* ── MASTHEAD COMPACTO ── */}
-      <header class="border-b border-foreground/30 pb-4 mb-8">
-        <div class="flex items-baseline justify-between">
-          <a
-            href="/"
-            class="font-serif text-2xl font-black tracking-tighter uppercase hover:opacity-60 transition-opacity"
-          >
-            {SITE_NAME.toUpperCase()}
-          </a>
-          <span class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground">
-            Arquivo
-          </span>
-        </div>
-      </header>
+      <CompactMasthead right="Arquivo" />
 
-      {/* ── CABEÇALHO ── */}
       <div class="mb-10">
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
           {editions.length} {editions.length === 1 ? 'edição publicada' : 'edições publicadas'}
@@ -63,14 +50,7 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
         <div class="space-y-10">
           {years.map((year) => (
             <section>
-              {/* Divisor de ano */}
-              <div class="flex items-center gap-3 mb-5">
-                <div class="h-px flex-1 bg-foreground/20"></div>
-                <p class="font-mono text-[0.6rem] tracking-[0.25em] uppercase font-bold text-foreground/70 shrink-0 px-2">
-                  {year}
-                </p>
-                <div class="h-px flex-1 bg-foreground/20"></div>
-              </div>
+              <CategoryDivider label={year} />
 
               <ul class="divide-y divide-border">
                 {byYear[year].map((edition) => (
@@ -97,17 +77,16 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
         </div>
       )}
 
-      {/* ── SUBSCRIBE STRIP ── */}
       <div class="border-t border-foreground/20 pt-8 mt-12 text-center">
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
           Ainda não assinou?
         </p>
-        <a
-          href="/"
-          class="font-serif text-xl font-bold hover:opacity-60 transition-opacity"
+        <button
+          data-subscribe-open
+          class="font-serif text-xl font-bold hover:text-link transition-colors cursor-pointer"
         >
           Receba {SITE_NAME} toda segunda-feira &rarr;
-        </a>
+        </button>
       </div>
 
     </div>

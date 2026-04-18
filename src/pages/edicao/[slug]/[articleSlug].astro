@@ -1,5 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro'
+import PageFooterNav from '@/components/PageFooterNav.astro'
+import SectionHeader from '@/components/SectionHeader.astro'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
 import { CATEGORY_SLUGS } from '@/lib/articles'
@@ -8,7 +10,6 @@ import { SITE_NAME } from '@/lib/config'
 
 const { slug, articleSlug } = Astro.params
 
-// Buscar edicao
 const { data: editionData } = await supabase
   .from('editions')
   .select('*')
@@ -18,7 +19,6 @@ const { data: editionData } = await supabase
 const edition = editionData as Edition | null
 if (!edition) return new Response(null, { status: 404 })
 
-// Buscar artigo
 const { data: articleData } = await supabase
   .from('articles')
   .select('*')
@@ -29,7 +29,6 @@ const { data: articleData } = await supabase
 const article = articleData as Article | null
 if (!article) return new Response(null, { status: 404 })
 
-// Artigos relacionados (mesma categoria, mesma edicao)
 const { data: relatedData } = await supabase
   .from('articles')
   .select('*')
@@ -48,28 +47,25 @@ const categorySlug = CATEGORY_SLUGS[article.category]
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
 
-      {/* ── BREADCRUMB ── */}
+      {/* -- BREADCRUMB -- */}
       <nav class="mb-8 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
-        <a href="/" class="text-link hover:opacity-70 transition-colors">Inicio</a>
+        <a href="/" class="text-link hover:opacity-70 transition-colors">Início</a>
         <span class="mx-1">/</span>
         <a href={`/${edition.slug}`} class="text-link hover:opacity-70 transition-colors">
-          Edicao #{formatEditionNumber(edition.edition_number)}
+          Edição #{formatEditionNumber(edition.edition_number)}
         </a>
         <span class="mx-1">/</span>
         <span class="text-foreground/60">Artigo</span>
       </nav>
 
-      {/* ── ARTIGO ── */}
       <article>
-        {/* Categoria */}
         <a
           href={`/categoria/${categorySlug}`}
-          class="inline-block font-mono text-[0.5rem] tracking-widest uppercase text-muted-foreground border border-foreground/20 px-2 py-0.5 mb-4 hover:bg-foreground hover:text-background transition-colors"
+          class="inline-block font-mono text-[0.5rem] tracking-widest uppercase text-link border border-link/30 px-2 py-0.5 mb-4 hover:bg-link hover:text-white transition-colors"
         >
           {article.category}
         </a>
 
-        {/* Titulo */}
         <h1 class="font-serif text-3xl sm:text-4xl font-black leading-[1.1] tracking-tight mb-2">
           {article.title_ptbr ?? article.title}
         </h1>
@@ -79,7 +75,6 @@ const categorySlug = CATEGORY_SLUGS[article.category]
           </p>
         )}
 
-        {/* Metadata */}
         <div class="flex flex-wrap items-center gap-2 font-mono text-[0.6rem] text-link mb-8">
           <span class="tracking-widest">{article.source}</span>
           {article.reading_time_min && (
@@ -94,14 +89,13 @@ const categorySlug = CATEGORY_SLUGS[article.category]
 
         <div class="border-t border-foreground/20 mb-8"></div>
 
-        {/* Conteudo */}
         <div class="text-base sm:text-lg leading-relaxed text-foreground/85 mb-8 space-y-4">
           {(article.content_ptbr ?? article.summary_ptbr).split('\n\n').map((paragraph) => (
             <p>{paragraph}</p>
           ))}
         </div>
 
-        {/* CTAs */}
+        {/* -- CTAs -- */}
         <div class="flex flex-col sm:flex-row gap-3 mb-10">
           <a
             href={article.url}
@@ -113,27 +107,21 @@ const categorySlug = CATEGORY_SLUGS[article.category]
           </a>
           <a
             href={`/${edition.slug}`}
-            class="inline-flex items-center justify-center font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground px-6 py-3 hover:text-foreground transition-colors"
+            class="inline-flex items-center justify-center font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground px-6 py-3 hover:text-link transition-colors"
           >
-            Ver edicao #{formatEditionNumber(edition.edition_number)}
+            Ver edição #{formatEditionNumber(edition.edition_number)}
           </a>
         </div>
       </article>
 
-      {/* ── ARTIGOS RELACIONADOS ── */}
       {related.length > 0 && (
         <section class="border-t border-foreground/20 pt-8 mt-4">
-          <div class="flex items-center gap-3 mb-6">
-            <p class="font-mono text-[0.6rem] tracking-widest uppercase font-bold shrink-0">
-              Mais em {article.category}
-            </p>
-            <div class="h-px flex-1 bg-foreground/15"></div>
-          </div>
+          <SectionHeader title={`Mais em ${article.category}`} />
 
           <div class="space-y-6">
             {related.map((rel) => (
               <a href={`/edicao/${edition.slug}/${rel.slug}`} class="block group">
-                <h3 class="font-serif text-lg font-bold leading-snug group-hover:opacity-60 transition-opacity mb-1">
+                <h3 class="font-serif text-lg font-bold leading-snug group-hover:text-link transition-colors mb-1">
                   {rel.title_ptbr ?? rel.title}
                 </h3>
                 <p class="text-sm text-foreground/60 line-clamp-2 leading-relaxed mb-1">
@@ -148,7 +136,7 @@ const categorySlug = CATEGORY_SLUGS[article.category]
         </section>
       )}
 
-      {/* ── CTA SUBSCRIBE ── */}
+      {/* -- CTA SUBSCRIBE -- */}
       <div class="border-t border-foreground/20 pt-6 mt-8 flex items-center justify-center gap-3">
         <p class="text-sm text-muted-foreground">
           Receba toda segunda-feira
@@ -161,21 +149,10 @@ const categorySlug = CATEGORY_SLUGS[article.category]
         </button>
       </div>
 
-      {/* ── NAVEGACAO ── */}
-      <footer class="border-t border-foreground/20 pt-8 mt-8 flex items-center justify-between">
-        <a
-          href={`/${edition.slug}`}
-          class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
-        >
-          &larr; Edicao #{formatEditionNumber(edition.edition_number)}
-        </a>
-        <a
-          href="/archive"
-          class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
-        >
-          Todas as edicoes &rarr;
-        </a>
-      </footer>
+      <PageFooterNav
+        leftLabel={`← Edição #${formatEditionNumber(edition.edition_number)}`}
+        leftHref={`/${edition.slug}`}
+      />
 
     </div>
   </div>

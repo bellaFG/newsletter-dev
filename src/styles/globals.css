@@ -29,6 +29,24 @@
   }
 }
 
+/* Scrollbar discreta para areas com overflow */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    height: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: 2px;
+  }
+}
+
 @layer base {
   :root {
     --background: oklch(0.98 0.003 75);
@@ -78,5 +96,6 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
 }
