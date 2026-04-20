@@ -145,7 +145,7 @@ def collect_and_curate():
         raise RuntimeError("Nenhum artigo coletado. Abortando.")
 
     # ── Fase 2: Curadoria ─────────────────────────────────────────────────────
-    logger.info("Iniciando curadoria com GPT-4o mini...")
+    logger.info("Iniciando curadoria multi-etapas (triagem -> leitura -> pauta -> redacao)...")
 
     curation = curate(all_articles)
     curation = apply_topic_suppressions(curation)

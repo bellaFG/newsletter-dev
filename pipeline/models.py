@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -14,6 +14,8 @@ ArticleCategory = Literal[
     "Carreira & Cultura",
     "Linguagens & Frameworks",
 ]
+CollectorType = Literal["rss", "reddit", "github_trending"]
+StoryKind = Literal["lead", "secondary", "brief"]
 
 
 class RawArticle(BaseModel):
@@ -23,11 +25,11 @@ class RawArticle(BaseModel):
     url: str
     snippet: str  # trecho bruto do conteúdo ou descrição do feed
     source: str  # ex: "Hacker News", "GitHub Trending"
-    collected_at: datetime = None
-
-    def model_post_init(self, __context):
-        if self.collected_at is None:
-            self.collected_at = datetime.utcnow()
+    published_at: datetime | None = None
+    collected_at: datetime = Field(default_factory=datetime.utcnow)
+    collector: CollectorType | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    full_text: str | None = None
 
 
 class ArticleSource(BaseModel):
@@ -56,28 +58,68 @@ class CuratedArticle(BaseModel):
     source_count: int = 1
     primary_source_url: str | None = None
     primary_source_label: str | None = None
+    story_kind: StoryKind | None = None
     source_items: list[ArticleSource] = Field(default_factory=list)
 
 
-class AICuratedStory(BaseModel):
-    """Estrutura esperada do LLM antes da resolução das fontes reais."""
+class AICurationCandidateTopic(BaseModel):
+    """Tema candidato identificado pela triagem inicial."""
 
+    canonical_topic: str
+    category: ArticleCategory
+    source_ids: list[int]
+    priority_score: int = Field(ge=0, le=100)
+    impact_score: int = Field(ge=1, le=10)
+    novelty_score: int = Field(ge=1, le=10)
+    developer_urgency_score: int = Field(ge=1, le=10)
+    why_it_matters_ptbr: str
+    critical_question_ptbr: str
+
+
+class AITriageOutput(BaseModel):
+    """Saída da etapa barata: temas candidatos e ranking preliminar."""
+
+    candidate_topics: list[AICurationCandidateTopic]
+
+
+class AICurationPlanStory(BaseModel):
+    """Plano editorial final antes da redação."""
+
+    canonical_topic: str
+    category: ArticleCategory
+    story_kind: StoryKind
+    primary_source_id: int
+    source_ids: list[int]
+    title_angle_ptbr: str
+    why_it_matters_ptbr: str
+    editorial_angle_ptbr: str
+    must_include_facts: list[str] = Field(default_factory=list)
+    target_paragraphs: int = Field(ge=1, le=4)
+    original_language: str = "en"
+
+
+class AICurationPlanOutput(BaseModel):
+    """Plano da edição: o que entra, em que ordem e com qual ângulo."""
+
+    edition_angle_ptbr: str
+    stories: list[AICurationPlanStory]
+
+
+class AIWrittenStory(BaseModel):
+    """Texto final redigido para um tópico aprovado no plano editorial."""
+
+    canonical_topic: str
     title_ptbr: str | None = None
     summary_ptbr: str
     content_ptbr: str
-    category: ArticleCategory
-    canonical_topic: str
-    primary_source_id: int
-    source_ids: list[int]
-    original_language: str = "en"
     reading_time_min: int | None = None
 
 
-class AICurationOutput(BaseModel):
-    """Saída bruta do LLM: resumo da edição + stories e suas referências."""
+class AIWritingOutput(BaseModel):
+    """Saída final do redator: resumo da edição e textos das matérias."""
 
     edition_summary: str
-    stories: list[AICuratedStory]
+    stories: list[AIWrittenStory]
 
 
 class CurationOutput(BaseModel):

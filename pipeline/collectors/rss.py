@@ -39,6 +39,12 @@ def collect(sources: list[dict]) -> list[RawArticle]:
                         url=link,
                         snippet=snippet,
                         source=name,
+                        published_at=published,
+                        collector="rss",
+                        metadata={
+                            "category_hint": source.get("category_hint"),
+                            "feed_url": url,
+                        },
                     )
                 )
                 count += 1

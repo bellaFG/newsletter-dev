@@ -62,6 +62,13 @@ def collect(languages: list[str], since: str = "weekly") -> list[RawArticle]:
                         url=repo_url,
                         snippet=full_snippet,
                         source="GitHub Trending",
+                        collector="github_trending",
+                        metadata={
+                            "language": lang or None,
+                            "stars": stars or None,
+                            "since": since,
+                            "repo_path": repo_path,
+                        },
                     )
                 )
                 count += 1

@@ -52,6 +52,14 @@ def collect(subreddits: list[dict]) -> list[RawArticle]:
                         url=url_post,
                         snippet=snippet,
                         source=f"r/{subreddit}",
+                        collector="reddit",
+                        metadata={
+                            "subreddit": subreddit,
+                            "score": score,
+                            "num_comments": num_comments,
+                            "permalink": p.get("permalink", ""),
+                            "is_reddit_thread": "reddit.com" in url_post,
+                        },
                     )
                 )
                 count += 1

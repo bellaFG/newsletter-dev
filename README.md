@@ -10,7 +10,7 @@ Newsletter semanal curada por IA para desenvolvedores brasileiros.
 
 ## Visao Geral
 
-DevPulse coleta artigos de diversas fontes (RSS, GitHub Trending, Reddit), seleciona e resume os mais relevantes usando IA (GPT-4o mini), e entrega toda segunda-feira por email para os assinantes.
+DevPulse coleta artigos de diversas fontes (RSS, GitHub Trending, Reddit), faz uma triagem inicial barata, le as fontes candidatas e monta a curadoria final com modelos mais fortes antes de publicar toda segunda-feira por email e no site.
 
 O projeto tem duas partes independentes:
 
@@ -57,7 +57,7 @@ O projeto tem duas partes independentes:
 | Email template | React Email |
 | Envio de email | Brevo (ex-Sendinblue) API |
 | Banco de dados | Supabase (PostgreSQL + RLS) |
-| Curadoria IA | OpenAI GPT-4o mini |
+| Curadoria IA | OpenAI GPT-5.4 mini + GPT-5.4 |
 | Pipeline | Python 3.11 (feedparser, requests, BeautifulSoup, Pydantic) |
 | Deploy web | Vercel |
 | Automacao | GitHub Actions (prepare + check + publish) |
@@ -113,11 +113,12 @@ newsletter/
 |
 |-- pipeline/
 |   |-- main.py                      # Orquestrador: prepare -> check-ready -> publish
-|   |-- curator.py                   # Curadoria com GPT-4o mini
+|   |-- curator.py                   # Curadoria em 3 etapas (triagem, pauta, redacao)
+|   |-- article_reader.py            # Leitura/enriquecimento das fontes aprovadas
 |   |-- publisher.py                 # Prepara rascunho + publica + dispara email
 |   |-- notifications.py             # Alertas operacionais via Discord webhook
 |   |-- models.py                    # Modelos Pydantic
-|   |-- prompts.py                   # System prompt da IA
+|   |-- prompts.py                   # Prompts por etapa editorial
 |   |-- sources.yaml                 # Fontes de artigos (RSS, Reddit, GitHub)
 |   |-- requirements.txt             # Dependencias Python
 |   +-- collectors/
@@ -217,9 +218,19 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 
 ### Fluxo
 
-1. **Prepare (07:00 BRT)** — Busca artigos, roda a curadoria e salva um rascunho pronto no Supabase
+1. **Prepare (07:00 BRT)** — Busca artigos, roda triagem + leitura + curadoria e salva um rascunho pronto no Supabase
 2. **Check-ready (07:30 BRT)** — Verifica se a edicao ficou pronta 30 minutos antes da publicacao; se nao, alerta no Discord
 3. **Publish (08:00 BRT)** — Publica a edicao no site e chama `POST /api/send-newsletter`
+
+### Curadoria editorial
+
+O pipeline editorial agora e separado em tres etapas:
+
+1. **Triagem** — um modelo menor (`gpt-5.4-mini` por padrao) filtra ruido, agrupa temas parecidos e monta uma fila de pautas candidatas.
+2. **Leitura** — o pipeline busca o texto completo das fontes candidatas para que a etapa forte leia mais do que apenas titulo + snippet.
+3. **Pauta + redacao** — um modelo forte (`gpt-5.4` por padrao) decide a edicao final e escreve cada materia com angulo editorial claro.
+
+Isso melhora a qualidade porque a IA forte deixa de gastar contexto com lixo, recebe material lido das fontes relevantes e passa a atuar mais como editor do que como classificador.
 
 ### Fontes configuradas (`pipeline/sources.yaml`)
 
@@ -242,6 +253,14 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 | `DISCORD_ALERT_WEBHOOK_URL` | Nao | Pipeline | Webhook do Discord para alertas operacionais |
 | `NEWSLETTER_API_SECRET` | Sim | Web + Pipeline | Token Bearer para `/api/send-newsletter` |
 | `OPENAI_API_KEY` | Sim | Pipeline | Chave da API OpenAI |
+| `OPENAI_CURATION_TRIAGE_MODEL` | Nao | Pipeline | Modelo barato da triagem inicial (padrao: `gpt-5.4-nano`) |
+| `OPENAI_CURATION_EDITOR_MODEL` | Nao | Pipeline | Modelo forte para decidir a pauta final (padrao: `gpt-5.4`) |
+| `OPENAI_CURATION_WRITER_MODEL` | Nao | Pipeline | Modelo de redacao final com bom custo/qualidade (padrao: `gpt-5.4-mini`) |
+| `OPENAI_CURATION_TRIAGE_REASONING` | Nao | Pipeline | Esforco de raciocinio da triagem (padrao: `low`) |
+| `OPENAI_CURATION_EDITOR_REASONING` | Nao | Pipeline | Esforco de raciocinio da etapa editorial (padrao: `medium`) |
+| `OPENAI_CURATION_WRITER_REASONING` | Nao | Pipeline | Esforco de raciocinio da redacao final (padrao: `low`) |
+| `OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS` | Nao | Pipeline | Limite de caracteres lidos por fonte aprovada na triagem |
+| `OPENAI_CURATION_MAX_RETRIES` | Nao | Pipeline | Numero de tentativas em caso de output invalido |
 | `SITE_URL` | Sim | Pipeline | URL base do site (ex: `https://devpulse.com.br`) |
 
 ---
