@@ -16,7 +16,8 @@ export async function listEditionsWithArticles(
 ): Promise<Edition[]> {
   let query = supabase
     .from('editions')
-    .select('id, slug, edition_number, title, summary, prepared_at, published_at, sent_at, created_at, articles!inner(id)')
+    // `prepared_at` existe apenas apos a migration 005; o site nao depende desse campo.
+    .select('id, slug, edition_number, title, summary, published_at, sent_at, created_at, articles!inner(id)')
     .not('published_at', 'is', null)
     .order('published_at', { ascending: false })
     .order('edition_number', { ascending: false })
@@ -26,7 +27,9 @@ export async function listEditionsWithArticles(
   }
 
   const { data, error } = await query
-  if (error) throw error
+  if (error) {
+    throw new Error(`[supabase] Failed to list published editions: ${error.message}`)
+  }
 
   return ((data ?? []) as EditionWithArticles[]).map(stripArticles)
 }

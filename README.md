@@ -169,14 +169,17 @@ Preencha todas as variaveis no `.env.local`. Veja a secao [Variaveis de Ambiente
 
 ### 3. Configure o banco de dados
 
-No Supabase Dashboard, va em **SQL Editor** e execute o conteudo de `supabase/schema.sql`. Isso cria as tabelas, indices e politicas RLS.
+Para um banco novo, voce pode executar `supabase/schema.sql` uma vez no **SQL Editor** do Supabase.
 
-Em seguida, aplique as migrations na ordem:
-1. `supabase/migrations/001_add_article_slug.sql`
-2. `supabase/migrations/002_add_article_content.sql`
-3. `supabase/migrations/003_ensure_article_edition_cascade.sql`
-4. `supabase/migrations/004_add_published_at_to_editions.sql`
-5. `supabase/migrations/005_add_prepared_at_to_editions.sql`
+Depois disso, o projeto consegue aplicar migrations automaticamente quando `SUPABASE_DB_URL` estiver configurada.
+
+Para sincronizar localmente:
+
+```bash
+npm run migrate:db
+```
+
+O runner aplica os arquivos de `supabase/migrations/` em ordem e registra os arquivos ja executados na tabela `public.devpulse_migrations`.
 
 ### 4. Inicie o servidor de desenvolvimento
 
@@ -224,6 +227,7 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 | `SUPABASE_URL` | Sim | Web + Pipeline | URL da instancia Supabase |
 | `SUPABASE_ANON_KEY` | Sim | Web | Chave anonima (client publico) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Sim | Web + Pipeline | Chave service role (bypassa RLS) |
+| `SUPABASE_DB_URL` | Sim para migrations automaticas | Pipeline + scripts | String de conexao Postgres usada para aplicar migrations SQL automaticamente |
 | `BREVO_API_KEY` | Sim | Web | Chave da API Brevo |
 | `DISCORD_ALERT_WEBHOOK_URL` | Nao | Pipeline | Webhook do Discord para alertas operacionais |
 | `NEWSLETTER_API_SECRET` | Sim | Web + Pipeline | Token Bearer para `/api/send-newsletter` |
@@ -260,11 +264,14 @@ O workflow `.github/workflows/newsletter.yml` roda automaticamente:
 Configure as secrets no repositorio GitHub:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- `SUPABASE_DB_URL`
 - `OPENAI_API_KEY`
 - `BREVO_API_KEY`
 - `DISCORD_ALERT_WEBHOOK_URL`
 - `NEWSLETTER_API_SECRET`
 - `SITE_URL`
+
+Com `SUPABASE_DB_URL` definido, cada job aplica migrations pendentes automaticamente antes de rodar `prepare`, `check-ready`, `publish` ou `full`.
 
 ---
 
@@ -307,6 +314,7 @@ O endpoint de envio verifica se `sent_at` ja esta preenchido antes de enviar. Se
 | `npm run build` | Gera build de producao |
 | `npm run preview` | Preview local do build de producao |
 | `npm run lint` | Verifica tipos com `astro check` |
+| `npm run migrate:db` | Aplica migrations SQL pendentes no banco configurado em `SUPABASE_DB_URL` |
 
 ---
 

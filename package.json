@@ -6,7 +6,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "lint": "astro check"
+    "lint": "astro check",
+    "migrate:db": "python3 -m pipeline.migrate_db"
   },
   "dependencies": {
     "@astrojs/react": "^4.0.0",
