@@ -5,17 +5,11 @@ import ArticleCard from '@/components/ArticleCard.astro'
 import SectionHeader from '@/components/SectionHeader.astro'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
+import { getLatestEditionWithArticles, listEditionsWithArticles } from '@/lib/editions'
 import { formatFullDate, formatMediumDate, formatShortDate, formatEditionNumber } from '@/lib/date'
 import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
-const { data: latestData } = await supabase
-  .from('editions')
-  .select('*')
-  .order('edition_number', { ascending: false })
-  .limit(1)
-  .single()
-
-const latest = latestData as Edition | null
+const latest = (await getLatestEditionWithArticles(supabase)) as Edition | null
 
 let articles: Article[] = []
 if (latest) {
@@ -27,13 +21,7 @@ if (latest) {
   articles = (data ?? []) as Article[]
 }
 
-const { data: archiveData } = await supabase
-  .from('editions')
-  .select('id, slug, edition_number, title, created_at')
-  .order('edition_number', { ascending: false })
-  .range(1, 5)
-
-const recentEditions = (archiveData ?? []) as Pick<
+const recentEditions = (await listEditionsWithArticles(supabase, { from: 1, to: 5 })) as Pick<
   Edition,
   'id' | 'slug' | 'edition_number' | 'title' | 'created_at'
 >[]

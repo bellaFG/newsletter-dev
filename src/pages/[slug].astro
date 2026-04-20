@@ -30,6 +30,9 @@ const { data: articlesData } = await supabase
   .order('position', { ascending: true })
 
 const articles = (articlesData ?? []) as Article[]
+if (articles.length === 0) {
+  return new Response(null, { status: 404 })
+}
 
 const grouped = groupByCategory(articles)
 const orderedCategories = getOrderedCategories(grouped)

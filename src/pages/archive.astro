@@ -4,15 +4,11 @@ import CompactMasthead from '@/components/CompactMasthead.astro'
 import CategoryDivider from '@/components/CategoryDivider.astro'
 import { supabase } from '@/lib/supabase'
 import type { Edition } from '@/lib/types'
+import { listEditionsWithArticles } from '@/lib/editions'
 import { formatCompactDate, formatEditionNumber } from '@/lib/date'
 import { SITE_NAME } from '@/lib/config'
 
-const { data } = await supabase
-  .from('editions')
-  .select('*')
-  .order('edition_number', { ascending: false })
-
-const editions = (data ?? []) as Edition[]
+const editions = (await listEditionsWithArticles(supabase)) as Edition[]
 
 const byYear = editions.reduce<Record<string, Edition[]>>((acc, e) => {
   const year = new Date(e.created_at).getFullYear().toString()

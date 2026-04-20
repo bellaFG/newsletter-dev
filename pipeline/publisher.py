@@ -4,9 +4,14 @@ import unicodedata
 import requests
 from datetime import date
 from loguru import logger
-from supabase import create_client
 
 from pipeline.models import CurationOutput
+from pipeline.storage import (
+    count_articles_for_edition,
+    create_service_supabase,
+    delete_edition_tree,
+    get_edition_by_slug,
+)
 
 
 def slugify(text: str, max_length: int = 80) -> str:
@@ -21,19 +26,47 @@ def slugify(text: str, max_length: int = 80) -> str:
     return text
 
 
+def ensure_edition_slot(supabase, slug: str) -> None:
+    """
+    Garante que o slug do dia esteja disponivel antes de criar a nova edicao.
+
+    Se existir apenas uma edicao vazia/rascunho sem artigos, ela eh removida.
+    Se ja houver conteudo real para o mesmo slug, abortamos com erro claro para
+    evitar sobrepor uma publicacao ja existente.
+    """
+    existing = get_edition_by_slug(supabase, slug)
+    if not existing:
+        return
+
+    article_count = count_articles_for_edition(supabase, existing["id"])
+    if article_count == 0 and not existing.get("sent_at"):
+        logger.warning(
+            f"[Publisher] Encontrada edicao vazia para {slug}; removendo rascunho anterior"
+        )
+        delete_edition_tree(supabase, existing["id"])
+        return
+
+    raise RuntimeError(
+        f"[Publisher] Ja existe uma edicao publicada para {slug} "
+        f"(#{existing['edition_number']}, {existing['title']}). "
+        "Apague a edicao de teste/conflitante antes de publicar novamente."
+    )
+
+
 def publish(curation: CurationOutput) -> str:
     """
     Salva a edição e os artigos no Supabase e dispara o envio do e-mail.
     Retorna o edition_id gerado.
     """
-    supabase = create_client(
-        os.environ["SUPABASE_URL"],
-        os.environ["SUPABASE_SERVICE_ROLE_KEY"],
-    )
+    if not curation.articles:
+        raise ValueError("[Publisher] Curadoria retornou 0 artigos; abortando publicacao.")
+
+    supabase = create_service_supabase()
 
     # ── 1. Gera slug e número da edição ──────────────────────────────────────
     today = date.today()
     slug = today.strftime("%Y-%m-%d")
+    ensure_edition_slot(supabase, slug)
 
     count_result = supabase.table("editions").select("id", count="exact").execute()
     edition_number = (count_result.count or 0) + 1
@@ -77,21 +110,37 @@ def publish(curation: CurationOutput) -> str:
             "slug": slug,
         })
 
-    supabase.table("articles").insert(articles_payload).execute()
+    try:
+        supabase.table("articles").insert(articles_payload).execute()
+    except Exception:
+        logger.exception("[Publisher] Falha ao salvar artigos; removendo edicao vazia")
+        delete_edition_tree(supabase, edition_id)
+        raise
+
     logger.info(f"[Publisher] {len(articles_payload)} artigos salvos")
 
     # ── 4. Dispara o envio do e-mail via API do Astro ────────────────────────
     web_url = os.environ.get("SITE_URL", "http://localhost:4321")
     api_secret = os.environ["NEWSLETTER_API_SECRET"]
 
-    response = requests.post(
-        f"{web_url}/api/send-newsletter",
-        json={"edition_id": edition_id},
-        headers={"Authorization": f"Bearer {api_secret}"},
-        timeout=30,
-    )
+    try:
+        response = requests.post(
+            f"{web_url}/api/send-newsletter",
+            json={"edition_id": edition_id},
+            headers={"Authorization": f"Bearer {api_secret}"},
+            timeout=30,
+        )
+    except requests.RequestException as exc:
+        logger.error(f"[Publisher] Falha ao chamar API de envio: {exc}")
+        return edition_id
 
-    if response.ok:
+    if response.status_code == 207:
+        data = response.json()
+        logger.warning(
+            f"[Publisher] Envio parcial: {data.get('sent_to', 0)} subscriber(s) receberam, "
+            f"mas houve falhas para outros destinatarios"
+        )
+    elif response.ok:
         data = response.json()
         logger.info(f"[Publisher] E-mail enviado para {data.get('sent_to', 0)} subscriber(s)")
     else:
