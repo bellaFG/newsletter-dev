@@ -2,7 +2,7 @@ import os
 import re
 import unicodedata
 import requests
-from datetime import date
+from datetime import date, datetime, timezone
 from loguru import logger
 
 from pipeline.models import CurationOutput
@@ -77,7 +77,12 @@ def publish(curation: CurationOutput) -> str:
     # ── 2. Insere a edição ────────────────────────────────────────────────────
     edition_result = (
         supabase.table("editions")
-        .insert({"slug": slug, "edition_number": edition_number, "title": title})
+        .insert({
+            "slug": slug,
+            "edition_number": edition_number,
+            "title": title,
+            "published_at": datetime.now(timezone.utc).isoformat(),
+        })
         .execute()
     )
 

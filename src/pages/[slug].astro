@@ -3,6 +3,7 @@ import Layout from '@/layouts/Layout.astro'
 import CompactMasthead from '@/components/CompactMasthead.astro'
 import CategoryDivider from '@/components/CategoryDivider.astro'
 import PageFooterNav from '@/components/PageFooterNav.astro'
+import { getEditionDisplayDate } from '@/lib/editions'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
 import { groupByCategory, getOrderedCategories } from '@/lib/articles'
@@ -19,7 +20,7 @@ const { data: editionData } = await supabase
 
 const edition = editionData as Edition | null
 
-if (!edition) {
+if (!edition || !edition.published_at) {
   return new Response(null, { status: 404 })
 }
 
@@ -43,7 +44,7 @@ const orderedCategories = getOrderedCategories(grouped)
     <div class="mx-auto max-w-3xl px-6 py-10">
 
       <CompactMasthead
-        left={formatFullDate(edition.created_at)}
+        left={formatFullDate(getEditionDisplayDate(edition))}
         right={`Edição #${formatEditionNumber(edition.edition_number)}`}
       />
 

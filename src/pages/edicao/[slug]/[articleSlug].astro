@@ -2,6 +2,7 @@
 import Layout from '@/layouts/Layout.astro'
 import PageFooterNav from '@/components/PageFooterNav.astro'
 import SectionHeader from '@/components/SectionHeader.astro'
+import { getEditionDisplayDate } from '@/lib/editions'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
 import { CATEGORY_SLUGS } from '@/lib/articles'
@@ -17,7 +18,7 @@ const { data: editionData } = await supabase
   .single()
 
 const edition = editionData as Edition | null
-if (!edition) return new Response(null, { status: 404 })
+if (!edition || !edition.published_at) return new Response(null, { status: 404 })
 
 const { data: articleData } = await supabase
   .from('articles')
@@ -84,7 +85,7 @@ const categorySlug = CATEGORY_SLUGS[article.category]
             </>
           )}
           <span>&middot;</span>
-          <span>{formatMediumDate(edition.created_at)}</span>
+          <span>{formatMediumDate(getEditionDisplayDate(edition))}</span>
         </div>
 
         <div class="border-t border-foreground/20 mb-8"></div>

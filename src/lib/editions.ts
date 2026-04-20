@@ -16,7 +16,9 @@ export async function listEditionsWithArticles(
 ): Promise<Edition[]> {
   let query = supabase
     .from('editions')
-    .select('id, slug, edition_number, title, summary, sent_at, created_at, articles!inner(id)')
+    .select('id, slug, edition_number, title, summary, published_at, sent_at, created_at, articles!inner(id)')
+    .not('published_at', 'is', null)
+    .order('published_at', { ascending: false })
     .order('edition_number', { ascending: false })
 
   if (range) {
@@ -34,4 +36,10 @@ export async function getLatestEditionWithArticles(
 ): Promise<Edition | null> {
   const editions = await listEditionsWithArticles(supabase, { from: 0, to: 0 })
   return editions[0] ?? null
+}
+
+export function getEditionDisplayDate(
+  edition: Pick<Edition, 'published_at' | 'created_at'>,
+): string {
+  return edition.published_at ?? edition.created_at
 }

@@ -2,6 +2,7 @@
 import Layout from '@/layouts/Layout.astro'
 import CategoryNav from '@/components/CategoryNav.astro'
 import PageFooterNav from '@/components/PageFooterNav.astro'
+import { getEditionDisplayDate } from '@/lib/editions'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
 import { SLUG_TO_CATEGORY } from '@/lib/articles'
@@ -15,12 +16,13 @@ if (!categoryName) return new Response(null, { status: 404 })
 
 const { data: articlesData } = await supabase
   .from('articles')
-  .select('*, editions!inner(slug, edition_number, title, created_at)')
+  .select('*, editions!inner(slug, edition_number, title, published_at, created_at)')
   .eq('category', categoryName)
+  .not('editions.published_at', 'is', null)
   .order('created_at', { ascending: false })
 
 type ArticleWithEdition = Article & {
-  editions: Pick<Edition, 'slug' | 'edition_number' | 'title' | 'created_at'>
+  editions: Pick<Edition, 'slug' | 'edition_number' | 'title' | 'published_at' | 'created_at'>
 }
 
 const articles = (articlesData ?? []) as ArticleWithEdition[]
@@ -51,7 +53,7 @@ const articles = (articlesData ?? []) as ArticleWithEdition[]
                 <div class="flex items-center gap-2 mb-2 font-mono text-[0.5rem]">
                   <span class="text-link">#{formatEditionNumber(article.editions.edition_number)}</span>
                   <span class="text-foreground/20">&middot;</span>
-                  <span class="text-link">{formatShortDate(article.editions.created_at)}</span>
+                  <span class="text-link">{formatShortDate(getEditionDisplayDate(article.editions))}</span>
                 </div>
                 <h2 class="font-serif text-xl font-bold leading-snug group-hover:text-link transition-colors mb-2">
                   {article.title_ptbr ?? article.title}

@@ -41,6 +41,7 @@ export type Edition = {
   edition_number: number
   title: string
   summary: string | null
+  published_at: string | null
   sent_at: string | null
   created_at: string
 }
@@ -51,6 +52,7 @@ export type EditionInsert = {
   edition_number: number
   title: string
   summary?: string | null
+  published_at?: string | null
   sent_at?: string | null
   created_at?: string
 }

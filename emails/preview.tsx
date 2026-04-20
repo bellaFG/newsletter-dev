@@ -13,6 +13,7 @@ const edition = {
   edition_number: 1,
   title: 'DevPulse #001',
   summary: null,
+  published_at: '2026-04-17T08:00:00Z',
   sent_at: null,
   created_at: '2026-04-17T08:00:00Z',
 }

@@ -5,7 +5,7 @@ import ArticleCard from '@/components/ArticleCard.astro'
 import SectionHeader from '@/components/SectionHeader.astro'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
-import { getLatestEditionWithArticles, listEditionsWithArticles } from '@/lib/editions'
+import { getEditionDisplayDate, getLatestEditionWithArticles, listEditionsWithArticles } from '@/lib/editions'
 import { formatFullDate, formatMediumDate, formatShortDate, formatEditionNumber } from '@/lib/date'
 import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
@@ -23,7 +23,7 @@ if (latest) {
 
 const recentEditions = (await listEditionsWithArticles(supabase, { from: 1, to: 5 })) as Pick<
   Edition,
-  'id' | 'slug' | 'edition_number' | 'title' | 'created_at'
+  'id' | 'slug' | 'edition_number' | 'title' | 'published_at' | 'created_at'
 >[]
 
 const today = formatFullDate(new Date())
@@ -82,7 +82,7 @@ const today = formatFullDate(new Date())
                   Edição #{formatEditionNumber(latest.edition_number)}
                 </span>
                 <span class="font-mono text-[0.55rem] tracking-widest uppercase text-link">
-                  {formatMediumDate(latest.created_at)}
+                  {formatMediumDate(getEditionDisplayDate(latest))}
                 </span>
                 <span class="font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
                   Newsletter Semanal
@@ -173,7 +173,7 @@ const today = formatFullDate(new Date())
                     {edition.title}
                   </span>
                   <span class="font-mono text-[0.55rem] text-link shrink-0">
-                    {formatShortDate(edition.created_at)}
+                    {formatShortDate(getEditionDisplayDate(edition))}
                   </span>
                 </a>
               </li>

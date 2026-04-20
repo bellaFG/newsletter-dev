@@ -26,9 +26,9 @@ import {
   Section,
   Text,
 } from '@react-email/components'
-import React from 'react'
 import type { Article, Edition } from '../src/lib/types'
 import { groupByCategory, getOrderedCategories } from '../src/lib/articles'
+import { getEditionDisplayDate } from '../src/lib/editions'
 import { formatFullDate, formatEditionNumber } from '../src/lib/date'
 import { SITE_NAME } from '../src/lib/config'
 
@@ -55,7 +55,7 @@ const fgLight = '#8a8580'   // foreground/40
 export function NewsletterEmail({ edition, articles, unsubscribeUrl, siteUrl }: NewsletterEmailProps) {
   const grouped = groupByCategory(articles)
   const orderedCategories = getOrderedCategories(grouped)
-  const editionDate = formatFullDate(edition.created_at)
+  const editionDate = formatFullDate(getEditionDisplayDate(edition))
 
   const previewText = edition.summary
     ? edition.summary.slice(0, 90)

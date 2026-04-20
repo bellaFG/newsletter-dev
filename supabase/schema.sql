@@ -11,6 +11,7 @@ CREATE TABLE editions (
   edition_number INTEGER NOT NULL,
   title          TEXT NOT NULL,               -- ex: "DevPulse #001"
   summary        TEXT,
+  published_at   TIMESTAMPTZ,                 -- quando a edicao passa a ser publica no site
   sent_at        TIMESTAMPTZ,                 -- preenchido apos envio dos emails
   created_at     TIMESTAMPTZ DEFAULT NOW()
 );
@@ -46,6 +47,7 @@ CREATE INDEX idx_articles_edition_id ON articles(edition_id);
 CREATE INDEX idx_articles_category ON articles(category);
 CREATE UNIQUE INDEX idx_articles_slug_edition ON articles(edition_id, slug);
 CREATE INDEX idx_editions_slug ON editions(slug);
+CREATE INDEX idx_editions_published_at ON editions(published_at DESC);
 CREATE INDEX idx_editions_created_at ON editions(created_at DESC);
 
 -- =============================================
