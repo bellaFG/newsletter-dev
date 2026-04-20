@@ -3,7 +3,7 @@
  * Usado pelas paginas de edicao ([slug].astro) e pelo template de email (NewsletterEmail.tsx).
  */
 
-import type { Article, ArticleCategory } from './types'
+import type { Article, ArticleCategory, ArticleSource } from './types'
 
 /** Gera um slug URL-safe a partir de texto (mesma logica do Python publisher) */
 export function slugify(text: string, maxLength = 80): string {
@@ -39,9 +39,7 @@ export const CATEGORY_ORDER: ArticleCategory[] = [
  * const grouped = groupByCategory(articles)
  * // { 'Backend': [article1, article2], 'Frontend': [article3] }
  */
-export function groupByCategory(
-  articles: Article[],
-): Partial<Record<ArticleCategory, Article[]>> {
+export function groupByCategory(articles: Article[]): Partial<Record<ArticleCategory, Article[]>> {
   return articles.reduce<Partial<Record<ArticleCategory, Article[]>>>((acc, a) => {
     if (!acc[a.category]) acc[a.category] = []
     acc[a.category]!.push(a)
@@ -57,7 +55,7 @@ export function groupByCategory(
  * // ['Backend', 'Frontend'] (somente categorias com artigos)
  */
 export function getOrderedCategories(
-  grouped: Partial<Record<ArticleCategory, Article[]>>,
+  grouped: Partial<Record<ArticleCategory, Article[]>>
 ): ArticleCategory[] {
   return CATEGORY_ORDER.filter((c) => grouped[c]?.length)
 }
@@ -65,8 +63,8 @@ export function getOrderedCategories(
 /** Mapa de categoria editorial → slug URL */
 export const CATEGORY_SLUGS: Record<ArticleCategory, string> = {
   'IA & Machine Learning': 'ia-machine-learning',
-  'Backend': 'backend',
-  'Frontend': 'frontend',
+  Backend: 'backend',
+  Frontend: 'frontend',
   'DevOps & Cloud': 'devops-cloud',
   'Linguagens & Frameworks': 'linguagens-frameworks',
   'Ferramentas & Produtividade': 'ferramentas-produtividade',
@@ -77,5 +75,49 @@ export const CATEGORY_SLUGS: Record<ArticleCategory, string> = {
 
 /** Mapa inverso: slug URL → categoria editorial */
 export const SLUG_TO_CATEGORY: Record<string, ArticleCategory> = Object.fromEntries(
-  Object.entries(CATEGORY_SLUGS).map(([k, v]) => [v, k as ArticleCategory]),
+  Object.entries(CATEGORY_SLUGS).map(([k, v]) => [v, k as ArticleCategory])
 ) as Record<string, ArticleCategory>
+
+/** Retorna a lista de fontes de uma matéria, com fallback para registros legados. */
+export function getArticleSources(
+  article: Pick<
+    Article,
+    | 'source_items'
+    | 'source_count'
+    | 'source'
+    | 'url'
+    | 'primary_source_label'
+    | 'primary_source_url'
+  >
+): ArticleSource[] {
+  const sources = (article.source_items ?? []).filter((source) => source?.label && source?.url)
+  if (sources.length > 0) {
+    return [...sources].sort(
+      (a, b) => Number(Boolean(b.is_primary)) - Number(Boolean(a.is_primary))
+    )
+  }
+
+  return [
+    {
+      label: article.primary_source_label ?? article.source,
+      url: article.primary_source_url ?? article.url,
+      is_primary: true,
+    },
+  ]
+}
+
+/** Retorna a fonte principal de uma matéria, com fallback para o modelo legado. */
+export function getPrimarySource(
+  article: Pick<
+    Article,
+    | 'source_items'
+    | 'source_count'
+    | 'source'
+    | 'url'
+    | 'primary_source_label'
+    | 'primary_source_url'
+  >
+): ArticleSource {
+  const sources = getArticleSources(article)
+  return sources.find((source) => source.is_primary) ?? sources[0]
+}

@@ -1,5 +1,5 @@
 CURATION_SYSTEM = """Você é o editor-chefe de uma newsletter técnica semanal brasileira chamada DevPulse.
-Seu trabalho é selecionar, hierarquizar e escrever conteúdo editorial sobre os fatos mais relevantes da semana para desenvolvedores de software.
+Seu trabalho é selecionar, agrupar por tema e escrever conteúdo editorial sobre os fatos mais relevantes da semana para desenvolvedores de software.
 
 ## Seu público
 - Desenvolvedores e engenheiros de software brasileiros, nível intermediário a sênior
@@ -8,7 +8,9 @@ Seu trabalho é selecionar, hierarquizar e escrever conteúdo editorial sobre os
 
 ## Modelo editorial (inspirado nas maiores newsletters: TLDR, Pragmatic Engineer, Bytes, Morning Brew)
 
-Você deve produzir conteúdo em **três camadas hierárquicas**:
+Você deve produzir conteúdo em **três camadas hierárquicas**. Cada item publicado é uma **matéria editorial**,
+não um resumo de um link isolado. Quando várias fontes estiverem falando do mesmo tema, você deve consolidá-las
+em uma única matéria.
 
 ### 1. DESTAQUE (1 artigo — o mais impactante da semana)
 - Escolha a história com maior **raio de impacto × novidade** — algo que afeta muitos devs E é inesperado
@@ -28,12 +30,14 @@ Você deve produzir conteúdo em **três camadas hierárquicas**:
 - O `content_ptbr` deve ter 1-2 parágrafos diretos
 - Foco no "e daí?" — por que isso importa para o dev no dia a dia
 
-## Critérios de seleção (total: 8-10 artigos)
+## Critérios de seleção (total: 5-8 matérias)
 - **Impacto × Novidade**: quanto maior o raio de impacto E mais inesperado, mais destaque merece
 - **Relevância prática**: vai mudar como o dev trabalha na próxima semana?
 - **Profundidade técnica**: prefira conteúdo substancial a notícias corporativas rasas
 - **Variedade**: máximo 2 artigos da mesma categoria, garanta cobertura ampla
 - **Evite**: clickbait, conteúdo introdutório/básico, notícias corporativas sem impacto técnico, repetições temáticas
+- **Agrupamento por tema**: se 2 ou mais fontes tratarem do mesmo assunto, consolide isso em uma única matéria
+- **Fontes**: cada matéria deve citar 2-5 fontes reais da lista recebida, com 1 fonte principal e fontes complementares
 
 ## Diretrizes de escrita
 
@@ -61,6 +65,11 @@ Você deve produzir conteúdo em **três camadas hierárquicas**:
 - O campo `source` deve refletir a fonte primária (blog oficial da empresa, paper, etc.) quando possível
 - Prefira fontes primárias sobre agregadores: "Blog do Google" > "TechCrunch reportando sobre o Google"
 
+### Resumo da edição (`edition_summary`)
+- Escreva 2-3 frases apresentando o fio condutor da semana
+- Deve funcionar como texto de abertura da edição no site e preview editorial do email
+- Não enumere todos os itens; destaque os movimentos mais importantes
+
 ## Categorias disponíveis (use exatamente como escrito)
 - Backend
 - Frontend
@@ -77,16 +86,17 @@ Híbrido entre Pragmatic Engineer (credibilidade técnica de quem já fez deploy
 
 
 def build_curation_prompt(articles: list[dict]) -> str:
-    """Monta o prompt com a lista de artigos para a IA curar."""
+    """Monta o prompt com a lista de artigos para a IA curar em temas multi-fonte."""
     lines = [
         "Aqui estão os artigos coletados esta semana.",
-        "Selecione os 8-10 melhores seguindo o modelo editorial de três camadas "
-        "(1 destaque principal, 3-4 secundários, 4-5 menções rápidas).",
-        "Ordene por relevância (position 1 = destaque principal).\n",
+        "Selecione e agrupe os melhores em 5-8 matérias editoriais seguindo o modelo "
+        "de três camadas (1 destaque principal, 2-3 secundários, 2-4 menções rápidas).",
+        "Cada matéria deve consolidar 2-5 fontes quando houver cobertura múltipla do mesmo tema.",
+        "Ordene por relevância (story 1 = destaque principal).\n",
     ]
 
-    for i, a in enumerate(articles, 1):
-        lines.append(f"[{i}] {a['title']}")
+    for a in articles:
+        lines.append(f"[{a['id']}] {a['title']}")
         lines.append(f"    Fonte: {a['source']}")
         lines.append(f"    URL: {a['url']}")
         if a.get("snippet"):
@@ -95,15 +105,21 @@ def build_curation_prompt(articles: list[dict]) -> str:
 
     lines.append(
         "Retorne um JSON válido com a seguinte estrutura:\n"
-        '{"articles": [{"title": "...", "title_ptbr": "...", "url": "...", "source": "...", '
-        '"category": "...", "summary_ptbr": "...", "content_ptbr": "...", '
-        '"reading_time_min": 5, "original_language": "en"}]}\n\n'
+        '{"edition_summary": "...", "stories": ['
+        '{"title_ptbr": "...", "summary_ptbr": "...", "content_ptbr": "...", '
+        '"category": "...", "canonical_topic": "...", '
+        '"primary_source_id": 7, "source_ids": [7, 12, 18], '
+        '"reading_time_min": 5, "original_language": "en"}'
+        ']}\n\n'
         "IMPORTANTE:\n"
-        "- O primeiro artigo (position 1) é o DESTAQUE PRINCIPAL — content_ptbr com 3-4 parágrafos\n"
-        "- Artigos 2-5 são SECUNDÁRIOS — content_ptbr com 2-3 parágrafos\n"
-        "- Artigos 6+ são MENÇÕES RÁPIDAS — content_ptbr com 1-2 parágrafos\n"
+        "- O primeiro item é o DESTAQUE PRINCIPAL — content_ptbr com 3-4 parágrafos\n"
+        "- Itens 2-4 são SECUNDÁRIOS — content_ptbr com 2-3 parágrafos\n"
+        "- Itens 5+ são MENÇÕES RÁPIDAS — content_ptbr com 1-2 parágrafos\n"
         "- Separe parágrafos com \\n\\n dentro do content_ptbr\n"
-        "- Todos devem ter summary_ptbr (2 frases) e content_ptbr"
+        "- Todos devem ter summary_ptbr (2 frases) e content_ptbr\n"
+        "- source_ids deve conter de 2 a 5 ids reais da lista recebida, sem inventar ids\n"
+        "- primary_source_id deve estar presente dentro de source_ids\n"
+        "- canonical_topic deve ser uma frase curta e estável que represente o tema central"
     )
 
     return "\n".join(lines)

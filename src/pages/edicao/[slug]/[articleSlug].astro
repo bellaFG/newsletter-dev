@@ -5,7 +5,7 @@ import SectionHeader from '@/components/SectionHeader.astro'
 import { getEditionDisplayDate } from '@/lib/editions'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
-import { CATEGORY_SLUGS } from '@/lib/articles'
+import { CATEGORY_SLUGS, getArticleSources, getPrimarySource } from '@/lib/articles'
 import { formatMediumDate, formatEditionNumber } from '@/lib/date'
 import { SITE_NAME } from '@/lib/config'
 
@@ -42,6 +42,8 @@ const { data: relatedData } = await supabase
 const related = (relatedData ?? []) as Article[]
 
 const categorySlug = CATEGORY_SLUGS[article.category]
+const sources = getArticleSources(article)
+const primarySource = getPrimarySource(article)
 ---
 
 <Layout title={`${article.title_ptbr ?? article.title} — ${SITE_NAME}`} description={article.summary_ptbr.slice(0, 160)}>
@@ -77,7 +79,13 @@ const categorySlug = CATEGORY_SLUGS[article.category]
         )}
 
         <div class="flex flex-wrap items-center gap-2 font-mono text-[0.6rem] text-link mb-8">
-          <span class="tracking-widest">{article.source}</span>
+          <span class="tracking-widest">{primarySource.label}</span>
+          {article.source_count > 1 && (
+            <>
+              <span>&middot;</span>
+              <span>{article.source_count} fontes</span>
+            </>
+          )}
           {article.reading_time_min && (
             <>
               <span>&middot;</span>
@@ -99,12 +107,12 @@ const categorySlug = CATEGORY_SLUGS[article.category]
         {/* -- CTAs -- */}
         <div class="flex flex-col sm:flex-row gap-3 mb-10">
           <a
-            href={article.url}
+            href={primarySource.url}
             target="_blank"
             rel="noopener noreferrer"
             class="inline-flex items-center justify-center border-2 border-link/30 text-link font-mono text-[0.6rem] tracking-widest uppercase px-6 py-3 hover:border-link transition-colors font-bold"
           >
-            Fonte original &rarr;
+            Fonte principal &rarr;
           </a>
           <a
             href={`/${edition.slug}`}
@@ -113,6 +121,38 @@ const categorySlug = CATEGORY_SLUGS[article.category]
             Ver edição #{formatEditionNumber(edition.edition_number)}
           </a>
         </div>
+
+        <section class="border-t border-foreground/20 pt-8 mt-4">
+          <SectionHeader title="Fontes desta análise" />
+
+          <div class="space-y-4">
+            {sources.map((source) => (
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block border border-foreground/10 p-4 hover:border-link/40 transition-colors"
+              >
+                <div class="flex flex-wrap items-center gap-2 mb-2 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
+                  <span class="text-link">{source.label}</span>
+                  {source.is_primary && (
+                    <span class="border border-link/30 px-2 py-0.5 text-link">Principal</span>
+                  )}
+                </div>
+                {source.title && (
+                  <h3 class="font-serif text-lg font-bold leading-snug mb-1">
+                    {source.title}
+                  </h3>
+                )}
+                {source.snippet && (
+                  <p class="text-sm text-foreground/65 leading-relaxed line-clamp-3">
+                    {source.snippet}
+                  </p>
+                )}
+              </a>
+            ))}
+          </div>
+        </section>
       </article>
 
       {related.length > 0 && (
@@ -129,7 +169,9 @@ const categorySlug = CATEGORY_SLUGS[article.category]
                   {rel.summary_ptbr}
                 </p>
                 <p class="font-mono text-[0.5rem] text-link">
-                  {rel.source}{rel.reading_time_min ? ` · ${rel.reading_time_min} min` : ''}
+                  {getPrimarySource(rel).label}
+                  {rel.source_count > 1 ? ` · ${rel.source_count} fontes` : ''}
+                  {rel.reading_time_min ? ` · ${rel.reading_time_min} min` : ''}
                 </p>
               </a>
             ))}

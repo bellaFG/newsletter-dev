@@ -5,7 +5,7 @@ import PageFooterNav from '@/components/PageFooterNav.astro'
 import { getEditionDisplayDate } from '@/lib/editions'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
-import { SLUG_TO_CATEGORY } from '@/lib/articles'
+import { getPrimarySource, SLUG_TO_CATEGORY } from '@/lib/articles'
 import { formatShortDate, formatEditionNumber } from '@/lib/date'
 import { SITE_NAME } from '@/lib/config'
 
@@ -62,7 +62,9 @@ const articles = (articlesData ?? []) as ArticleWithEdition[]
                   {article.summary_ptbr}
                 </p>
                 <p class="font-mono text-[0.5rem] text-link">
-                  {article.source}{article.reading_time_min ? ` · ${article.reading_time_min} min` : ''}
+                  {getPrimarySource(article).label}
+                  {article.source_count > 1 ? ` · ${article.source_count} fontes` : ''}
+                  {article.reading_time_min ? ` · ${article.reading_time_min} min` : ''}
                 </p>
               </a>
             </article>

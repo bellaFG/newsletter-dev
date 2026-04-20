@@ -1,0 +1,88 @@
+---
+import type { SiteAnnouncement } from '@/lib/announcements'
+
+interface Props {
+  announcement: SiteAnnouncement
+  compact?: boolean
+}
+
+const { announcement, compact = false } = Astro.props
+
+const toneClasses = {
+  info: {
+    wrapper: 'border-link/30 bg-link/5',
+    eyebrow: 'text-link',
+    cta: 'border-link text-link hover:bg-link hover:text-white',
+  },
+  warning: {
+    wrapper: 'border-amber-500/40 bg-amber-500/10',
+    eyebrow: 'text-amber-700 dark:text-amber-300',
+    cta: 'border-amber-600 text-amber-700 hover:bg-amber-600 hover:text-white dark:text-amber-300 dark:border-amber-400',
+  },
+  success: {
+    wrapper: 'border-emerald-500/35 bg-emerald-500/10',
+    eyebrow: 'text-emerald-700 dark:text-emerald-300',
+    cta: 'border-emerald-600 text-emerald-700 hover:bg-emerald-600 hover:text-white dark:text-emerald-300 dark:border-emerald-400',
+  },
+} as const
+
+const tone = toneClasses[announcement.tone]
+---
+
+<section class:list={[
+  'border-2',
+  tone.wrapper,
+  compact ? 'p-4 sm:p-5' : 'p-6 sm:p-7',
+]}>
+  <div class:list={[
+    'flex flex-col gap-4',
+    compact ? 'lg:flex-row lg:items-center lg:justify-between' : 'sm:flex-row sm:items-end sm:justify-between',
+  ]}>
+    <div class={compact ? 'max-w-3xl' : 'max-w-2xl'}>
+      {announcement.eyebrow && (
+        <p class:list={[
+          'mb-2 font-mono font-bold uppercase',
+          compact ? 'text-[0.5rem] tracking-[0.22em]' : 'text-[0.55rem] tracking-[0.25em]',
+          tone.eyebrow,
+        ]}>
+          {announcement.eyebrow}
+        </p>
+      )}
+
+      <h2 class:list={[
+        'font-serif font-black tracking-tight text-foreground',
+        compact ? 'mb-1 text-lg sm:text-xl' : 'mb-2 text-2xl',
+      ]}>
+        {announcement.title}
+      </h2>
+
+      <p class:list={[
+        'leading-relaxed text-foreground/75',
+        compact ? 'text-sm' : 'text-sm',
+      ]}>
+        {announcement.message}
+      </p>
+
+      {announcement.note && (
+        <p class:list={[
+          'mt-2 font-mono uppercase text-muted-foreground',
+          compact ? 'text-[0.6rem] tracking-[0.18em]' : 'text-[0.65rem] tracking-wider',
+        ]}>
+          {announcement.note}
+        </p>
+      )}
+    </div>
+
+    {announcement.ctaHref && announcement.ctaLabel && (
+      <a
+        href={announcement.ctaHref}
+        class:list={[
+          'inline-flex shrink-0 items-center justify-center border-2 px-5 py-2.5 font-mono text-[0.55rem] font-bold uppercase tracking-widest transition-colors',
+          tone.cta,
+        ]}
+      >
+        {announcement.ctaLabel}
+      </a>
+    )}
+  </div>
+</section>

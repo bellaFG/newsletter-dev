@@ -1,5 +1,7 @@
 ---
 import '@/styles/globals.css'
+import AnnouncementBanner from '@/components/AnnouncementBanner.astro'
+import { getActiveAnnouncements } from '@/lib/announcements'
 import { SITE_NAME, SITE_TITLE, SITE_DESCRIPTION } from '@/lib/config'
 
 interface Props {
@@ -16,6 +18,7 @@ const {
 
 const socialTitle = ogTitle ?? title
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://newsletter-dev.vercel.app')
+const globalAnnouncements = getActiveAnnouncements('global')
 ---
 
 <html lang="pt-BR">
@@ -73,6 +76,14 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://newslett
 
     <!-- Spacer para compensar o header fixo -->
     <div class="h-10"></div>
+
+    {globalAnnouncements.length > 0 && (
+      <div class="mx-auto max-w-6xl space-y-3 px-6 pt-4 sm:px-10">
+        {globalAnnouncements.map((announcement) => (
+          <AnnouncementBanner announcement={announcement} compact />
+        ))}
+      </div>
+    )}
 
     <slot />
 

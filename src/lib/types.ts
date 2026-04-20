@@ -27,6 +27,18 @@ export type Database = {
         Update: Partial<SubscriberInsert>
         Relationships: []
       }
+      editorial_suppressions: {
+        Row: EditorialSuppression
+        Insert: EditorialSuppressionInsert
+        Update: Partial<EditorialSuppressionInsert>
+        Relationships: []
+      }
+      newsletter_deliveries: {
+        Row: NewsletterDelivery
+        Insert: NewsletterDeliveryInsert
+        Update: Partial<NewsletterDeliveryInsert>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -41,6 +53,7 @@ export type Edition = {
   edition_number: number
   title: string
   summary: string | null
+  prepared_at: string | null
   published_at: string | null
   sent_at: string | null
   created_at: string
@@ -52,6 +65,7 @@ export type EditionInsert = {
   edition_number: number
   title: string
   summary?: string | null
+  prepared_at?: string | null
   published_at?: string | null
   sent_at?: string | null
   created_at?: string
@@ -69,6 +83,12 @@ export type Article = {
   category: ArticleCategory
   original_language: string
   reading_time_min: number | null
+  canonical_topic: string | null
+  primary_source_url: string | null
+  primary_source_label: string | null
+  source_count: number
+  source_items: ArticleSource[]
+  status: ArticleStatus
   position: number | null
   slug: string
   created_at: string
@@ -86,6 +106,12 @@ export type ArticleInsert = {
   category: ArticleCategory
   original_language?: string
   reading_time_min?: number | null
+  canonical_topic?: string | null
+  primary_source_url?: string | null
+  primary_source_label?: string | null
+  source_count?: number
+  source_items?: ArticleSource[]
+  status?: ArticleStatus
   position?: number | null
   slug: string
   created_at?: string
@@ -104,6 +130,60 @@ export type SubscriberInsert = {
   active?: boolean
   created_at?: string
 }
+
+export type EditorialSuppression = {
+  id: string
+  scope: EditorialSuppressionScope
+  value: string
+  reason: string | null
+  created_at: string
+}
+
+export type EditorialSuppressionInsert = {
+  id?: string
+  scope: EditorialSuppressionScope
+  value: string
+  reason?: string | null
+  created_at?: string
+}
+
+export type NewsletterDelivery = {
+  id: string
+  edition_id: string
+  email: string
+  status: NewsletterDeliveryStatus
+  error: string | null
+  attempts: number
+  last_attempt_at: string
+  sent_at: string | null
+  created_at: string
+}
+
+export type NewsletterDeliveryInsert = {
+  id?: string
+  edition_id: string
+  email: string
+  status: NewsletterDeliveryStatus
+  error?: string | null
+  attempts?: number
+  last_attempt_at?: string
+  sent_at?: string | null
+  created_at?: string
+}
+
+export type ArticleSource = {
+  label: string
+  url: string
+  title?: string | null
+  snippet?: string | null
+  is_primary?: boolean
+}
+
+export type ArticleStatus = 'active' | 'removed' | 'suppressed'
+
+export type EditorialSuppressionScope = 'url' | 'topic'
+
+export type NewsletterDeliveryStatus = 'sent' | 'failed'
 
 export type ArticleCategory =
   | 'Backend'

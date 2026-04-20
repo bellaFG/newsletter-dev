@@ -16,7 +16,7 @@ export async function listEditionsWithArticles(
 ): Promise<Edition[]> {
   let query = supabase
     .from('editions')
-    .select('id, slug, edition_number, title, summary, published_at, sent_at, created_at, articles!inner(id)')
+    .select('id, slug, edition_number, title, summary, prepared_at, published_at, sent_at, created_at, articles!inner(id)')
     .not('published_at', 'is', null)
     .order('published_at', { ascending: false })
     .order('edition_number', { ascending: false })

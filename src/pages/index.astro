@@ -1,12 +1,15 @@
 ---
 import Layout from '@/layouts/Layout.astro'
+import AnnouncementBanner from '@/components/AnnouncementBanner.astro'
 import CategoryNav from '@/components/CategoryNav.astro'
 import ArticleCard from '@/components/ArticleCard.astro'
 import SectionHeader from '@/components/SectionHeader.astro'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
+import { getPrimarySource } from '@/lib/articles'
 import { getEditionDisplayDate, getLatestEditionWithArticles, listEditionsWithArticles } from '@/lib/editions'
 import { formatFullDate, formatMediumDate, formatShortDate, formatEditionNumber } from '@/lib/date'
+import { getPublishingStatus } from '@/lib/publishing'
 import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
 const latest = (await getLatestEditionWithArticles(supabase)) as Edition | null
@@ -26,6 +29,7 @@ const recentEditions = (await listEditionsWithArticles(supabase, { from: 1, to: 
   'id' | 'slug' | 'edition_number' | 'title' | 'published_at' | 'created_at'
 >[]
 
+const publishingStatus = getPublishingStatus(latest)
 const today = formatFullDate(new Date())
 ---
 
@@ -65,12 +69,16 @@ const today = formatFullDate(new Date())
           <input
             id="search-input"
             type="text"
-            placeholder="Buscar na newsletter..."
+            placeholder="Buscar temas no acervo..."
             class="w-full border border-foreground/20 bg-background px-4 py-2.5 pl-10 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-link transition-colors"
           />
         </div>
-        <div id="search-results" class="hidden mt-4 max-w-2xl mx-auto space-y-2"></div>
+        <div id="search-results" class="hidden mt-4 max-w-3xl mx-auto space-y-3" aria-live="polite"></div>
       </div>
+
+      {publishingStatus.isDelayed && (
+        <AnnouncementBanner announcement={publishingStatus.announcement} />
+      )}
 
       {latest && articles.length > 0 ? (
         <>
@@ -85,14 +93,15 @@ const today = formatFullDate(new Date())
                   {formatMediumDate(getEditionDisplayDate(latest))}
                 </span>
                 <span class="font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
-                  Newsletter Semanal
+                  {publishingStatus.featuredLabel}
                 </span>
               </div>
 
               {articles[0] && (
                 <div class="mb-5">
                   <p class="font-mono text-[0.5rem] tracking-widest uppercase text-link mb-2">
-                    {articles[0].category} &middot; {articles[0].source}
+                    {articles[0].category} &middot; {getPrimarySource(articles[0]).label}
+                    {articles[0].source_count > 1 && ` · ${articles[0].source_count} fontes`}
                   </p>
                   <a href={`/edicao/${latest.slug}/${articles[0].slug}`} class="block group">
                     <h2 class="font-serif text-2xl sm:text-3xl font-black leading-[1.15] tracking-tight mb-2 group-hover:text-link transition-colors">
@@ -115,7 +124,7 @@ const today = formatFullDate(new Date())
                 href={`/${latest.slug}`}
                 class="inline-block font-mono text-[0.55rem] tracking-widest uppercase px-5 py-2.5 border-2 border-link text-link hover:bg-link hover:text-white transition-colors font-bold"
               >
-                Ler edição completa &rarr;
+                {publishingStatus.featuredCtaLabel}
               </a>
             </div>
           </section>
@@ -144,13 +153,17 @@ const today = formatFullDate(new Date())
       ) : (
         <section class="py-16 text-center mb-10">
           <p class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground mb-3">
-            Em breve
+            {publishingStatus.isDelayed ? 'Estamos finalizando' : 'Em breve'}
           </p>
           <h2 class="font-serif text-4xl sm:text-5xl font-bold mb-4">
-            A primeira edição chega segunda-feira.
+            {publishingStatus.isDelayed
+              ? 'A edição desta semana já devia ter saído.'
+              : 'A primeira edição chega segunda-feira.'}
           </h2>
           <p class="text-muted-foreground max-w-lg mx-auto">
-            Inscreva-se para receber {SITE_NAME} diretamente no seu email.
+            {publishingStatus.isDelayed
+              ? 'A automação tropeçou, mas já estamos colocando a newsletter no ar.'
+              : `Inscreva-se para receber ${SITE_NAME} diretamente no seu email.`}
           </p>
         </section>
       )}
@@ -198,31 +211,22 @@ const today = formatFullDate(new Date())
   const PER_PAGE = 9
   const input = document.getElementById('search-input') as HTMLInputElement | null
   const resultsContainer = document.getElementById('search-results')
-  const grid = document.getElementById('articles-grid')
   const container = document.getElementById('articles-container')
   const pagination = document.getElementById('pagination')
   const prevBtn = document.getElementById('prev-page') as HTMLButtonElement | null
   const nextBtn = document.getElementById('next-page') as HTMLButtonElement | null
   const pageInfo = document.getElementById('page-info')
 
-  if (container && grid) {
+  if (container) {
     const allCards = Array.from(container.querySelectorAll('a[data-title]')) as HTMLAnchorElement[]
     let currentPage = 1
-    let visibleCards = allCards
-    let isSearching = false
 
     function renderPage() {
-      if (isSearching) {
-        if (pagination) pagination.style.display = 'none'
-        return
-      }
-
-      const totalPages = Math.ceil(visibleCards.length / PER_PAGE)
+      const totalPages = Math.ceil(allCards.length / PER_PAGE)
       const start = (currentPage - 1) * PER_PAGE
       const end = start + PER_PAGE
 
-      allCards.forEach(card => card.style.display = 'none')
-      visibleCards.forEach((card, i) => {
+      allCards.forEach((card, i) => {
         card.style.display = i >= start && i < end ? '' : 'none'
       })
 
@@ -239,41 +243,106 @@ const today = formatFullDate(new Date())
     prevBtn?.addEventListener('click', () => { currentPage--; renderPage() })
     nextBtn?.addEventListener('click', () => { currentPage++; renderPage() })
 
-    visibleCards = allCards
     renderPage()
+  }
 
-    if (input && resultsContainer) {
-      let debounceTimer: ReturnType<typeof setTimeout>
+  if (input && resultsContainer) {
+    let debounceTimer: ReturnType<typeof setTimeout>
+    let lastController: AbortController | null = null
 
-      input.addEventListener('input', () => {
-        clearTimeout(debounceTimer)
-        debounceTimer = setTimeout(() => {
-          const query = input.value.trim().toLowerCase()
-
-          if (!query) {
-            isSearching = false
-            visibleCards = allCards
-            currentPage = 1
-            renderPage()
-            resultsContainer.classList.add('hidden')
-            return
-          }
-
-          isSearching = true
-          allCards.forEach(card => {
-            const title = card.dataset.title ?? ''
-            const summary = card.dataset.summary ?? ''
-            const matches = title.includes(query) || summary.includes(query)
-            card.style.display = matches ? '' : 'none'
-          })
-
-          const matchCount = allCards.filter(c => c.style.display !== 'none').length
-          const safeQuery = input.value.trim().replace(/[&<>"']/g, (c: string) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c] ?? c))
-          resultsContainer.innerHTML = `<p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">${matchCount} resultado${matchCount !== 1 ? 's' : ''} para "${safeQuery}"</p>`
-          resultsContainer.classList.remove('hidden')
-          if (pagination) pagination.style.display = 'none'
-        }, 200)
-      })
+    function escapeHtml(value: string) {
+      return value.replace(/[&<>"']/g, (char: string) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      }[char] ?? char))
     }
+
+    function formatEditionNumber(n: number) {
+      return String(n).padStart(3, '0')
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        const query = input.value.trim().toLowerCase()
+
+        if (!query) {
+          resultsContainer.classList.add('hidden')
+          resultsContainer.innerHTML = ''
+          return
+        }
+
+        lastController?.abort()
+        lastController = new AbortController()
+
+        fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: lastController.signal })
+          .then(async (response) => {
+            if (!response.ok) throw new Error('Search failed')
+            const data = await response.json()
+            const results = Array.isArray(data.results) ? data.results : []
+            const safeQuery = escapeHtml(input.value.trim())
+
+            if (results.length === 0) {
+              resultsContainer.innerHTML = `
+                  <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">
+                    Nenhum resultado para "${safeQuery}"
+                  </p>
+                `
+              resultsContainer.classList.remove('hidden')
+              return
+            }
+
+            const items = results.map((result: any) => {
+              const title = escapeHtml(result.title ?? '')
+              const summary = escapeHtml(result.summary ?? '')
+              const excerpt = escapeHtml(result.excerpt ?? '')
+              const category = escapeHtml(result.category ?? '')
+              const primarySource = escapeHtml(result.primarySource ?? '')
+              const editionSlug = escapeHtml(result.edition?.slug ?? '')
+              const editionNumber = formatEditionNumber(Number(result.edition?.edition_number ?? 0))
+              const sourceLabel = Number(result.sourceCount ?? 1) > 1
+                ? `${Number(result.sourceCount)} fontes`
+                : primarySource
+
+              return `
+                  <a
+                    href="/edicao/${editionSlug}/${escapeHtml(result.slug ?? '')}"
+                    class="block border border-foreground/10 p-4 hover:border-link/40 transition-colors"
+                  >
+                    <div class="flex flex-wrap items-center gap-2 mb-2 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
+                      <span class="text-link">#${editionNumber}</span>
+                      <span>${category}</span>
+                      <span>&middot;</span>
+                      <span>${escapeHtml(sourceLabel)}</span>
+                    </div>
+                    <h3 class="font-serif text-xl font-bold leading-snug mb-2 text-foreground">${title}</h3>
+                    <p class="text-sm text-foreground/70 leading-relaxed mb-2">${summary}</p>
+                    <p class="text-sm text-foreground/55 leading-relaxed">${excerpt}</p>
+                  </a>
+                `
+            }).join('')
+
+            resultsContainer.innerHTML = `
+                <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">
+                  ${results.length} resultado${results.length !== 1 ? 's' : ''} no acervo para "${safeQuery}"
+                </p>
+                ${items}
+              `
+            resultsContainer.classList.remove('hidden')
+          })
+          .catch((error) => {
+            if (error.name === 'AbortError') return
+            resultsContainer.innerHTML = `
+                <p class="font-mono text-[0.6rem] tracking-widest uppercase text-destructive text-center">
+                  Falha ao buscar no acervo.
+                </p>
+              `
+            resultsContainer.classList.remove('hidden')
+          })
+      }, 200)
+    })
   }
 </script>

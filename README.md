@@ -24,7 +24,8 @@ O projeto tem duas partes independentes:
 ```
                   +------------------+
                   |  GitHub Actions  |
-                  |  (cron: seg 8h)  |
+                  | (prepare/check/  |
+                  | publish toda seg)|
                   +--------+---------+
                            |
                   +--------v---------+
@@ -59,7 +60,7 @@ O projeto tem duas partes independentes:
 | Curadoria IA | OpenAI GPT-4o mini |
 | Pipeline | Python 3.11 (feedparser, requests, BeautifulSoup, Pydantic) |
 | Deploy web | Vercel |
-| Automacao | GitHub Actions (cron semanal) |
+| Automacao | GitHub Actions (prepare + check + publish) |
 
 ---
 
@@ -111,9 +112,10 @@ newsletter/
 |   +-- NewsletterEmail.tsx          # Template de email (React Email)
 |
 |-- pipeline/
-|   |-- main.py                      # Orquestrador: coleta -> curadoria -> publicacao
+|   |-- main.py                      # Orquestrador: prepare -> check-ready -> publish
 |   |-- curator.py                   # Curadoria com GPT-4o mini
-|   |-- publisher.py                 # Salva no Supabase + dispara email
+|   |-- publisher.py                 # Prepara rascunho + publica + dispara email
+|   |-- notifications.py             # Alertas operacionais via Discord webhook
 |   |-- models.py                    # Modelos Pydantic
 |   |-- prompts.py                   # System prompt da IA
 |   |-- sources.yaml                 # Fontes de artigos (RSS, Reddit, GitHub)
@@ -172,6 +174,9 @@ No Supabase Dashboard, va em **SQL Editor** e execute o conteudo de `supabase/sc
 Em seguida, aplique as migrations na ordem:
 1. `supabase/migrations/001_add_article_slug.sql`
 2. `supabase/migrations/002_add_article_content.sql`
+3. `supabase/migrations/003_ensure_article_edition_cascade.sql`
+4. `supabase/migrations/004_add_published_at_to_editions.sql`
+5. `supabase/migrations/005_add_prepared_at_to_editions.sql`
 
 ### 4. Inicie o servidor de desenvolvimento
 
@@ -198,9 +203,9 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 
 ### Fluxo
 
-1. **Coleta** — Busca artigos de 10 feeds RSS, GitHub Trending (5 linguagens) e Reddit (6 subreddits)
-2. **Curadoria** — GPT-4o mini seleciona 8-10 artigos, categoriza e gera resumos em pt-BR
-3. **Publicacao** — Insere edicao e artigos no Supabase, depois chama `POST /api/send-newsletter`
+1. **Prepare (07:00 BRT)** — Busca artigos, roda a curadoria e salva um rascunho pronto no Supabase
+2. **Check-ready (07:30 BRT)** — Verifica se a edicao ficou pronta 30 minutos antes da publicacao; se nao, alerta no Discord
+3. **Publish (08:00 BRT)** — Publica a edicao no site e chama `POST /api/send-newsletter`
 
 ### Fontes configuradas (`pipeline/sources.yaml`)
 
@@ -220,6 +225,7 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 | `SUPABASE_ANON_KEY` | Sim | Web | Chave anonima (client publico) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Sim | Web + Pipeline | Chave service role (bypassa RLS) |
 | `BREVO_API_KEY` | Sim | Web | Chave da API Brevo |
+| `DISCORD_ALERT_WEBHOOK_URL` | Nao | Pipeline | Webhook do Discord para alertas operacionais |
 | `NEWSLETTER_API_SECRET` | Sim | Web + Pipeline | Token Bearer para `/api/send-newsletter` |
 | `OPENAI_API_KEY` | Sim | Pipeline | Chave da API OpenAI |
 | `SITE_URL` | Sim | Pipeline | URL base do site (ex: `https://devpulse.com.br`) |
@@ -246,14 +252,17 @@ Para configurar em um novo projeto:
 
 O workflow `.github/workflows/newsletter.yml` roda automaticamente:
 
-- **Quando**: Toda segunda-feira as 11:00 UTC (08:00 BRT)
-- **Trigger manual**: Tambem pode ser disparado via `workflow_dispatch`
+- **07:00 BRT**: prepara o rascunho da edicao da semana
+- **07:30 BRT**: verifica se o rascunho esta pronto e alerta no Discord se nao estiver
+- **08:00 BRT**: publica no site e envia os emails
+- **Trigger manual**: Tambem pode ser disparado via `workflow_dispatch` com escolha de modo
 
 Configure as secrets no repositorio GitHub:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `OPENAI_API_KEY`
 - `BREVO_API_KEY`
+- `DISCORD_ALERT_WEBHOOK_URL`
 - `NEWSLETTER_API_SECRET`
 - `SITE_URL`
 

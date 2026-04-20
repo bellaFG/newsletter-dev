@@ -23,3 +23,9 @@ export const DEFAULT_SITE_URL = 'https://newsletter-dev.vercel.app'
 
 /** Chave usada no localStorage para persistir preferencia de tema */
 export const THEME_STORAGE_KEY = 'devpulse-theme'
+
+/** Janela oficial de publicacao da newsletter */
+export const PUBLISH_SCHEDULE_UTC_DAY = 1 // segunda-feira
+export const PUBLISH_SCHEDULE_UTC_HOUR = 11 // 08:00 BRT
+export const PUBLISH_SCHEDULE_UTC_MINUTE = 0
+export const PUBLISH_SCHEDULE_LABEL = 'segunda-feira, 08:00 BRT'

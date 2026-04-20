@@ -6,7 +6,7 @@ import PageFooterNav from '@/components/PageFooterNav.astro'
 import { getEditionDisplayDate } from '@/lib/editions'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
-import { groupByCategory, getOrderedCategories } from '@/lib/articles'
+import { getOrderedCategories, getPrimarySource, groupByCategory } from '@/lib/articles'
 import { formatFullDate, formatEditionNumber } from '@/lib/date'
 import { SITE_NAME } from '@/lib/config'
 
@@ -67,7 +67,13 @@ const orderedCategories = getOrderedCategories(grouped)
               {grouped[cat]!.map((article) => (
                 <article>
                   <div class="mb-2 flex items-center gap-2 font-mono text-[0.65rem] text-link">
-                    <span class="tracking-widest">{article.source}</span>
+                    <span class="tracking-widest">{getPrimarySource(article).label}</span>
+                    {article.source_count > 1 && (
+                      <>
+                        <span class="text-foreground/40">&middot;</span>
+                        <span>{article.source_count} fontes</span>
+                      </>
+                    )}
                     {article.reading_time_min && (
                       <>
                         <span class="text-foreground/40">&middot;</span>
@@ -96,7 +102,7 @@ const orderedCategories = getOrderedCategories(grouped)
                       rel="noopener noreferrer"
                       class="font-mono text-[0.65rem] tracking-widest uppercase text-muted-foreground hover:text-link transition-colors"
                     >
-                      Fonte original &nearr;
+                      Fonte principal &nearr;
                     </a>
                   </div>
                 </article>
