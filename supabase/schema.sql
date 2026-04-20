@@ -1,5 +1,5 @@
--- DevPulse — Schema completo
--- Rode no SQL Editor do Supabase (app.supabase.com -> SQL Editor)
+-- DevPulse — Schema completo (referencia)
+-- Fonte oficial de deploy: `supabase/migrations/` via `supabase db push`.
 
 -- =============================================
 -- TABELAS

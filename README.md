@@ -126,10 +126,11 @@ newsletter/
 |       +-- reddit.py                # Coletor Reddit (6 subreddits)
 |
 |-- supabase/
+|   |-- config.toml                  # Configuracao local do Supabase CLI
+|   |-- .gitignore                   # Ignora arquivos gerados pelo CLI
 |   |-- schema.sql                   # Schema do banco + politicas RLS
 |   +-- migrations/
-|       |-- 001_add_article_slug.sql # Coluna slug + indice unico
-|       +-- 002_add_article_content.sql # Coluna content_ptbr
+|       +-- 20260420143000_initial_schema.sql # Baseline oficial do schema via Supabase CLI
 |
 |-- public/
 |   +-- fonts/                       # Geist Sans e Geist Mono (woff)
@@ -147,6 +148,7 @@ newsletter/
 
 - Node.js 18+
 - Python 3.11+
+- Supabase CLI 2.x ou `npx --yes supabase`
 - Conta no [Supabase](https://supabase.com) (plano gratuito)
 - Conta no [Brevo](https://brevo.com) (plano gratuito — 300 emails/dia)
 - Chave da API [OpenAI](https://platform.openai.com) (para o pipeline)
@@ -169,17 +171,26 @@ Preencha todas as variaveis no `.env.local`. Veja a secao [Variaveis de Ambiente
 
 ### 3. Configure o banco de dados
 
-Para um banco novo, voce pode executar `supabase/schema.sql` uma vez no **SQL Editor** do Supabase.
+O fluxo oficial agora usa o **Supabase CLI**.
 
-Depois disso, o projeto consegue aplicar migrations automaticamente quando `SUPABASE_DB_URL` estiver configurada.
+Primeira configuracao do repositorio:
 
-Para sincronizar localmente:
+```bash
+npm run supabase:login
+npm run supabase:link -- --project-ref <seu-project-ref>
+```
+
+O `project-ref` e o identificador curto do projeto no dashboard do Supabase. No passo de `link`, o CLI pede a senha do banco e salva isso no proprio ambiente do Supabase CLI.
+
+Para aplicar as migrations remotas do projeto:
 
 ```bash
 npm run migrate:db
 ```
 
-O runner aplica os arquivos de `supabase/migrations/` em ordem e registra os arquivos ja executados na tabela `public.devpulse_migrations`.
+O comando acima e um alias para `supabase db push`.
+
+Se o banco remoto ja recebeu alteracoes manuais antes da adocao do CLI, rode `supabase db pull` primeiro e revise a migration gerada antes de continuar.
 
 ### 4. Inicie o servidor de desenvolvimento
 
@@ -227,7 +238,6 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 | `SUPABASE_URL` | Sim | Web + Pipeline | URL da instancia Supabase |
 | `SUPABASE_ANON_KEY` | Sim | Web | Chave anonima (client publico) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Sim | Web + Pipeline | Chave service role (bypassa RLS) |
-| `SUPABASE_DB_URL` | Sim para migrations automaticas | Pipeline + scripts | String de conexao Postgres usada para aplicar migrations SQL automaticamente |
 | `BREVO_API_KEY` | Sim | Web | Chave da API Brevo |
 | `DISCORD_ALERT_WEBHOOK_URL` | Nao | Pipeline | Webhook do Discord para alertas operacionais |
 | `NEWSLETTER_API_SECRET` | Sim | Web + Pipeline | Token Bearer para `/api/send-newsletter` |
@@ -264,14 +274,16 @@ O workflow `.github/workflows/newsletter.yml` roda automaticamente:
 Configure as secrets no repositorio GitHub:
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `SUPABASE_DB_URL`
+- `SUPABASE_ACCESS_TOKEN`
+- `SUPABASE_DB_PASSWORD`
+- `SUPABASE_PROJECT_REF`
 - `OPENAI_API_KEY`
 - `BREVO_API_KEY`
 - `DISCORD_ALERT_WEBHOOK_URL`
 - `NEWSLETTER_API_SECRET`
 - `SITE_URL`
 
-Com `SUPABASE_DB_URL` definido, cada job aplica migrations pendentes automaticamente antes de rodar `prepare`, `check-ready`, `publish` ou `full`.
+Com essas secrets definidas, cada job roda `supabase link` + `supabase db push` antes de executar `prepare`, `check-ready`, `publish` ou `full`.
 
 ---
 
@@ -314,7 +326,10 @@ O endpoint de envio verifica se `sent_at` ja esta preenchido antes de enviar. Se
 | `npm run build` | Gera build de producao |
 | `npm run preview` | Preview local do build de producao |
 | `npm run lint` | Verifica tipos com `astro check` |
-| `npm run migrate:db` | Aplica migrations SQL pendentes no banco configurado em `SUPABASE_DB_URL` |
+| `npm run supabase:login` | Executa o login oficial do Supabase CLI |
+| `npm run supabase:link -- --project-ref <ref>` | Vincula o repo ao projeto remoto do Supabase |
+| `npm run migrate:list` | Lista o historico local/remoto de migrations |
+| `npm run migrate:db` | Executa `supabase db push` com as migrations oficiais |
 
 ---
 

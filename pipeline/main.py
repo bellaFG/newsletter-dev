@@ -8,7 +8,6 @@ from loguru import logger
 
 from pipeline.collectors import github_trending, reddit, rss
 from pipeline.curator import curate, normalize_url
-from pipeline.migrate_db import migrate
 from pipeline.models import CurationOutput, RawArticle
 from pipeline.notifications import build_failure_alert, send_discord_alert
 from pipeline.publisher import assert_draft_ready, prepare_draft, publish, publish_ready_draft
@@ -156,8 +155,6 @@ def collect_and_curate():
 
 
 def run(mode: str):
-    migrate(allow_missing_db_url=True)
-
     if mode == "prepare":
         curation = collect_and_curate()
         logger.info("Salvando rascunho preparado no Supabase...")
