@@ -14,23 +14,12 @@ function fail(code: string, editId?: string | null) {
   return redirect(`/admin/announcements?error=${encodeURIComponent(code)}${editQuery}`)
 }
 
-async function deactivateOtherAnnouncements(supabase: ReturnType<typeof createServerClient>, currentId?: string) {
-  let query = supabase
-    .from('site_announcements')
-    .update({
-      is_active: false,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('is_active', true)
-
-  if (currentId) {
-    query = query.neq('id', currentId)
+function mapOperationError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  if (message.includes('site_announcement_not_found')) {
+    return 'missing_id'
   }
-
-  const { error } = await query
-  if (error) {
-    throw error
-  }
+  return 'save_failed'
 }
 
 export const POST: APIRoute = async ({ request, cookies }) => {
@@ -42,7 +31,6 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   const action = formData.get('action')?.toString() ?? ''
   const id = formData.get('id')?.toString().trim() || null
   const supabase = createServerClient()
-  const now = new Date().toISOString()
 
   try {
     if (action === 'save') {
@@ -58,38 +46,15 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         return fail('too_long', id)
       }
 
-      await deactivateOtherAnnouncements(supabase, id ?? undefined)
+      const { error } = await supabase.rpc('save_site_announcement_and_activate', {
+        announcement_id: id,
+        announcement_title: title,
+        announcement_message: message,
+        announcement_dismissible: dismissible,
+      })
 
-      if (id) {
-        const { error } = await supabase
-          .from('site_announcements')
-          .update({
-            title,
-            message,
-            dismissible,
-            is_active: true,
-            updated_at: now,
-          })
-          .eq('id', id)
-
-        if (error) {
-          throw error
-        }
-      } else {
-        const { error } = await supabase
-          .from('site_announcements')
-          .insert({
-            title,
-            message,
-            dismissible,
-            is_active: true,
-            created_at: now,
-            updated_at: now,
-          })
-
-        if (error) {
-          throw error
-        }
+      if (error) {
+        throw error
       }
 
       return redirect('/admin/announcements?status=saved')
@@ -100,14 +65,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (action === 'activate') {
-      await deactivateOtherAnnouncements(supabase, id)
-      const { error } = await supabase
-        .from('site_announcements')
-        .update({
-          is_active: true,
-          updated_at: now,
-        })
-        .eq('id', id)
+      const { error } = await supabase.rpc('activate_site_announcement', {
+        announcement_id: id,
+      })
 
       if (error) {
         throw error
@@ -117,13 +77,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (action === 'deactivate') {
-      const { error } = await supabase
-        .from('site_announcements')
-        .update({
-          is_active: false,
-          updated_at: now,
-        })
-        .eq('id', id)
+      const { error } = await supabase.rpc('deactivate_site_announcement', {
+        announcement_id: id,
+      })
 
       if (error) {
         throw error
@@ -133,10 +89,9 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
 
     if (action === 'delete') {
-      const { error } = await supabase
-        .from('site_announcements')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.rpc('delete_site_announcement', {
+        announcement_id: id,
+      })
 
       if (error) {
         throw error
@@ -146,7 +101,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     }
   } catch (error) {
     console.error('[admin-announcements] Operacao falhou:', error)
-    return fail('save_failed', id)
+    return fail(mapOperationError(error), id)
   }
 
   return fail('invalid_action', id)

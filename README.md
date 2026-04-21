@@ -50,17 +50,17 @@ O projeto tem duas partes independentes:
 
 ## Stack Tecnologico
 
-| Camada | Tecnologia |
-|--------|-----------|
-| Framework web | Astro 5 (SSR) |
-| Estilizacao | Tailwind CSS 3.4 + oklch color tokens |
-| Email template | React Email |
-| Envio de email | Brevo (ex-Sendinblue) API |
-| Banco de dados | Supabase (PostgreSQL + RLS) |
-| Curadoria IA | OpenAI GPT-5.4 mini + GPT-5.4 |
-| Pipeline | Python 3.11 (feedparser, requests, BeautifulSoup, Pydantic) |
-| Deploy web | Vercel |
-| Automacao | GitHub Actions (prepare + check + publish) |
+| Camada         | Tecnologia                                                  |
+| -------------- | ----------------------------------------------------------- |
+| Framework web  | Astro 5 (SSR)                                               |
+| Estilizacao    | Tailwind CSS 3.4 + oklch color tokens                       |
+| Email template | React Email                                                 |
+| Envio de email | Brevo (ex-Sendinblue) API                                   |
+| Banco de dados | Supabase (PostgreSQL + RLS)                                 |
+| Curadoria IA   | OpenAI GPT-5.4 mini + GPT-5.4                               |
+| Pipeline       | Python 3.11 (feedparser, requests, BeautifulSoup, Pydantic) |
+| Deploy web     | Vercel                                                      |
+| Automacao      | GitHub Actions (prepare + check + publish)                  |
 
 ---
 
@@ -147,7 +147,7 @@ newsletter/
 
 ### Pre-requisitos
 
-- Node.js 18+
+- Node.js 22
 - Python 3.11+
 - Supabase CLI 2.x ou `npx --yes supabase`
 - Conta no [Supabase](https://supabase.com) (plano gratuito)
@@ -234,35 +234,37 @@ Isso melhora a qualidade porque a IA forte deixa de gastar contexto com lixo, re
 
 ### Fontes configuradas (`pipeline/sources.yaml`)
 
-| Tipo | Fontes |
-|------|--------|
-| RSS | Hacker News, The Changelog, InfoQ, dev.to, Lobste.rs, Martin Fowler, ThoughtWorks Radar, The Verge, Ars Technica, GitHub Blog |
-| GitHub | Trending (all, Python, TypeScript, Go, Rust) |
-| Reddit | r/programming, r/webdev, r/MachineLearning, r/devops, r/golang, r/rust |
+| Tipo   | Fontes                                                                                                                        |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| RSS    | Hacker News, The Changelog, InfoQ, dev.to, Lobste.rs, Martin Fowler, ThoughtWorks Radar, The Verge, Ars Technica, GitHub Blog |
+| GitHub | Trending (all, Python, TypeScript, Go, Rust)                                                                                  |
+| Reddit | r/programming, r/webdev, r/MachineLearning, r/devops, r/golang, r/rust                                                        |
 
 ---
 
 ## Variaveis de Ambiente
 
-| Variavel | Obrigatoria | Usada por | Descricao |
-|----------|:-----------:|-----------|-----------|
-| `SUPABASE_URL` | Sim | Web + Pipeline | URL da instancia Supabase |
-| `SUPABASE_ANON_KEY` | Sim | Web | Chave anonima (client publico) |
-| `SUPABASE_SERVICE_ROLE_KEY` | Sim | Web + Pipeline | Chave service role (bypassa RLS) |
-| `BREVO_API_KEY` | Sim | Web | Chave da API Brevo |
-| `DISCORD_ALERT_WEBHOOK_URL` | Nao | Pipeline | Webhook do Discord para alertas operacionais |
-| `NEWSLETTER_API_SECRET` | Sim | Web + Pipeline | Token Bearer para `/api/send-newsletter` |
-| `ADMIN_API_SECRET` | Nao | Web | Secret opcional do painel `/admin/announcements`; se ausente, o painel usa `NEWSLETTER_API_SECRET` |
-| `OPENAI_API_KEY` | Sim | Pipeline | Chave da API OpenAI |
-| `OPENAI_CURATION_TRIAGE_MODEL` | Nao | Pipeline | Modelo barato da triagem inicial (padrao: `gpt-5.4-nano`) |
-| `OPENAI_CURATION_EDITOR_MODEL` | Nao | Pipeline | Modelo forte para decidir a pauta final (padrao: `gpt-5.4`) |
-| `OPENAI_CURATION_WRITER_MODEL` | Nao | Pipeline | Modelo de redacao final com bom custo/qualidade (padrao: `gpt-5.4-mini`) |
-| `OPENAI_CURATION_TRIAGE_REASONING` | Nao | Pipeline | Esforco de raciocinio da triagem (padrao: `low`) |
-| `OPENAI_CURATION_EDITOR_REASONING` | Nao | Pipeline | Esforco de raciocinio da etapa editorial (padrao: `medium`) |
-| `OPENAI_CURATION_WRITER_REASONING` | Nao | Pipeline | Esforco de raciocinio da redacao final (padrao: `low`) |
-| `OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS` | Nao | Pipeline | Limite de caracteres lidos por fonte aprovada na triagem |
-| `OPENAI_CURATION_MAX_RETRIES` | Nao | Pipeline | Numero de tentativas em caso de output invalido |
-| `SITE_URL` | Sim | Pipeline | URL base do site (ex: `https://devpulse.com.br`) |
+| Variavel                                | Obrigatoria | Usada por      | Descricao                                                                                          |
+| --------------------------------------- | :---------: | -------------- | -------------------------------------------------------------------------------------------------- |
+| `SUPABASE_URL`                          |     Sim     | Web + Pipeline | URL da instancia Supabase                                                                          |
+| `SUPABASE_ANON_KEY`                     |     Sim     | Web            | Chave anonima (client publico)                                                                     |
+| `SUPABASE_SERVICE_ROLE_KEY`             |     Sim     | Web + Pipeline | Chave service role (bypassa RLS)                                                                   |
+| `BREVO_API_KEY`                         |     Sim     | Web            | Chave da API Brevo                                                                                 |
+| `EMAIL_FROM`                            |     Sim     | Web            | Remetente usado no envio via Brevo                                                                 |
+| `DISCORD_ALERT_WEBHOOK_URL`             |     Nao     | Pipeline       | Webhook do Discord para alertas operacionais                                                       |
+| `NEWSLETTER_API_SECRET`                 |     Sim     | Web + Pipeline | Token Bearer para `/api/send-newsletter`                                                           |
+| `ADMIN_API_SECRET`                      |     Nao     | Web            | Secret opcional do painel `/admin/announcements`; se ausente, o painel usa `NEWSLETTER_API_SECRET` |
+| `UNSUBSCRIBE_TOKEN_SECRET`              |     Nao     | Web            | Secret opcional para criptografar links de unsubscribe; se ausente, usa `NEWSLETTER_API_SECRET`    |
+| `OPENAI_API_KEY`                        |     Sim     | Pipeline       | Chave da API OpenAI                                                                                |
+| `OPENAI_CURATION_TRIAGE_MODEL`          |     Nao     | Pipeline       | Modelo barato da triagem inicial (padrao: `gpt-5.4-nano`)                                          |
+| `OPENAI_CURATION_EDITOR_MODEL`          |     Nao     | Pipeline       | Modelo forte para decidir a pauta final (padrao: `gpt-5.4`)                                        |
+| `OPENAI_CURATION_WRITER_MODEL`          |     Nao     | Pipeline       | Modelo de redacao final com bom custo/qualidade (padrao: `gpt-5.4-mini`)                           |
+| `OPENAI_CURATION_TRIAGE_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da triagem (padrao: `low`)                                                   |
+| `OPENAI_CURATION_EDITOR_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da etapa editorial (padrao: `medium`)                                        |
+| `OPENAI_CURATION_WRITER_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da redacao final (padrao: `low`)                                             |
+| `OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS` |     Nao     | Pipeline       | Limite de caracteres lidos por fonte aprovada na triagem                                           |
+| `OPENAI_CURATION_MAX_RETRIES`           |     Nao     | Pipeline       | Numero de tentativas em caso de output invalido                                                    |
+| `SITE_URL`                              |     Sim     | Pipeline       | URL base do site (ex: `https://devpulse.com.br`)                                                   |
 
 ---
 
@@ -273,11 +275,13 @@ Isso melhora a qualidade porque a IA forte deixa de gastar contexto com lixo, re
 O projeto esta deployado em **[newsletter-dev.vercel.app](https://newsletter-dev.vercel.app)** usando o adapter `@astrojs/vercel`.
 
 **Configuracao no painel do Vercel:**
+
 - **Framework Preset**: Astro
 - **Build Command**: `npm run build`
 - **Output Directory**: (vazio — o adapter gerencia automaticamente)
 
 Para configurar em um novo projeto:
+
 1. Conecte o repositorio ao Vercel
 2. Selecione **Astro** como framework preset
 3. Configure as variaveis de ambiente no painel
@@ -292,6 +296,7 @@ O workflow `.github/workflows/newsletter.yml` roda automaticamente:
 - **Trigger manual**: Tambem pode ser disparado via `workflow_dispatch` com escolha de modo
 
 Configure as secrets no repositorio GitHub:
+
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `SUPABASE_ACCESS_TOKEN`
@@ -299,8 +304,10 @@ Configure as secrets no repositorio GitHub:
 - `SUPABASE_PROJECT_REF`
 - `OPENAI_API_KEY`
 - `BREVO_API_KEY`
+- `EMAIL_FROM`
 - `DISCORD_ALERT_WEBHOOK_URL`
 - `NEWSLETTER_API_SECRET`
+- `UNSUBSCRIBE_TOKEN_SECRET`
 - `SITE_URL`
 
 Com essas secrets definidas, cada job roda `supabase link` + `supabase db push` antes de executar `prepare`, `check-ready`, `publish` ou `full`.
@@ -334,6 +341,10 @@ Todas as tabelas tem RLS habilitado no Supabase:
 
 O endpoint `POST /api/subscribe` retorna a mesma resposta (200 + success) independente de o email ja existir, estar inativo ou ser novo, impedindo que atacantes descubram quais emails estao cadastrados.
 
+### Unsubscribe seguro
+
+Os links de cancelamento agora usam um token criptografado e opaco na URL. O `GET /unsubscribe` apenas exibe a tela de confirmacao; o cancelamento real acontece em `POST /api/unsubscribe`, evitando vazamento de email em URL, logs e scanners de links.
+
 ### Validacao de email
 
 Alem de validacao por regex (RFC 5322), o endpoint verifica registros MX/A do dominio via DNS para rejeitar dominios inexistentes.
@@ -344,22 +355,22 @@ O endpoint de envio verifica se `sent_at` ja esta preenchido antes de enviar. Se
 
 ### Limitacoes conhecidas
 
-- O link de unsubscribe usa o email diretamente na URL (nao e assinado criptograficamente). Qualquer pessoa com o email pode cancelar a inscricao de outro usuario. Para maior seguranca, considerar HMAC-signed tokens no futuro.
+- Ainda nao ha testes automatizados de comportamento da aplicacao e do pipeline; o CI atual valida build, checagem do Astro e compilacao do codigo Python.
 
 ---
 
 ## Scripts Disponiveis
 
-| Comando | Descricao |
-|---------|-----------|
-| `npm run dev` | Inicia servidor de desenvolvimento (porta 4321) |
-| `npm run build` | Gera build de producao |
-| `npm run preview` | Preview local do build de producao |
-| `npm run lint` | Verifica tipos com `astro check` |
-| `npm run supabase:login` | Executa o login oficial do Supabase CLI |
-| `npm run supabase:link -- --project-ref <ref>` | Vincula o repo ao projeto remoto do Supabase |
-| `npm run migrate:list` | Lista o historico local/remoto de migrations |
-| `npm run migrate:db` | Executa `supabase db push` com as migrations oficiais |
+| Comando                                        | Descricao                                             |
+| ---------------------------------------------- | ----------------------------------------------------- |
+| `npm run dev`                                  | Inicia servidor de desenvolvimento (porta 4321)       |
+| `npm run build`                                | Gera build de producao                                |
+| `npm run preview`                              | Preview local do build de producao                    |
+| `npm run lint`                                 | Verifica tipos com `astro check`                      |
+| `npm run supabase:login`                       | Executa o login oficial do Supabase CLI               |
+| `npm run supabase:link -- --project-ref <ref>` | Vincula o repo ao projeto remoto do Supabase          |
+| `npm run migrate:list`                         | Lista o historico local/remoto de migrations          |
+| `npm run migrate:db`                           | Executa `supabase db push` com as migrations oficiais |
 
 ---
 

@@ -47,7 +47,62 @@ export type Database = {
       }
     }
     Views: Record<string, never>
-    Functions: Record<string, never>
+    Functions: {
+      activate_site_announcement: {
+        Args: {
+          announcement_id: string
+        }
+        Returns: undefined
+      }
+      deactivate_site_announcement: {
+        Args: {
+          announcement_id: string
+        }
+        Returns: undefined
+      }
+      delete_site_announcement: {
+        Args: {
+          announcement_id: string
+        }
+        Returns: undefined
+      }
+      save_site_announcement_and_activate: {
+        Args: {
+          announcement_id?: string | null
+          announcement_title: string
+          announcement_message: string
+          announcement_dismissible: boolean
+        }
+        Returns: undefined
+      }
+      search_articles: {
+        Args: {
+          search_query: string
+          result_limit?: number | null
+          result_offset?: number | null
+        }
+        Returns: {
+          id: string
+          slug: string
+          title: string
+          title_ptbr: string | null
+          summary_ptbr: string
+          content_ptbr: string | null
+          category: ArticleCategory
+          source: string
+          primary_source_label: string | null
+          source_count: number
+          canonical_topic: string | null
+          source_published_at: string | null
+          edition_slug: string
+          edition_number: number
+          edition_title: string
+          edition_published_at: string | null
+          edition_created_at: string
+          rank: number
+        }[]
+      }
+    }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
@@ -92,6 +147,7 @@ export type Article = {
   canonical_topic: string | null
   primary_source_url: string | null
   primary_source_label: string | null
+  source_published_at: string | null
   source_count: number
   source_items: ArticleSource[]
   status: ArticleStatus
@@ -115,6 +171,7 @@ export type ArticleInsert = {
   canonical_topic?: string | null
   primary_source_url?: string | null
   primary_source_label?: string | null
+  source_published_at?: string | null
   source_count?: number
   source_items?: ArticleSource[]
   status?: ArticleStatus

@@ -124,6 +124,7 @@ def _resolve_output(
                 source_count=len(resolved_sources),
                 primary_source_url=primary_source.url,
                 primary_source_label=primary_source.source,
+                source_published_at=primary_source.published_at,
                 story_kind=planned_story.story_kind,
                 source_items=resolved_sources,
             )

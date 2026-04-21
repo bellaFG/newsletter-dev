@@ -1,30 +1,11 @@
 ---
 import Layout from '@/layouts/Layout.astro'
-import { createServerClient } from '@/lib/supabase'
 import { SITE_NAME } from '@/lib/config'
+import { readUnsubscribeToken } from '@/lib/unsubscribe'
 
-const email = Astro.url.searchParams.get('email') ?? ''
-let success = false
-let message = ''
-
-const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-
-if (!email || !isValidEmail) {
-  message = 'Link inválido. Verifique o email que você recebeu.'
-} else {
-  const supabase = createServerClient()
-  const { error } = await supabase
-    .from('subscribers')
-    .update({ active: false })
-    .eq('email', email)
-
-  if (error) {
-    message = 'Não foi possível processar sua solicitação. Tente novamente ou entre em contato.'
-  } else {
-    success = true
-    message = `${email} foi removido da lista. Você não receberá mais o ${SITE_NAME}.`
-  }
-}
+const token = Astro.url.searchParams.get('token')?.trim() ?? ''
+const status = Astro.url.searchParams.get('status') ?? ''
+const hasValidToken = Boolean(token && readUnsubscribeToken(token))
 ---
 
 <Layout title={`Cancelar inscrição — ${SITE_NAME}`}>
@@ -40,7 +21,7 @@ if (!email || !isValidEmail) {
       </header>
 
       <div class="text-center py-12">
-        {success ? (
+        {status === 'success' ? (
           <>
             <p class="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-4">
               Inscrição cancelada
@@ -49,8 +30,29 @@ if (!email || !isValidEmail) {
               Até a próxima.
             </h1>
             <p class="text-muted-foreground leading-relaxed mb-8 max-w-sm mx-auto">
-              {message}
+              Sua inscrição foi removida com sucesso. Você não receberá mais o {SITE_NAME}.
             </p>
+          </>
+        ) : hasValidToken ? (
+          <>
+            <p class="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-4">
+              Confirmar cancelamento
+            </p>
+            <h1 class="font-serif text-3xl font-bold mb-4">
+              Deseja sair da lista?
+            </h1>
+            <p class="text-muted-foreground leading-relaxed mb-8 max-w-sm mx-auto">
+              Se você confirmar, vamos interromper os próximos envios da newsletter.
+            </p>
+            <form method="post" action="/api/unsubscribe" class="mb-8">
+              <input type="hidden" name="token" value={token} />
+              <button
+                type="submit"
+                class="font-mono text-xs tracking-widest uppercase border-2 border-link px-5 py-3 text-link hover:bg-link hover:text-white transition-colors"
+              >
+                Confirmar cancelamento
+              </button>
+            </form>
           </>
         ) : (
           <>
@@ -61,7 +63,9 @@ if (!email || !isValidEmail) {
               Não foi possível processar.
             </h1>
             <p class="text-muted-foreground leading-relaxed mb-8 max-w-sm mx-auto">
-              {message}
+              {status === 'error'
+                ? 'Não foi possível processar sua solicitação agora. Tente novamente em alguns instantes.'
+                : 'Este link é inválido ou expirou. Verifique o email recebido e tente novamente.'}
             </p>
           </>
         )}

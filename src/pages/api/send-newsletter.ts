@@ -3,10 +3,11 @@ import { timingSafeEqual } from 'node:crypto'
 import { sendEmail } from '@/lib/brevo'
 import { render } from '@react-email/render'
 import { createServerClient } from '@/lib/supabase'
+import { createUnsubscribeToken } from '@/lib/unsubscribe'
 import { NewsletterEmail } from '../../../emails/NewsletterEmail'
 import type { Article, Edition, NewsletterDelivery } from '@/lib/types'
-import { EMAIL_BATCH_SIZE, EMAIL_FROM, DEFAULT_SITE_URL } from '@/lib/config'
-import { requireEnv } from '@/lib/env'
+import { EMAIL_BATCH_SIZE, DEFAULT_SITE_URL } from '@/lib/config'
+import { readEnv, requireEnv } from '@/lib/env'
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
 
@@ -55,6 +56,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const supabase = createServerClient()
+  const emailFrom = requireEnv('EMAIL_FROM')
 
   // ── Busca a edicao ──
   const { data: edition, error: editionError } = await supabase
@@ -112,13 +114,20 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   if (!subscribers || subscribers.length === 0) {
+    if (!edition.sent_at) {
+      await supabase
+        .from('editions')
+        .update({ sent_at: new Date().toISOString() })
+        .eq('id', edition_id)
+    }
+
     return new Response(JSON.stringify({ message: 'No active subscribers' }), {
       status: 200,
       headers: jsonHeaders,
     })
   }
 
-  const baseUrl = import.meta.env.SITE_URL ?? DEFAULT_SITE_URL
+  const baseUrl = readEnv('SITE_URL') ?? DEFAULT_SITE_URL
   const { data: deliveriesData, error: deliveriesError } = await supabase
     .from('newsletter_deliveries')
     .select('email, status, attempts, sent_at')
@@ -177,14 +186,16 @@ export const POST: APIRoute = async ({ request }) => {
           NewsletterEmail({
             edition: edition as Edition,
             articles: (articles ?? []) as Article[],
-            unsubscribeUrl: `${baseUrl}/unsubscribe?email=${encodeURIComponent(subscriber.email)}`,
+            unsubscribeUrl: `${baseUrl}/unsubscribe?token=${encodeURIComponent(
+              createUnsubscribeToken(subscriber.email)
+            )}`,
             siteUrl: baseUrl,
           })
         )
 
         await sendEmail({
           to: subscriber.email,
-          from: EMAIL_FROM,
+          from: emailFrom,
           subject: edition.title,
           html,
         })

@@ -1,4 +1,5 @@
 import requests
+from datetime import datetime, timezone
 from loguru import logger
 from pipeline.models import RawArticle
 
@@ -43,6 +44,12 @@ def collect(subreddits: list[dict]) -> list[RawArticle]:
                 score = p.get("score", 0)
                 num_comments = p.get("num_comments", 0)
                 selftext = p.get("selftext", "")[:300]
+                created_utc = p.get("created_utc")
+                published_at = (
+                    datetime.fromtimestamp(created_utc, tz=timezone.utc)
+                    if isinstance(created_utc, (int, float))
+                    else None
+                )
 
                 snippet = selftext if selftext else f"Score: {score} | Comentários: {num_comments}"
 
@@ -52,6 +59,7 @@ def collect(subreddits: list[dict]) -> list[RawArticle]:
                         url=url_post,
                         snippet=snippet,
                         source=f"r/{subreddit}",
+                        published_at=published_at,
                         collector="reddit",
                         metadata={
                             "subreddit": subreddit,

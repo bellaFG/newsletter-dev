@@ -242,8 +242,11 @@ const today = formatFullDate(new Date())
   }
 
   if (input && resultsContainer) {
+    const searchInput = input
+    const searchResultsContainer = resultsContainer
     let debounceTimer: ReturnType<typeof setTimeout>
     let lastController: AbortController | null = null
+    let currentSearchPage = 1
 
     function escapeHtml(value: string) {
       return value.replace(/[&<>"']/g, (char: string) => ({
@@ -259,84 +262,134 @@ const today = formatFullDate(new Date())
       return String(n).padStart(3, '0')
     }
 
-    input.addEventListener('input', () => {
-      clearTimeout(debounceTimer)
-      debounceTimer = setTimeout(() => {
-        const query = input.value.trim().toLowerCase()
+    async function loadSearchResults(page: number) {
+      const query = searchInput.value.trim().toLowerCase()
 
-        if (!query) {
-          resultsContainer.classList.add('hidden')
-          resultsContainer.innerHTML = ''
+      if (!query) {
+        lastController?.abort()
+        searchResultsContainer.classList.add('hidden')
+        searchResultsContainer.innerHTML = ''
+        return
+      }
+
+      lastController?.abort()
+      lastController = new AbortController()
+
+      try {
+        const response = await fetch(
+          `/api/search?q=${encodeURIComponent(query)}&page=${page}`,
+          { signal: lastController.signal }
+        )
+        if (!response.ok) throw new Error('Search failed')
+
+        const data = await response.json()
+        const results = Array.isArray(data.results) ? data.results : []
+        const safeQuery = escapeHtml(searchInput.value.trim())
+        const safePage = Number(data.page ?? page) || page
+        const hasMore = Boolean(data.hasMore)
+        const hasPrevious = Boolean(data.hasPrevious)
+        currentSearchPage = safePage
+
+        if (results.length === 0) {
+          const pageLabel = safePage > 1 ? ` na página ${safePage}` : ''
+          searchResultsContainer.innerHTML = `
+              <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">
+                Nenhum resultado${pageLabel} para "${safeQuery}"
+              </p>
+            `
+          searchResultsContainer.classList.remove('hidden')
           return
         }
 
-        lastController?.abort()
-        lastController = new AbortController()
+        const items = results.map((result: any) => {
+          const title = escapeHtml(result.title ?? '')
+          const summary = escapeHtml(result.summary ?? '')
+          const excerpt = escapeHtml(result.excerpt ?? '')
+          const category = escapeHtml(result.category ?? '')
+          const primarySource = escapeHtml(result.primarySource ?? '')
+          const editionSlug = escapeHtml(result.edition?.slug ?? '')
+          const editionNumber = formatEditionNumber(Number(result.edition?.edition_number ?? 0))
+          const sourceLabel = Number(result.sourceCount ?? 1) > 1
+            ? `${Number(result.sourceCount)} fontes`
+            : primarySource
 
-        fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal: lastController.signal })
-          .then(async (response) => {
-            if (!response.ok) throw new Error('Search failed')
-            const data = await response.json()
-            const results = Array.isArray(data.results) ? data.results : []
-            const safeQuery = escapeHtml(input.value.trim())
+          return `
+              <a
+                href="/edicao/${editionSlug}/${escapeHtml(result.slug ?? '')}"
+                class="block border border-foreground/10 p-4 hover:border-link/40 transition-colors"
+              >
+                <div class="flex flex-wrap items-center gap-2 mb-2 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
+                  <span class="text-link">#${editionNumber}</span>
+                  <span>${category}</span>
+                  <span>&middot;</span>
+                  <span>${escapeHtml(sourceLabel)}</span>
+                </div>
+                <h3 class="font-serif text-xl font-bold leading-snug mb-2 text-foreground">${title}</h3>
+                <p class="text-sm text-foreground/70 leading-relaxed mb-2">${summary}</p>
+                <p class="text-sm text-foreground/55 leading-relaxed">${excerpt}</p>
+              </a>
+            `
+        }).join('')
 
-            if (results.length === 0) {
-              resultsContainer.innerHTML = `
-                  <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">
-                    Nenhum resultado para "${safeQuery}"
-                  </p>
-                `
-              resultsContainer.classList.remove('hidden')
-              return
-            }
+        const paginationMarkup = hasPrevious || hasMore
+          ? `
+              <div class="flex items-center justify-center gap-3 pt-2 font-mono text-[0.55rem] tracking-widest uppercase">
+                <button
+                  type="button"
+                  data-search-page="prev"
+                  class="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-default"
+                  ${hasPrevious ? '' : 'disabled'}
+                >
+                  &larr; Anterior
+                </button>
+                <span class="text-muted-foreground">Página ${safePage}</span>
+                <button
+                  type="button"
+                  data-search-page="next"
+                  class="text-link hover:opacity-70 transition-opacity disabled:opacity-30 disabled:cursor-default"
+                  ${hasMore ? '' : 'disabled'}
+                >
+                  Próxima &rarr;
+                </button>
+              </div>
+            `
+          : ''
 
-            const items = results.map((result: any) => {
-              const title = escapeHtml(result.title ?? '')
-              const summary = escapeHtml(result.summary ?? '')
-              const excerpt = escapeHtml(result.excerpt ?? '')
-              const category = escapeHtml(result.category ?? '')
-              const primarySource = escapeHtml(result.primarySource ?? '')
-              const editionSlug = escapeHtml(result.edition?.slug ?? '')
-              const editionNumber = formatEditionNumber(Number(result.edition?.edition_number ?? 0))
-              const sourceLabel = Number(result.sourceCount ?? 1) > 1
-                ? `${Number(result.sourceCount)} fontes`
-                : primarySource
+        searchResultsContainer.innerHTML = `
+            <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">
+              ${results.length} resultado${results.length !== 1 ? 's' : ''} no acervo para "${safeQuery}"
+            </p>
+            ${items}
+            ${paginationMarkup}
+          `
+        searchResultsContainer.classList.remove('hidden')
+      } catch (error: any) {
+        if (error.name === 'AbortError') return
+        searchResultsContainer.innerHTML = `
+            <p class="font-mono text-[0.6rem] tracking-widest uppercase text-destructive text-center">
+              Falha ao buscar no acervo.
+            </p>
+          `
+        searchResultsContainer.classList.remove('hidden')
+      }
+    }
 
-              return `
-                  <a
-                    href="/edicao/${editionSlug}/${escapeHtml(result.slug ?? '')}"
-                    class="block border border-foreground/10 p-4 hover:border-link/40 transition-colors"
-                  >
-                    <div class="flex flex-wrap items-center gap-2 mb-2 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
-                      <span class="text-link">#${editionNumber}</span>
-                      <span>${category}</span>
-                      <span>&middot;</span>
-                      <span>${escapeHtml(sourceLabel)}</span>
-                    </div>
-                    <h3 class="font-serif text-xl font-bold leading-snug mb-2 text-foreground">${title}</h3>
-                    <p class="text-sm text-foreground/70 leading-relaxed mb-2">${summary}</p>
-                    <p class="text-sm text-foreground/55 leading-relaxed">${excerpt}</p>
-                  </a>
-                `
-            }).join('')
+    searchResultsContainer.addEventListener('click', (event) => {
+      const target = event.target
+      if (!(target instanceof Element)) return
 
-            resultsContainer.innerHTML = `
-                <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground text-center">
-                  ${results.length} resultado${results.length !== 1 ? 's' : ''} no acervo para "${safeQuery}"
-                </p>
-                ${items}
-              `
-            resultsContainer.classList.remove('hidden')
-          })
-          .catch((error) => {
-            if (error.name === 'AbortError') return
-            resultsContainer.innerHTML = `
-                <p class="font-mono text-[0.6rem] tracking-widest uppercase text-destructive text-center">
-                  Falha ao buscar no acervo.
-                </p>
-              `
-            resultsContainer.classList.remove('hidden')
-          })
+      const button = target.closest('[data-search-page]')
+      if (!(button instanceof HTMLButtonElement) || button.disabled) return
+
+      const direction = button.dataset.searchPage === 'next' ? 1 : -1
+      void loadSearchResults(Math.max(1, currentSearchPage + direction))
+    })
+
+    searchInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer)
+      debounceTimer = setTimeout(() => {
+        currentSearchPage = 1
+        void loadSearchResults(1)
       }, 200)
     })
   }

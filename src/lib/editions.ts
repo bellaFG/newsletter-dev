@@ -17,7 +17,7 @@ export async function listEditionsWithArticles(
   let query = supabase
     .from('editions')
     // `prepared_at` existe apenas apos a migration 005; o site nao depende desse campo.
-    .select('id, slug, edition_number, title, summary, published_at, sent_at, created_at, articles!inner(id)')
+    .select('id, slug, edition_number, title, summary, prepared_at, published_at, sent_at, created_at, articles!inner(id)')
     .not('published_at', 'is', null)
     .order('published_at', { ascending: false })
     .order('edition_number', { ascending: false })
@@ -31,7 +31,7 @@ export async function listEditionsWithArticles(
     throw new Error(`[supabase] Failed to list published editions: ${error.message}`)
   }
 
-  return ((data ?? []) as EditionWithArticles[]).map(stripArticles)
+  return ((data ?? []) as unknown as EditionWithArticles[]).map(stripArticles)
 }
 
 export async function getLatestEditionWithArticles(

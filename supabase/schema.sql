@@ -32,6 +32,7 @@ CREATE TABLE articles (
   canonical_topic   TEXT,                     -- chave editorial do tema consolidado
   primary_source_url   TEXT,
   primary_source_label TEXT,
+  source_published_at  TIMESTAMPTZ,          -- data da fonte primaria quando conhecida
   source_count      INTEGER DEFAULT 1,
   source_items      JSONB NOT NULL DEFAULT '[]'::jsonb, -- lista de fontes usadas na materia
   status            TEXT NOT NULL DEFAULT 'active',     -- active | removed | suppressed
@@ -87,6 +88,7 @@ CREATE INDEX idx_articles_edition_id ON articles(edition_id);
 CREATE INDEX idx_articles_category ON articles(category);
 CREATE INDEX idx_articles_status ON articles(status);
 CREATE INDEX idx_articles_canonical_topic ON articles(canonical_topic);
+CREATE INDEX idx_articles_source_published_at ON articles(source_published_at DESC);
 CREATE UNIQUE INDEX idx_articles_slug_edition ON articles(edition_id, slug);
 CREATE INDEX idx_editions_slug ON editions(slug);
 CREATE INDEX idx_editions_prepared_at ON editions(prepared_at DESC);
@@ -100,6 +102,219 @@ CREATE INDEX idx_site_announcements_updated_at ON site_announcements(updated_at 
 CREATE UNIQUE INDEX idx_site_announcements_single_active
   ON site_announcements ((1))
   WHERE is_active;
+
+-- =============================================
+-- FUNCOES
+-- =============================================
+
+CREATE OR REPLACE FUNCTION normalize_search_text(input TEXT)
+RETURNS TEXT
+LANGUAGE SQL
+IMMUTABLE
+AS $$
+  SELECT translate(
+    lower(coalesce(input, '')),
+    'àáâãäåæçèéêëìíîïñòóôõöùúûüýÿÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖÙÚÛÜÝ',
+    'aaaaaaaceeeeiiiinooooouuuuyyaaaaaaaceeeeiiiinooooouuuuy'
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION activate_site_announcement(announcement_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM site_announcements
+    WHERE id = announcement_id
+  ) THEN
+    RAISE EXCEPTION 'site_announcement_not_found';
+  END IF;
+
+  UPDATE site_announcements
+  SET
+    is_active = false,
+    updated_at = NOW()
+  WHERE is_active = true
+    AND id <> announcement_id;
+
+  UPDATE site_announcements
+  SET
+    is_active = true,
+    updated_at = NOW()
+  WHERE id = announcement_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION save_site_announcement_and_activate(
+  announcement_id UUID,
+  announcement_title TEXT,
+  announcement_message TEXT,
+  announcement_dismissible BOOLEAN
+)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  target_id UUID;
+BEGIN
+  IF announcement_id IS NULL THEN
+    INSERT INTO site_announcements (
+      title,
+      message,
+      dismissible,
+      is_active,
+      created_at,
+      updated_at
+    )
+    VALUES (
+      trim(announcement_title),
+      trim(announcement_message),
+      announcement_dismissible,
+      false,
+      NOW(),
+      NOW()
+    )
+    RETURNING id INTO target_id;
+  ELSE
+    UPDATE site_announcements
+    SET
+      title = trim(announcement_title),
+      message = trim(announcement_message),
+      dismissible = announcement_dismissible,
+      updated_at = NOW()
+    WHERE id = announcement_id
+    RETURNING id INTO target_id;
+
+    IF target_id IS NULL THEN
+      RAISE EXCEPTION 'site_announcement_not_found';
+    END IF;
+  END IF;
+
+  PERFORM activate_site_announcement(target_id);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION deactivate_site_announcement(announcement_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE site_announcements
+  SET
+    is_active = false,
+    updated_at = NOW()
+  WHERE id = announcement_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'site_announcement_not_found';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION delete_site_announcement(announcement_id UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  DELETE FROM site_announcements
+  WHERE id = announcement_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'site_announcement_not_found';
+  END IF;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION search_articles(
+  search_query TEXT,
+  result_limit INTEGER DEFAULT 20,
+  result_offset INTEGER DEFAULT 0
+)
+RETURNS TABLE (
+  id UUID,
+  slug TEXT,
+  title TEXT,
+  title_ptbr TEXT,
+  summary_ptbr TEXT,
+  content_ptbr TEXT,
+  category TEXT,
+  source TEXT,
+  primary_source_label TEXT,
+  source_count INTEGER,
+  canonical_topic TEXT,
+  source_published_at TIMESTAMPTZ,
+  edition_slug TEXT,
+  edition_number INTEGER,
+  edition_title TEXT,
+  edition_published_at TIMESTAMPTZ,
+  edition_created_at TIMESTAMPTZ,
+  rank REAL
+)
+LANGUAGE SQL
+STABLE
+SET search_path = public
+AS $$
+  WITH normalized_query AS (
+    SELECT websearch_to_tsquery('simple', normalize_search_text(trim(search_query))) AS terms
+  )
+  SELECT
+    a.id,
+    a.slug,
+    a.title,
+    a.title_ptbr,
+    a.summary_ptbr,
+    a.content_ptbr,
+    a.category,
+    a.source,
+    a.primary_source_label,
+    a.source_count,
+    a.canonical_topic,
+    a.source_published_at,
+    e.slug AS edition_slug,
+    e.edition_number,
+    e.title AS edition_title,
+    e.published_at AS edition_published_at,
+    e.created_at AS edition_created_at,
+    ts_rank(a.search_document, nq.terms)::real AS rank
+  FROM articles AS a
+  JOIN editions AS e
+    ON e.id = a.edition_id
+  CROSS JOIN normalized_query AS nq
+  WHERE trim(coalesce(search_query, '')) <> ''
+    AND a.status = 'active'
+    AND e.published_at IS NOT NULL
+    AND a.search_document @@ nq.terms
+  ORDER BY
+    rank DESC,
+    coalesce(a.source_published_at, e.published_at, a.created_at) DESC,
+    a.created_at DESC
+  LIMIT greatest(least(coalesce(result_limit, 20), 50), 1)
+  OFFSET greatest(coalesce(result_offset, 0), 0);
+$$;
+
+ALTER TABLE articles
+  ADD COLUMN search_document TSVECTOR GENERATED ALWAYS AS (
+    setweight(to_tsvector('simple', normalize_search_text(title_ptbr)), 'A') ||
+    setweight(to_tsvector('simple', normalize_search_text(title)), 'A') ||
+    setweight(to_tsvector('simple', normalize_search_text(summary_ptbr)), 'B') ||
+    setweight(to_tsvector('simple', normalize_search_text(content_ptbr)), 'C') ||
+    setweight(to_tsvector('simple', normalize_search_text(category)), 'B') ||
+    setweight(to_tsvector('simple', normalize_search_text(source)), 'B') ||
+    setweight(to_tsvector('simple', normalize_search_text(primary_source_label)), 'B') ||
+    setweight(to_tsvector('simple', normalize_search_text(canonical_topic)), 'A')
+  ) STORED;
+
+CREATE INDEX idx_articles_search_document ON articles USING GIN(search_document);
 
 -- =============================================
 -- ROW LEVEL SECURITY (RLS)

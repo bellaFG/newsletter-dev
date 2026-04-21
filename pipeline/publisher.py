@@ -65,6 +65,11 @@ def build_articles_payload(edition_id: str, curation: CurationOutput) -> list[di
             "canonical_topic": article.canonical_topic,
             "primary_source_url": article.primary_source_url or article.url,
             "primary_source_label": article.primary_source_label or article.source,
+            "source_published_at": (
+                article.source_published_at.isoformat()
+                if article.source_published_at
+                else None
+            ),
             "source_count": article.source_count,
             "source_items": [source.model_dump() for source in article.source_items],
             "status": "active",

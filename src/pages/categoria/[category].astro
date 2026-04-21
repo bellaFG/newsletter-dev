@@ -19,13 +19,14 @@ const { data: articlesData } = await supabase
   .select('*, editions!inner(slug, edition_number, title, published_at, created_at)')
   .eq('category', categoryName)
   .not('editions.published_at', 'is', null)
+  .order('source_published_at', { ascending: false, nullsFirst: false })
   .order('created_at', { ascending: false })
 
 type ArticleWithEdition = Article & {
   editions: Pick<Edition, 'slug' | 'edition_number' | 'title' | 'published_at' | 'created_at'>
 }
 
-const articles = (articlesData ?? []) as ArticleWithEdition[]
+const articles = (articlesData ?? []) as unknown as ArticleWithEdition[]
 ---
 
 <Layout title={`${categoryName} — ${SITE_NAME}`} description={`Artigos sobre ${categoryName} no ${SITE_NAME}`}>

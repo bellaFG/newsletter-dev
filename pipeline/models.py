@@ -58,6 +58,7 @@ class CuratedArticle(BaseModel):
     source_count: int = 1
     primary_source_url: str | None = None
     primary_source_label: str | None = None
+    source_published_at: datetime | None = None
     story_kind: StoryKind | None = None
     source_items: list[ArticleSource] = Field(default_factory=list)
 

@@ -3,7 +3,7 @@
  * Card de artigo usado na grid da homepage e em listagens.
  */
 import type { Article } from '@/lib/types'
-import { getPrimarySource } from '@/lib/articles'
+import { getArticleRecencyDate, getPrimarySource } from '@/lib/articles'
 import { formatRelativeTime } from '@/lib/date'
 
 interface Props {
@@ -34,7 +34,7 @@ const primarySource = getPrimarySource(article)
     </span>
     <div class="flex items-center gap-2">
       {article.reading_time_min && <span>{article.reading_time_min} min</span>}
-      <span class="text-link">{formatRelativeTime(article.created_at)}</span>
+      <span class="text-link">{formatRelativeTime(getArticleRecencyDate(article))}</span>
     </div>
   </div>
 </a>

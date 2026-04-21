@@ -121,3 +121,10 @@ export function getPrimarySource(
   const sources = getArticleSources(article)
   return sources.find((source) => source.is_primary) ?? sources[0]
 }
+
+/** Retorna a melhor data de recencia da matéria: fonte primaria quando existir. */
+export function getArticleRecencyDate(
+  article: Pick<Article, 'source_published_at' | 'created_at'>
+): string {
+  return article.source_published_at ?? article.created_at
+}
