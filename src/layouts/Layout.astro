@@ -1,8 +1,9 @@
 ---
 import '@/styles/globals.css'
 import AnnouncementBanner from '@/components/AnnouncementBanner.astro'
-import { getActiveAnnouncements } from '@/lib/announcements'
 import { SITE_NAME, SITE_TITLE, SITE_DESCRIPTION } from '@/lib/config'
+import { getActiveSiteAnnouncement } from '@/lib/site-announcements'
+import { supabase } from '@/lib/supabase'
 
 interface Props {
   title?: string
@@ -18,7 +19,7 @@ const {
 
 const socialTitle = ogTitle ?? title
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://newsletter-dev.vercel.app')
-const globalAnnouncements = getActiveAnnouncements('global')
+const topAnnouncement = await getActiveSiteAnnouncement(supabase)
 ---
 
 <html lang="pt-BR">
@@ -77,11 +78,9 @@ const globalAnnouncements = getActiveAnnouncements('global')
     <!-- Spacer para compensar o header fixo -->
     <div class="h-10"></div>
 
-    {globalAnnouncements.length > 0 && (
-      <div class="mx-auto max-w-6xl space-y-3 px-6 pt-4 sm:px-10">
-        {globalAnnouncements.map((announcement) => (
-          <AnnouncementBanner announcement={announcement} compact />
-        ))}
+    {topAnnouncement && (
+      <div data-announcement-slot class="mx-auto max-w-6xl px-6 pt-4 sm:px-10">
+        <AnnouncementBanner announcement={topAnnouncement} compact />
       </div>
     )}
 

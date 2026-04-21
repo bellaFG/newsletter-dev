@@ -252,6 +252,7 @@ Isso melhora a qualidade porque a IA forte deixa de gastar contexto com lixo, re
 | `BREVO_API_KEY` | Sim | Web | Chave da API Brevo |
 | `DISCORD_ALERT_WEBHOOK_URL` | Nao | Pipeline | Webhook do Discord para alertas operacionais |
 | `NEWSLETTER_API_SECRET` | Sim | Web + Pipeline | Token Bearer para `/api/send-newsletter` |
+| `ADMIN_API_SECRET` | Nao | Web | Secret opcional do painel `/admin/announcements`; se ausente, o painel usa `NEWSLETTER_API_SECRET` |
 | `OPENAI_API_KEY` | Sim | Pipeline | Chave da API OpenAI |
 | `OPENAI_CURATION_TRIAGE_MODEL` | Nao | Pipeline | Modelo barato da triagem inicial (padrao: `gpt-5.4-nano`) |
 | `OPENAI_CURATION_EDITOR_MODEL` | Nao | Pipeline | Modelo forte para decidir a pauta final (padrao: `gpt-5.4`) |
@@ -308,6 +309,15 @@ Com essas secrets definidas, cada job roda `supabase link` + `supabase db push` 
 
 ## Seguranca
 
+### Painel de recados
+
+O painel interno de recados fica em `/admin/announcements`.
+
+- O login usa um secret simples via cookie HttpOnly.
+- Por padrao, o painel reaproveita `NEWSLETTER_API_SECRET`.
+- Se quiser separar as credenciais, configure `ADMIN_API_SECRET`.
+- Os recados ficam na tabela `site_announcements` e o site so le o recado ativo.
+
 ### Autenticacao da API
 
 O endpoint `POST /api/send-newsletter` requer um header `Authorization: Bearer {NEWSLETTER_API_SECRET}`. A comparacao do token usa `timingSafeEqual` para prevenir timing attacks. Apenas o pipeline Python e chamadas autorizadas podem disparar o envio.
@@ -318,6 +328,7 @@ Todas as tabelas tem RLS habilitado no Supabase:
 
 - **editions/articles**: Leitura publica (site), escrita apenas via service role (pipeline)
 - **subscribers**: Insercao anonima (formulario), leitura/atualizacao via service role. Anon **nao pode** SELECT, prevenindo exfiltracao de emails
+- **site_announcements**: Leitura publica apenas do recado ativo; gestao completa via service role
 
 ### Protecao contra enumeracao
 

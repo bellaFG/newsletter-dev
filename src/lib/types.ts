@@ -39,6 +39,12 @@ export type Database = {
         Update: Partial<NewsletterDeliveryInsert>
         Relationships: []
       }
+      site_announcements: {
+        Row: SiteAnnouncementRow
+        Insert: SiteAnnouncementInsert
+        Update: Partial<SiteAnnouncementInsert>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -169,6 +175,26 @@ export type NewsletterDeliveryInsert = {
   last_attempt_at?: string
   sent_at?: string | null
   created_at?: string
+}
+
+export type SiteAnnouncementRow = {
+  id: string
+  title: string
+  message: string
+  dismissible: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export type SiteAnnouncementInsert = {
+  id?: string
+  title: string
+  message: string
+  dismissible?: boolean
+  is_active?: boolean
+  created_at?: string
+  updated_at?: string
 }
 
 export type ArticleSource = {

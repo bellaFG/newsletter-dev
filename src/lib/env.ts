@@ -22,3 +22,11 @@ export function requireEnv(key: string): string {
   }
   return value
 }
+
+/**
+ * Le variavel de ambiente opcional sem lançar erro.
+ */
+export function readEnv(key: string): string | undefined {
+  const value = (import.meta as any).env?.[key] ?? process.env[key]
+  return value || undefined
+}

@@ -1,6 +1,5 @@
 ---
 import Layout from '@/layouts/Layout.astro'
-import AnnouncementBanner from '@/components/AnnouncementBanner.astro'
 import CategoryNav from '@/components/CategoryNav.astro'
 import ArticleCard from '@/components/ArticleCard.astro'
 import SectionHeader from '@/components/SectionHeader.astro'
@@ -75,10 +74,6 @@ const today = formatFullDate(new Date())
         </div>
         <div id="search-results" class="hidden mt-4 max-w-3xl mx-auto space-y-3" aria-live="polite"></div>
       </div>
-
-      {publishingStatus.isDelayed && (
-        <AnnouncementBanner announcement={publishingStatus.announcement} />
-      )}
 
       {latest && articles.length > 0 ? (
         <>

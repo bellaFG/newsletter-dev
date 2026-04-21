@@ -13,46 +13,32 @@ export type SiteAnnouncement = {
   ctaLabel?: string
   startsAt?: string
   endsAt?: string
+  priority?: number
+  revision?: string
+  dismissible?: boolean
 }
 
-/**
- * Comunicados manuais do produto/editorial.
- *
- * Deixe o item ativo enquanto quiser exibir o banner.
- * Para anuncios temporarios, preencha `startsAt`/`endsAt`.
- */
-const MANUAL_ANNOUNCEMENTS: SiteAnnouncement[] = [
-  {
-    id: 'weekly-format',
-    scope: 'global',
-    tone: 'info',
-    eyebrow: 'Recado da redação',
-    title: 'DevPulse agora é semanal.',
-    message:
-      'Toda segunda-feira, às 08:00 BRT, entra uma nova edição com a curadoria da semana. ' +
-      'Quando mudarmos formato, frequência ou foco editorial, avisamos por aqui.',
-    ctaHref: '/archive',
-    ctaLabel: 'Ver edições publicadas →',
-  },
-]
+function hashAnnouncementVersion(value: string): string {
+  let hash = 0
 
-function isWithinWindow(announcement: SiteAnnouncement, now: Date): boolean {
-  if (announcement.startsAt && now.getTime() < new Date(announcement.startsAt).getTime()) {
-    return false
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0
   }
 
-  if (announcement.endsAt && now.getTime() > new Date(announcement.endsAt).getTime()) {
-    return false
-  }
-
-  return true
+  return Math.abs(hash).toString(36)
 }
 
-export function getActiveAnnouncements(
-  scope: AnnouncementScope,
-  now = new Date(),
-): SiteAnnouncement[] {
-  return MANUAL_ANNOUNCEMENTS.filter((announcement) => {
-    return announcement.scope === scope && isWithinWindow(announcement, now)
-  })
+export function getAnnouncementDismissStorageKey(announcement: SiteAnnouncement): string {
+  const version = announcement.revision ?? [
+    announcement.scope,
+    announcement.startsAt ?? '',
+    announcement.endsAt ?? '',
+    announcement.title,
+    announcement.message,
+    announcement.note ?? '',
+    announcement.ctaHref ?? '',
+    announcement.ctaLabel ?? '',
+  ].join('|')
+
+  return `devpulse-announcement-dismissed:${announcement.id}:${hashAnnouncementVersion(version)}`
 }

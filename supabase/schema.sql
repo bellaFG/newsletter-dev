@@ -69,6 +69,16 @@ CREATE TABLE newsletter_deliveries (
   UNIQUE(edition_id, email)
 );
 
+CREATE TABLE site_announcements (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title       TEXT NOT NULL,
+  message     TEXT NOT NULL,
+  dismissible BOOLEAN NOT NULL DEFAULT TRUE,
+  is_active   BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- =============================================
 -- INDICES
 -- =============================================
@@ -86,6 +96,10 @@ CREATE UNIQUE INDEX idx_editorial_suppressions_scope_value ON editorial_suppress
 CREATE UNIQUE INDEX idx_newsletter_deliveries_unique ON newsletter_deliveries(edition_id, email);
 CREATE INDEX idx_newsletter_deliveries_status ON newsletter_deliveries(status);
 CREATE INDEX idx_newsletter_deliveries_edition_id ON newsletter_deliveries(edition_id);
+CREATE INDEX idx_site_announcements_updated_at ON site_announcements(updated_at DESC);
+CREATE UNIQUE INDEX idx_site_announcements_single_active
+  ON site_announcements ((1))
+  WHERE is_active;
 
 -- =============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -103,6 +117,7 @@ ALTER TABLE articles    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE subscribers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE editorial_suppressions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE newsletter_deliveries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_announcements ENABLE ROW LEVEL SECURITY;
 
 -- editions: leitura publica (paginas do site), escrita apenas via service role (pipeline)
 CREATE POLICY "editions_select_public"
@@ -194,5 +209,30 @@ CREATE POLICY "newsletter_deliveries_insert_service"
 
 CREATE POLICY "newsletter_deliveries_update_service"
   ON newsletter_deliveries FOR UPDATE
+  TO service_role
+  USING (true);
+
+CREATE POLICY "site_announcements_select_public"
+  ON site_announcements FOR SELECT
+  TO anon, authenticated
+  USING (is_active = true);
+
+CREATE POLICY "site_announcements_select_service"
+  ON site_announcements FOR SELECT
+  TO service_role
+  USING (true);
+
+CREATE POLICY "site_announcements_insert_service"
+  ON site_announcements FOR INSERT
+  TO service_role
+  WITH CHECK (true);
+
+CREATE POLICY "site_announcements_update_service"
+  ON site_announcements FOR UPDATE
+  TO service_role
+  USING (true);
+
+CREATE POLICY "site_announcements_delete_service"
+  ON site_announcements FOR DELETE
   TO service_role
   USING (true);
