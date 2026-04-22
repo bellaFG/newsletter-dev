@@ -21,9 +21,9 @@ if (isAuthenticated) {
   const supabase = createServerClient()
   announcements = await listSiteAnnouncementsForAdmin(supabase)
   activeAnnouncement = announcements.find((announcement) => announcement.is_active) ?? null
-  editingAnnouncement =
-    announcements.find((announcement) => announcement.id === editId) ??
-    activeAnnouncement
+  editingAnnouncement = editId
+    ? announcements.find((announcement) => announcement.id === editId) ?? null
+    : null
 }
 
 function getFeedbackMessage(statusValue: string | null, errorValue: string | null): string | null {
@@ -52,9 +52,37 @@ function formatDateTime(value: string): string {
   })
 }
 
+function summarizeMessage(value: string, maxLength = 140): string {
+  const compact = value.replace(/\s+/g, ' ').trim()
+  if (compact.length <= maxLength) return compact
+  return `${compact.slice(0, maxLength).trimEnd()}…`
+}
+
+function encodeForData(value: string): string {
+  return encodeURIComponent(value)
+}
+
 const feedbackMessage = getFeedbackMessage(status, error)
-const feedbackTone = error ? 'text-destructive border-destructive/30 bg-destructive/5' : 'text-emerald-700 border-emerald-500/30 bg-emerald-500/5'
-const formTitle = editingAnnouncement ? 'Editar recado' : 'Novo recado'
+const feedbackTone = error
+  ? 'text-destructive border-destructive/30 bg-destructive/5'
+  : 'text-emerald-700 border-emerald-500/30 bg-emerald-500/5'
+const submitLabel = editingAnnouncement ? 'Atualizar e exibir' : 'Exibir recado'
+const titleValue = editingAnnouncement?.title ?? ''
+const messageValue = editingAnnouncement?.message ?? ''
+const dismissibleValue = editingAnnouncement ? editingAnnouncement.dismissible : true
+const previewTitle = titleValue || 'Seu próximo recado aparece aqui'
+const previewMessage =
+  messageValue ||
+  'Escreva o texto do aviso para ver aqui como ele aparece no topo do site.'
+const latestAnnouncement = announcements[0] ?? null
+const reusableAnnouncements = announcements.slice(0, 10)
+const totalAnnouncements = announcements.length
+const latestUpdatedAt = latestAnnouncement ? formatDateTime(latestAnnouncement.updated_at) : 'Sem histórico'
+const activeStatusLabel = activeAnnouncement ? 'Recado no ar' : 'Sem recado ativo'
+const activeStatusTitle = activeAnnouncement?.title ?? 'Nenhum recado exibido'
+const activeStatusMessage = activeAnnouncement
+  ? summarizeMessage(activeAnnouncement.message, 120)
+  : 'Crie um recado para ocupar o topo do site.'
 ---
 
 <html lang="pt-BR">
@@ -65,43 +93,35 @@ const formTitle = editingAnnouncement ? 'Editar recado' : 'Novo recado'
     <title>Admin de recados — {SITE_NAME}</title>
   </head>
   <body class="min-h-screen bg-background text-foreground antialiased">
-    <main class="mx-auto max-w-5xl px-6 py-8 sm:px-10">
-      <header class="mb-8 flex flex-wrap items-start justify-between gap-4 border-b border-foreground/15 pb-5">
-        <div>
-          <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-link">Admin</p>
-          <h1 class="mt-2 font-serif text-3xl font-black tracking-tight">Mural de avisos</h1>
-          <p class="mt-2 max-w-2xl text-sm leading-relaxed text-foreground/70">
-            Publique um recado manual para os assinantes. Quando não houver recado ativo, o site não exibe nada.
-          </p>
-        </div>
+    <main class="mx-auto max-w-6xl px-6 py-8 sm:px-10">
+      <header class="mb-8 border-b border-foreground/15 pb-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 class="font-serif text-3xl font-black tracking-tight sm:text-4xl">Mural de recados</h1>
+          </div>
 
-        {isAuthenticated && (
-          <form method="post" action="/api/admin/logout">
-            <button
-              type="submit"
-              class="border border-foreground/20 px-4 py-2 font-mono text-[0.6rem] font-bold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-            >
-              Sair
-            </button>
-          </form>
-        )}
+          {isAuthenticated && (
+            <form method="post" action="/api/admin/logout">
+              <button
+                type="submit"
+                class="border border-foreground/20 px-4 py-2 font-mono text-[0.6rem] font-bold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+              >
+                Sair
+              </button>
+            </form>
+          )}
+        </div>
       </header>
 
       {feedbackMessage && (
-        <div class:list={[
-          'mb-6 border px-4 py-3 text-sm',
-          feedbackTone,
-        ]}>
+        <div class:list={['mb-6 border px-4 py-3 text-sm shadow-sm', feedbackTone]}>
           {feedbackMessage}
         </div>
       )}
 
       {!isAuthenticated ? (
-        <section class="mx-auto max-w-md border-2 border-foreground/15 p-6 sm:p-8">
+        <section class="mx-auto max-w-md border-2 border-foreground/15 bg-[linear-gradient(180deg,rgba(37,99,235,0.06),transparent_65%)] p-6 sm:p-8">
           <h2 class="font-serif text-2xl font-bold tracking-tight">Entrar no painel</h2>
-          <p class="mt-2 text-sm leading-relaxed text-foreground/70">
-            Use `ADMIN_API_SECRET` se configurado. Se não houver secret dedicado, o painel aceita o mesmo token de `NEWSLETTER_API_SECRET`.
-          </p>
 
           <form method="post" action="/api/admin/login" class="mt-6 space-y-4">
             <input type="hidden" name="redirect_to" value="/admin/announcements" />
@@ -127,150 +147,299 @@ const formTitle = editingAnnouncement ? 'Editar recado' : 'Novo recado'
           </form>
         </section>
       ) : (
-        <div class="grid gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-          <section class="space-y-8">
-            <article class="border-2 border-foreground/15 p-6 sm:p-7">
-              <div class="mb-5">
-                <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-link">{formTitle}</p>
-                <h2 class="mt-2 font-serif text-2xl font-bold tracking-tight">
-                  {editingAnnouncement ? 'Atualize e publique o aviso' : 'Publique um novo aviso'}
-                </h2>
+        <div class="xl:grid xl:grid-cols-[minmax(0,1fr)_280px] xl:gap-8">
+          <section class="mx-auto max-w-3xl xl:mx-0 xl:max-w-none">
+            <div class="mb-8 grid gap-3 sm:grid-cols-3 xl:hidden">
+              <article class="border border-foreground/15 bg-background/80 p-4">
+                <p class="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
+                  Status
+                </p>
+                <p class="mt-3 font-serif text-xl font-black tracking-tight">{activeStatusLabel}</p>
+              </article>
+
+              <article class="border border-foreground/15 bg-background/80 p-4">
+                <p class="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
+                  Total
+                </p>
+                <p class="mt-3 font-serif text-xl font-black tracking-tight">{totalAnnouncements}</p>
+              </article>
+
+              <article class="border border-foreground/15 bg-background/80 p-4 sm:col-span-3">
+                <p class="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
+                  Ativo agora
+                </p>
+                <p class="mt-3 font-serif text-xl font-black tracking-tight">{activeStatusTitle}</p>
+              </article>
+            </div>
+
+            <article class="mx-auto max-w-3xl border-2 border-link/25 bg-link/5 p-6 shadow-[0_16px_50px_rgba(37,99,235,0.08)] sm:p-7">
+              <div class="mb-4 flex items-start justify-between gap-4">
+                <p class="font-mono text-[0.55rem] font-bold uppercase tracking-[0.22em] text-link">
+                  Exibição no site
+                </p>
+
+                <button
+                  type="button"
+                  disabled
+                  class:list={[
+                    'font-mono text-sm leading-none text-muted-foreground',
+                    !dismissibleValue && 'hidden',
+                  ]}
+                  data-preview-close
+                  aria-hidden={dismissibleValue ? 'false' : 'true'}
+                >
+                  &times;
+                </button>
               </div>
 
-              <form method="post" action="/api/admin/announcements" class="space-y-5">
+              <div class="max-w-2xl">
+                <h2
+                  class:list={[
+                    'font-serif text-2xl font-black tracking-tight text-foreground sm:text-3xl',
+                    !titleValue && 'text-foreground/45',
+                  ]}
+                  data-preview-title
+                >
+                  {previewTitle}
+                </h2>
+                <p
+                  class:list={[
+                    'mt-3 whitespace-pre-line text-sm leading-relaxed text-foreground/75 sm:text-base',
+                    !messageValue && 'italic text-foreground/55',
+                  ]}
+                  data-preview-message
+                >
+                  {previewMessage}
+                </p>
+              </div>
+            </article>
+
+            <article
+              id="announcement-form"
+              class="mt-8 border-2 border-foreground/15 bg-[linear-gradient(180deg,rgba(37,99,235,0.06),transparent_50%)] p-6 sm:p-7"
+            >
+              <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+                <h2 class="font-serif text-2xl font-bold tracking-tight">Escrever recado</h2>
+
+                <a
+                  href="/admin/announcements"
+                  class="border border-foreground/20 px-4 py-2 font-mono text-[0.6rem] font-bold uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                >
+                  Novo
+                </a>
+              </div>
+
+              {editingAnnouncement && (
+                <div
+                  class="mb-5 flex flex-wrap items-center justify-between gap-3 border border-amber-500/25 bg-amber-500/10 px-4 py-3"
+                  data-editing-state
+                >
+                  <div class="min-w-0">
+                    <p class="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-amber-700">
+                      Editando
+                    </p>
+                    <p class="truncate font-serif text-lg font-bold tracking-tight">
+                      {editingAnnouncement.title}
+                    </p>
+                  </div>
+
+                  <a
+                    href="/admin/announcements"
+                    class="border border-amber-600/30 px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-amber-700 transition-colors hover:border-amber-700 hover:text-amber-900"
+                  >
+                    Sair da edição
+                  </a>
+                </div>
+              )}
+
+              <form
+                method="post"
+                action="/api/admin/announcements"
+                class="space-y-5"
+                data-announcement-form
+              >
                 <input type="hidden" name="action" value="save" />
                 {editingAnnouncement && (
-                  <input type="hidden" name="id" value={editingAnnouncement.id} />
+                  <input
+                    type="hidden"
+                    name="id"
+                    value={editingAnnouncement.id}
+                    data-edit-id-input
+                  />
                 )}
 
                 <label class="block">
-                  <span class="mb-2 block font-mono text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">
-                    Título
-                  </span>
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <span class="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">
+                      Título
+                    </span>
+                    <span
+                      class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground"
+                      data-title-count
+                    >
+                      {titleValue.length}/180
+                    </span>
+                  </div>
                   <input
                     type="text"
                     name="title"
                     required
                     maxlength="180"
-                    value={editingAnnouncement?.title ?? ''}
+                    value={titleValue}
+                    placeholder="Ex.: Nova edição sai hoje às 9h"
                     class="w-full border border-foreground/20 bg-background px-4 py-3 text-sm focus:border-foreground focus:outline-none"
                   />
                 </label>
 
                 <label class="block">
-                  <span class="mb-2 block font-mono text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">
-                    Mensagem
-                  </span>
+                  <div class="mb-2 flex items-center justify-between gap-3">
+                    <span class="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-muted-foreground">
+                      Mensagem
+                    </span>
+                    <span
+                      class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground"
+                      data-message-count
+                    >
+                      {messageValue.length}/4000
+                    </span>
+                  </div>
                   <textarea
                     name="message"
                     required
-                    rows={6}
+                    rows={7}
                     maxlength="4000"
+                    placeholder="Escreva o aviso como ele deve aparecer no site."
                     class="w-full border border-foreground/20 bg-background px-4 py-3 text-sm leading-relaxed focus:border-foreground focus:outline-none"
-                  >{editingAnnouncement?.message ?? ''}</textarea>
+                  >{messageValue}</textarea>
                 </label>
 
-                <label class="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    name="dismissible"
-                    checked={editingAnnouncement ? editingAnnouncement.dismissible : true}
-                    class="h-4 w-4 border border-foreground/20"
-                  />
-                  <span class="text-sm text-foreground/75">Permitir que o assinante feche o aviso</span>
-                </label>
+                <div class="rounded-sm border border-foreground/15 bg-background/80 px-4 py-3">
+                  <label class="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      name="dismissible"
+                      checked={dismissibleValue}
+                      class="h-4 w-4 border border-foreground/20"
+                    />
+                    <span class="text-sm text-foreground/75">Mostrar botão de fechar</span>
+                  </label>
+                </div>
 
                 <div class="flex flex-wrap gap-3">
                   <button
                     type="submit"
                     class="border-2 border-link px-5 py-3 font-mono text-[0.65rem] font-bold uppercase tracking-[0.24em] text-link transition-colors hover:bg-link hover:text-white"
+                    data-submit-button
                   >
-                    Publicar aviso
+                    {submitLabel}
                   </button>
-
-                  {editingAnnouncement && (
-                    <a
-                      href="/admin/announcements"
-                      class="border border-foreground/20 px-5 py-3 font-mono text-[0.65rem] font-bold uppercase tracking-[0.24em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-                    >
-                      Cancelar edição
-                    </a>
-                  )}
                 </div>
               </form>
             </article>
 
-            <article class="border-2 border-foreground/15 p-6 sm:p-7">
-              <div class="mb-5">
-                <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-link">Histórico</p>
-                <h2 class="mt-2 font-serif text-2xl font-bold tracking-tight">Recados salvos</h2>
+            <article class="mt-8 border-2 border-foreground/15 p-6 sm:p-7">
+              <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
+                <h2 class="font-serif text-2xl font-bold tracking-tight">Histórico</h2>
+                <span class="border border-foreground/15 px-3 py-1 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
+                  {totalAnnouncements} item{totalAnnouncements === 1 ? '' : 's'}
+                </span>
               </div>
 
-              {announcements.length === 0 ? (
-                <p class="text-sm text-foreground/70">Nenhum recado salvo ainda.</p>
+              {reusableAnnouncements.length === 0 ? (
+                <div class="border border-dashed border-foreground/20 px-5 py-10 text-center">
+                  <p class="font-mono text-[0.55rem] uppercase tracking-[0.22em] text-muted-foreground">
+                    Sem recados
+                  </p>
+                </div>
               ) : (
                 <div class="space-y-4">
-                  {announcements.map((announcement) => (
-                    <article class="border border-foreground/15 p-4">
-                      <div class="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <h3 class="font-serif text-xl font-bold tracking-tight">
-                            {announcement.title}
-                          </h3>
-                          <p class="mt-1 font-mono text-[0.55rem] uppercase tracking-[0.22em] text-muted-foreground">
-                            {announcement.is_active ? 'Ativo no site' : 'Inativo'} · Atualizado em {formatDateTime(announcement.updated_at)}
+                  {reusableAnnouncements.map((announcement) => (
+                    <article
+                      class:list={[
+                        'border p-4 transition-colors',
+                        announcement.is_active ? 'border-link/30 bg-link/5' : 'border-foreground/15',
+                        editingAnnouncement?.id === announcement.id && 'ring-1 ring-link/35',
+                      ]}
+                    >
+                      <div class="flex flex-wrap items-start justify-between gap-4">
+                        <div class="min-w-0 flex-1">
+                          <div class="flex flex-wrap items-center gap-2">
+                            <h3 class="font-serif text-xl font-bold tracking-tight">
+                              {announcement.title}
+                            </h3>
+                            {announcement.is_active && (
+                              <span class="border border-link/30 bg-link/10 px-2 py-0.5 font-mono text-[0.5rem] uppercase tracking-[0.18em] text-link">
+                                No ar
+                              </span>
+                            )}
+                          </div>
+
+                          <p class="mt-2 font-mono text-[0.55rem] uppercase tracking-[0.22em] text-muted-foreground">
+                            {formatDateTime(announcement.updated_at)}
                           </p>
-                        </div>
-                        <div class="flex flex-wrap gap-2">
-                          <a
-                            href={`/admin/announcements?edit=${announcement.id}`}
-                            class="border border-foreground/20 px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-                          >
-                            Editar
-                          </a>
-
-                          {!announcement.is_active && (
-                            <form method="post" action="/api/admin/announcements">
-                              <input type="hidden" name="action" value="activate" />
-                              <input type="hidden" name="id" value={announcement.id} />
-                              <button
-                                type="submit"
-                                class="border border-link px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-link transition-colors hover:bg-link hover:text-white"
-                              >
-                                Publicar
-                              </button>
-                            </form>
-                          )}
-
-                          {announcement.is_active && (
-                            <form method="post" action="/api/admin/announcements">
-                              <input type="hidden" name="action" value="deactivate" />
-                              <input type="hidden" name="id" value={announcement.id} />
-                              <button
-                                type="submit"
-                                class="border border-amber-600 px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-amber-700 transition-colors hover:bg-amber-600 hover:text-white"
-                              >
-                                Desativar
-                              </button>
-                            </form>
-                          )}
-
-                          <form method="post" action="/api/admin/announcements">
-                            <input type="hidden" name="action" value="delete" />
-                            <input type="hidden" name="id" value={announcement.id} />
-                            <button
-                              type="submit"
-                              class="border border-destructive/30 px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-destructive transition-colors hover:bg-destructive hover:text-white"
-                            >
-                              Excluir
-                            </button>
-                          </form>
                         </div>
                       </div>
 
-                      <p class="mt-3 text-sm leading-relaxed text-foreground/75">
+                      <p class="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground/75">
                         {announcement.message}
                       </p>
+
+                      <div class="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          class="border border-link px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-link transition-colors hover:bg-link hover:text-white"
+                          data-reuse-announcement
+                          data-reuse-title={encodeForData(announcement.title)}
+                          data-reuse-message={encodeForData(announcement.message)}
+                          data-reuse-dismissible={announcement.dismissible ? 'true' : 'false'}
+                        >
+                          Reusar
+                        </button>
+
+                        <a
+                          href={`/admin/announcements?edit=${announcement.id}`}
+                          class="border border-foreground/20 px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                        >
+                          Editar
+                        </a>
+
+                        {!announcement.is_active && (
+                          <form method="post" action="/api/admin/announcements">
+                            <input type="hidden" name="action" value="activate" />
+                            <input type="hidden" name="id" value={announcement.id} />
+                            <button
+                              type="submit"
+                              class="border border-link px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-link transition-colors hover:bg-link hover:text-white"
+                            >
+                              Exibir
+                            </button>
+                          </form>
+                        )}
+
+                        {announcement.is_active && (
+                          <form method="post" action="/api/admin/announcements">
+                            <input type="hidden" name="action" value="deactivate" />
+                            <input type="hidden" name="id" value={announcement.id} />
+                            <button
+                              type="submit"
+                              class="border border-amber-600 px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-amber-700 transition-colors hover:bg-amber-600 hover:text-white"
+                            >
+                              Tirar do ar
+                            </button>
+                          </form>
+                        )}
+
+                        <form method="post" action="/api/admin/announcements">
+                          <input type="hidden" name="action" value="delete" />
+                          <input type="hidden" name="id" value={announcement.id} />
+                          <button
+                            type="submit"
+                            class="border border-destructive/30 px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.2em] text-destructive transition-colors hover:bg-destructive hover:text-white"
+                          >
+                            Excluir
+                          </button>
+                        </form>
+                      </div>
                     </article>
                   ))}
                 </div>
@@ -278,47 +447,178 @@ const formTitle = editingAnnouncement ? 'Editar recado' : 'Novo recado'
             </article>
           </section>
 
-          <aside class="space-y-6">
+          <aside class="mt-8 hidden self-start xl:sticky xl:top-8 xl:block">
             <article class="border-2 border-foreground/15 p-6">
-              <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-link">Status atual</p>
-              <h2 class="mt-2 font-serif text-2xl font-bold tracking-tight">Aviso no ar</h2>
+              <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-link">
+                Status
+              </p>
 
-              {activeAnnouncement ? (
-                <div class="mt-5 space-y-3">
-                  <div>
-                    <p class="font-serif text-xl font-bold tracking-tight">{activeAnnouncement.title}</p>
-                    <p class="mt-2 text-sm leading-relaxed text-foreground/75">{activeAnnouncement.message}</p>
+              <div class="mt-5 space-y-4">
+                <div class="border border-foreground/15 p-4">
+                  <div class="mb-3 flex items-start justify-between gap-3">
+                    <span
+                      class:list={[
+                        'border px-2 py-0.5 font-mono text-[0.5rem] uppercase tracking-[0.18em]',
+                        activeAnnouncement
+                          ? 'border-link/30 bg-link/10 text-link'
+                          : 'border-foreground/15 text-muted-foreground',
+                      ]}
+                    >
+                      {activeAnnouncement ? 'Ativo' : 'Sem ativo'}
+                    </span>
+
+                    {activeAnnouncement?.dismissible && (
+                      <span class="font-mono text-sm leading-none text-muted-foreground">
+                        &times;
+                      </span>
+                    )}
                   </div>
 
-                  <dl class="space-y-2 text-sm text-foreground/70">
-                    <div>
-                      <dt class="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">Dismissível</dt>
-                      <dd>{activeAnnouncement.dismissible ? 'Sim' : 'Não'}</dd>
-                    </div>
-                    <div>
-                      <dt class="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">Atualizado em</dt>
-                      <dd>{formatDateTime(activeAnnouncement.updated_at)}</dd>
-                    </div>
-                  </dl>
+                  <h3 class="font-serif text-xl font-bold tracking-tight">
+                    {activeStatusTitle}
+                  </h3>
+                  <p class="mt-2 text-sm leading-relaxed text-foreground/70">
+                    {activeStatusMessage}
+                  </p>
                 </div>
-              ) : (
-                <p class="mt-4 text-sm leading-relaxed text-foreground/70">
-                  Nenhum aviso ativo. O topo do site permanece limpo até você publicar um novo recado.
-                </p>
-              )}
-            </article>
 
-            <article class="border-2 border-foreground/15 p-6">
-              <p class="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-link">Comportamento</p>
-              <ul class="mt-4 space-y-3 text-sm leading-relaxed text-foreground/70">
-                <li>O aviso aparece no topo do site apenas quando existe um recado ativo.</li>
-                <li>O usuário pode fechar o aviso quando `dismissible` estiver habilitado.</li>
-                <li>Ao editar e republicar, a chave de dismiss muda e o aviso volta a aparecer.</li>
-              </ul>
+                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  <article class="border border-foreground/15 p-4">
+                    <p class="font-mono text-[0.55rem] uppercase tracking-[0.22em] text-muted-foreground">
+                      Total
+                    </p>
+                    <p class="mt-3 font-serif text-3xl font-black tracking-tight">
+                      {totalAnnouncements}
+                    </p>
+                  </article>
+
+                  <article class="border border-foreground/15 p-4">
+                    <p class="font-mono text-[0.55rem] uppercase tracking-[0.22em] text-muted-foreground">
+                      Última atualização
+                    </p>
+                    <p class="mt-3 font-serif text-lg font-black tracking-tight">
+                      {latestUpdatedAt}
+                    </p>
+                  </article>
+                </div>
+              </div>
             </article>
           </aside>
         </div>
       )}
     </main>
+
+    {isAuthenticated && (
+      <script>
+        (() => {
+          const form = document.querySelector<HTMLFormElement>('[data-announcement-form]')
+          if (!(form instanceof HTMLFormElement)) return
+
+          const titleInput = form.querySelector<HTMLInputElement>('input[name="title"]')
+          const messageInput = form.querySelector<HTMLTextAreaElement>('textarea[name="message"]')
+          const dismissibleInput =
+            form.querySelector<HTMLInputElement>('input[name="dismissible"]')
+          const editIdInput = form.querySelector<HTMLInputElement>('[data-edit-id-input]')
+          const editingState = document.querySelector<HTMLElement>('[data-editing-state]')
+          const titleCount = document.querySelector<HTMLElement>('[data-title-count]')
+          const messageCount = document.querySelector<HTMLElement>('[data-message-count]')
+          const previewTitle = document.querySelector<HTMLElement>('[data-preview-title]')
+          const previewMessage = document.querySelector<HTMLElement>('[data-preview-message]')
+          const previewClose = document.querySelector<HTMLElement>('[data-preview-close]')
+          const submitButton = document.querySelector<HTMLElement>('[data-submit-button]')
+          const reuseButtons =
+            document.querySelectorAll<HTMLButtonElement>('[data-reuse-announcement]')
+
+          if (
+            !titleInput ||
+            !messageInput ||
+            !dismissibleInput ||
+            !titleCount ||
+            !messageCount ||
+            !previewTitle ||
+            !previewMessage ||
+            !previewClose ||
+            !submitButton
+          ) {
+            return
+          }
+
+          const titleField = titleInput
+          const messageField = messageInput
+          const dismissibleField = dismissibleInput
+          const editIdField = editIdInput
+          const editingStateBanner = editingState
+          const titleCounter = titleCount
+          const messageCounter = messageCount
+          const previewTitleField = previewTitle
+          const previewMessageField = previewMessage
+          const previewCloseField = previewClose
+          const submitButtonField = submitButton
+
+          const titleMax = Number(titleField.getAttribute('maxlength') || '180')
+          const messageMax = Number(messageField.getAttribute('maxlength') || '4000')
+
+          function enterCreateMode() {
+            if (editIdField) {
+              editIdField.disabled = true
+              editIdField.value = ''
+            }
+
+            if (editingStateBanner) {
+              editingStateBanner.hidden = true
+            }
+
+            submitButtonField.textContent = 'Exibir recado'
+
+            if (window.location.search.includes('edit=')) {
+              window.history.replaceState({}, '', '/admin/announcements')
+            }
+          }
+
+          function syncPreview() {
+            const title = titleField.value.trim()
+            const message = messageField.value.trim()
+            const dismissible = dismissibleField.checked
+
+            titleCounter.textContent = `${titleField.value.length}/${titleMax}`
+            messageCounter.textContent = `${messageField.value.length}/${messageMax}`
+
+            previewTitleField.textContent = title || 'Seu próximo recado aparece aqui'
+            previewMessageField.textContent =
+              message ||
+              'Escreva o texto do aviso para ver aqui como ele aparece no topo do site.'
+            previewCloseField.classList.toggle('hidden', !dismissible)
+            previewCloseField.setAttribute('aria-hidden', dismissible ? 'false' : 'true')
+
+            previewTitleField.classList.toggle('text-foreground/45', !title)
+            previewMessageField.classList.toggle('italic', !message)
+            previewMessageField.classList.toggle('text-foreground/55', !message)
+          }
+
+          titleField.addEventListener('input', syncPreview)
+          messageField.addEventListener('input', syncPreview)
+          dismissibleField.addEventListener('change', syncPreview)
+
+          reuseButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+              const title = decodeURIComponent(button.dataset.reuseTitle ?? '')
+              const message = decodeURIComponent(button.dataset.reuseMessage ?? '')
+              const dismissible = button.dataset.reuseDismissible === 'true'
+
+              enterCreateMode()
+              titleField.value = title
+              messageField.value = message
+              dismissibleField.checked = dismissible
+              syncPreview()
+              titleField.focus()
+              titleField.setSelectionRange(titleField.value.length, titleField.value.length)
+              form.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            })
+          })
+
+          syncPreview()
+        })()
+      </script>
+    )}
   </body>
 </html>
