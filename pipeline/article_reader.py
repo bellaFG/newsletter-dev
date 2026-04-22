@@ -1,4 +1,7 @@
+import os
 import re
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlparse
 
 import requests
@@ -15,6 +18,7 @@ REQUEST_HEADERS = {
 }
 READ_TIMEOUT_SECONDS = 15
 MAX_FETCH_BYTES = 1_500_000
+READ_MAX_WORKERS = max(1, int(os.getenv("PIPELINE_READER_MAX_WORKERS", "6")))
 CONTENT_SELECTORS = (
     "article",
     "main",
@@ -36,12 +40,42 @@ def enrich_articles(
 ) -> dict[int, RawArticle]:
     """Busca texto completo apenas das fontes aprovadas na triagem."""
     enriched = dict(indexed_articles)
+    source_id_list = [source_id for source_id in sorted(source_ids) if source_id in indexed_articles]
 
-    for source_id in sorted(source_ids):
-        article = indexed_articles.get(source_id)
-        if article is None:
-            continue
-        enriched[source_id] = enrich_article(article, max_chars=max_chars)
+    if not source_id_list:
+        return enriched
+
+    max_workers = min(READ_MAX_WORKERS, len(source_id_list))
+    logger.info(
+        f"[Reader] Lendo {len(source_id_list)} fonte(s) aprovadas com ate {max_workers} worker(s)"
+    )
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_by_source_id = {
+            executor.submit(enrich_article, indexed_articles[source_id], max_chars=max_chars): source_id
+            for source_id in source_id_list
+        }
+
+        for future in as_completed(future_by_source_id):
+            source_id = future_by_source_id[future]
+            article = indexed_articles[source_id]
+
+            try:
+                enriched[source_id] = future.result()
+            except Exception as exc:
+                logger.warning(f"[Reader] Falha inesperada ao enriquecer {article.url}: {exc}")
+                metadata = dict(article.metadata)
+                metadata["read_status"] = "reader_error"
+                enriched[source_id] = article.model_copy(update={"metadata": metadata})
+
+    status_counts = Counter(
+        str(enriched[source_id].metadata.get("read_status", "unknown"))
+        for source_id in source_id_list
+    )
+    summary = ", ".join(
+        f"{status}={count}" for status, count in sorted(status_counts.items())
+    )
+    logger.info(f"[Reader] Leitura concluida: {summary}")
 
     return enriched
 

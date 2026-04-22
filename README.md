@@ -208,6 +208,7 @@ cd pipeline
 pip install -r requirements.txt
 cd ..
 python -m pipeline.main
+python -m pipeline.main prepare --dry-run
 ```
 
 ---
@@ -226,9 +227,9 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 
 O pipeline editorial agora e separado em tres etapas:
 
-1. **Triagem** — um modelo menor (`gpt-5.4-mini` por padrao) filtra ruido, agrupa temas parecidos e monta uma fila de pautas candidatas.
+1. **Triagem** — um modelo menor (`gpt-5.4-nano` por padrao) filtra ruido, agrupa temas parecidos e monta uma fila de pautas candidatas.
 2. **Leitura** — o pipeline busca o texto completo das fontes candidatas para que a etapa forte leia mais do que apenas titulo + snippet.
-3. **Pauta + redacao** — um modelo forte (`gpt-5.4` por padrao) decide a edicao final e escreve cada materia com angulo editorial claro.
+3. **Pauta + redacao** — o editor usa `gpt-5.4-mini` por padrao com timeout e retries por etapa; a redacao final tambem usa `gpt-5.4-mini`.
 
 Isso melhora a qualidade porque a IA forte deixa de gastar contexto com lixo, recebe material lido das fontes relevantes e passa a atuar mais como editor do que como classificador.
 
@@ -257,13 +258,16 @@ Isso melhora a qualidade porque a IA forte deixa de gastar contexto com lixo, re
 | `UNSUBSCRIBE_TOKEN_SECRET`              |     Nao     | Web            | Secret opcional para criptografar links de unsubscribe; se ausente, usa `NEWSLETTER_API_SECRET`    |
 | `OPENAI_API_KEY`                        |     Sim     | Pipeline       | Chave da API OpenAI                                                                                |
 | `OPENAI_CURATION_TRIAGE_MODEL`          |     Nao     | Pipeline       | Modelo barato da triagem inicial (padrao: `gpt-5.4-nano`)                                          |
-| `OPENAI_CURATION_EDITOR_MODEL`          |     Nao     | Pipeline       | Modelo forte para decidir a pauta final (padrao: `gpt-5.4`)                                        |
+| `OPENAI_CURATION_EDITOR_MODEL`          |     Nao     | Pipeline       | Modelo do plano editorial (padrao: `gpt-5.4-mini`)                                                 |
 | `OPENAI_CURATION_WRITER_MODEL`          |     Nao     | Pipeline       | Modelo de redacao final com bom custo/qualidade (padrao: `gpt-5.4-mini`)                           |
 | `OPENAI_CURATION_TRIAGE_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da triagem (padrao: `low`)                                                   |
 | `OPENAI_CURATION_EDITOR_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da etapa editorial (padrao: `medium`)                                        |
 | `OPENAI_CURATION_WRITER_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da redacao final (padrao: `low`)                                             |
-| `OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS` |     Nao     | Pipeline       | Limite de caracteres lidos por fonte aprovada na triagem                                           |
-| `OPENAI_CURATION_MAX_RETRIES`           |     Nao     | Pipeline       | Numero de tentativas em caso de output invalido                                                    |
+| `OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS` |     Nao     | Pipeline       | Limite de caracteres enviados por fonte aprovada (padrao: `3000`)                                  |
+| `OPENAI_CURATION_SNIPPET_MAX_CHARS`     |     Nao     | Pipeline       | Limite de caracteres do snippet enviado aos modelos (padrao: `420`)                                |
+| `OPENAI_CURATION_MAX_RETRIES`           |     Nao     | Pipeline       | Numero de tentativas por etapa da curadoria (`triagem`, `plano`, `redacao`)                        |
+| `OPENAI_CURATION_REQUEST_TIMEOUT_SECONDS` |   Nao     | Pipeline       | Timeout das chamadas OpenAI por etapa (padrao: `180`)                                              |
+| `PIPELINE_READER_MAX_WORKERS`           |     Nao     | Pipeline       | Quantidade maxima de workers na leitura paralela das fontes aprovadas (padrao: `6`)                |
 | `SITE_URL`                              |     Sim     | Pipeline       | URL base do site (ex: `https://devpulse.com.br`)                                                   |
 
 ---

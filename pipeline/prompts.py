@@ -116,4 +116,4 @@ def build_writing_prompt(plan: dict, articles: list[dict]) -> str:
 
 
 def _dump_json(payload: dict) -> str:
-    return json.dumps(payload, ensure_ascii=False, indent=2)
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))

@@ -1,5 +1,6 @@
 import os
 from collections import Counter
+from time import monotonic
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from openai import OpenAI
@@ -26,12 +27,16 @@ from pipeline.prompts import (
 
 TRIAGE_MODEL = os.getenv("OPENAI_CURATION_TRIAGE_MODEL", "gpt-5.4-nano")
 TRIAGE_REASONING = os.getenv("OPENAI_CURATION_TRIAGE_REASONING", "low")
-EDITOR_MODEL = os.getenv("OPENAI_CURATION_EDITOR_MODEL", "gpt-5.4")
+EDITOR_MODEL = os.getenv("OPENAI_CURATION_EDITOR_MODEL", "gpt-5.4-mini")
 EDITOR_REASONING = os.getenv("OPENAI_CURATION_EDITOR_REASONING", "medium")
 WRITER_MODEL = os.getenv("OPENAI_CURATION_WRITER_MODEL", "gpt-5.4-mini")
 WRITER_REASONING = os.getenv("OPENAI_CURATION_WRITER_REASONING", "low")
 MAX_RETRIES = int(os.getenv("OPENAI_CURATION_MAX_RETRIES", "3"))
-MAX_SOURCE_TEXT_CHARS = int(os.getenv("OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS", "6000"))
+MAX_SOURCE_TEXT_CHARS = int(os.getenv("OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS", "3000"))
+MAX_SNIPPET_CHARS = int(os.getenv("OPENAI_CURATION_SNIPPET_MAX_CHARS", "420"))
+OPENAI_REQUEST_TIMEOUT_SECONDS = float(
+    os.getenv("OPENAI_CURATION_REQUEST_TIMEOUT_SECONDS", "180")
+)
 MIN_STORIES = 5
 MAX_STORIES = 8
 MAX_PER_CATEGORY = 2
@@ -266,15 +271,25 @@ def _build_articles_payload(indexed_articles: dict[int, RawArticle], *, include_
             "id": source_id,
             "title": article.title,
             "url": article.url,
-            "snippet": article.snippet,
             "source": article.source,
             "collector": article.collector,
-            "metadata": article.metadata,
         }
+        snippet = _truncate_text(article.snippet, max_chars=MAX_SNIPPET_CHARS)
+        if snippet:
+            item["snippet"] = snippet
         if article.published_at:
             item["published_at"] = article.published_at.isoformat()
+        read_status = article.metadata.get("read_status")
+        if read_status:
+            item["read_status"] = read_status
+        read_chars = article.metadata.get("read_chars")
+        if read_chars:
+            item["read_chars"] = read_chars
         if include_full_text and article.full_text:
-            item["full_text_excerpt"] = article.full_text
+            item["full_text_excerpt"] = _truncate_text(
+                article.full_text,
+                max_chars=MAX_SOURCE_TEXT_CHARS,
+            )
         payload.append(item)
 
     return payload
@@ -299,25 +314,66 @@ def _supports_reasoning(model: str) -> bool:
     return model_name.startswith(("gpt-5", "o1", "o3", "o4"))
 
 
+def _truncate_text(value: str | None, *, max_chars: int) -> str | None:
+    if not value:
+        return None
+
+    compact = " ".join(value.split())
+    if len(compact) <= max_chars:
+        return compact
+
+    truncated = compact[:max_chars].rsplit(" ", 1)[0].strip()
+    return truncated or compact[:max_chars].strip()
+
+
+def _format_usage_summary(response) -> str | None:
+    usage = getattr(response, "usage", None)
+    if usage is None:
+        return None
+
+    input_tokens = getattr(usage, "input_tokens", None)
+    output_tokens = getattr(usage, "output_tokens", None)
+    total_tokens = getattr(usage, "total_tokens", None)
+    parts = []
+    if input_tokens is not None:
+        parts.append(f"input_tokens={input_tokens}")
+    if output_tokens is not None:
+        parts.append(f"output_tokens={output_tokens}")
+    if total_tokens is not None:
+        parts.append(f"total_tokens={total_tokens}")
+    return ", ".join(parts) if parts else None
+
+
 def _parse_with_model(
     client: OpenAI,
     *,
+    stage_name: str,
     model: str,
     reasoning_effort: str | None,
     system_prompt: str,
     user_prompt: str,
     schema,
 ):
+    prompt_chars = len(system_prompt) + len(user_prompt)
+    logger.info(
+        f"[Curator] {stage_name}: model={model}, prompt_chars={prompt_chars}, "
+        f"timeout={OPENAI_REQUEST_TIMEOUT_SECONDS:.0f}s"
+    )
+
     request = {
         "model": model,
         "instructions": system_prompt,
         "input": user_prompt,
         "text_format": schema,
+        "timeout": OPENAI_REQUEST_TIMEOUT_SECONDS,
     }
     if reasoning_effort and _supports_reasoning(model):
         request["reasoning"] = {"effort": reasoning_effort}
 
     response = client.responses.parse(**request)
+    usage_summary = _format_usage_summary(response)
+    if usage_summary:
+        logger.info(f"[Curator] {stage_name}: {usage_summary}")
     if response.output_parsed is None:
         raise ValueError("Modelo retornou resposta sem output_parsed")
     return response.output_parsed
@@ -328,6 +384,7 @@ def _run_triage(client: OpenAI, indexed_articles: dict[int, RawArticle]) -> AITr
     logger.info(f"[Curator] Rodando triagem com {TRIAGE_MODEL}")
     output = _parse_with_model(
         client,
+        stage_name="Triagem",
         model=TRIAGE_MODEL,
         reasoning_effort=TRIAGE_REASONING,
         system_prompt=TRIAGE_SYSTEM,
@@ -356,6 +413,7 @@ def _run_editorial_plan(
     logger.info(f"[Curator] Montando plano editorial com {EDITOR_MODEL}")
     output = _parse_with_model(
         client,
+        stage_name="Plano editorial",
         model=EDITOR_MODEL,
         reasoning_effort=EDITOR_REASONING,
         system_prompt=EDITORIAL_PLAN_SYSTEM,
@@ -384,6 +442,7 @@ def _run_writer(
     logger.info(f"[Curator] Escrevendo edição com {WRITER_MODEL}")
     output = _parse_with_model(
         client,
+        stage_name="Redacao final",
         model=WRITER_MODEL,
         reasoning_effort=WRITER_REASONING,
         system_prompt=WRITER_SYSTEM,
@@ -392,6 +451,47 @@ def _run_writer(
     )
     _validate_writing_output(output, editorial_plan)
     return output
+
+
+def _run_stage(stage_name: str, operation):
+    for attempt in range(1, MAX_RETRIES + 1):
+        started_at = monotonic()
+        logger.info(f"[Curator] {stage_name}: tentativa {attempt}/{MAX_RETRIES}")
+
+        try:
+            result = operation()
+            elapsed = monotonic() - started_at
+            logger.info(f"[Curator] {stage_name}: concluida em {elapsed:.1f}s")
+            return result
+        except ValueError as exc:
+            elapsed = monotonic() - started_at
+            logger.warning(
+                f"[Curator] {stage_name}: output invalido na tentativa "
+                f"{attempt}/{MAX_RETRIES} apos {elapsed:.1f}s: {exc}"
+            )
+            if attempt == MAX_RETRIES:
+                raise RuntimeError(
+                    f"{stage_name} retornou output invalido apos {MAX_RETRIES} tentativa(s)"
+                ) from exc
+        except Exception as exc:
+            elapsed = monotonic() - started_at
+            logger.error(
+                f"[Curator] {stage_name}: falha na tentativa "
+                f"{attempt}/{MAX_RETRIES} apos {elapsed:.1f}s: {exc}"
+            )
+            if attempt == MAX_RETRIES:
+                raise
+
+
+def _run_writer_stage(
+    client: OpenAI,
+    editorial_plan: AICurationPlanOutput,
+    indexed_articles: dict[int, RawArticle],
+) -> CurationOutput:
+    writing_output = _run_writer(client, editorial_plan, indexed_articles)
+    result = _resolve_output(editorial_plan, writing_output, indexed_articles)
+    _validate_curation(result)
+    return result
 
 
 def curate(raw_articles: list[RawArticle]) -> CurationOutput:
@@ -414,37 +514,27 @@ def curate(raw_articles: list[RawArticle]) -> CurationOutput:
 
     indexed_articles = {index: article for index, article in enumerate(unique_articles, start=1)}
 
-    for attempt in range(1, MAX_RETRIES + 1):
-        logger.info(f"[Curator] Tentativa {attempt}/{MAX_RETRIES}")
+    triage = _run_stage("Triagem", lambda: _run_triage(client, indexed_articles))
+    triage_source_ids = _collect_candidate_source_ids(triage)
 
-        try:
-            triage = _run_triage(client, indexed_articles)
-            triage_source_ids = _collect_candidate_source_ids(triage)
+    logger.info(
+        f"[Curator] Triagem aprovou {len(triage.candidate_topics)} tema(s) e "
+        f"{len(triage_source_ids)} fonte(s) para leitura aprofundada"
+    )
 
-            logger.info(
-                f"[Curator] Triagem aprovou {len(triage.candidate_topics)} tema(s) e "
-                f"{len(triage_source_ids)} fonte(s) para leitura aprofundada"
-            )
+    indexed_articles = enrich_articles(
+        indexed_articles,
+        triage_source_ids,
+        max_chars=MAX_SOURCE_TEXT_CHARS,
+    )
+    editorial_plan = _run_stage(
+        "Plano editorial",
+        lambda: _run_editorial_plan(client, triage, indexed_articles),
+    )
+    result = _run_stage(
+        "Redacao final",
+        lambda: _run_writer_stage(client, editorial_plan, indexed_articles),
+    )
 
-            indexed_articles = enrich_articles(
-                indexed_articles,
-                triage_source_ids,
-                max_chars=MAX_SOURCE_TEXT_CHARS,
-            )
-            editorial_plan = _run_editorial_plan(client, triage, indexed_articles)
-            writing_output = _run_writer(client, editorial_plan, indexed_articles)
-            result = _resolve_output(editorial_plan, writing_output, indexed_articles)
-            _validate_curation(result)
-
-            logger.info(f"[Curator] {len(result.articles)} matérias editoriais selecionadas pela IA")
-            return result
-
-        except ValueError as e:
-            logger.warning(f"[Curator] Output inválido na tentativa {attempt}: {e}")
-            if attempt == MAX_RETRIES:
-                raise RuntimeError(f"IA retornou output inválido após {MAX_RETRIES} tentativas") from e
-
-        except Exception as e:
-            logger.error(f"[Curator] Erro na tentativa {attempt}: {e}")
-            if attempt == MAX_RETRIES:
-                raise
+    logger.info(f"[Curator] {len(result.articles)} matérias editoriais selecionadas pela IA")
+    return result
