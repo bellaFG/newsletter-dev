@@ -263,7 +263,7 @@ Isso melhora a qualidade porque a IA forte deixa de gastar contexto com lixo, re
 | `OPENAI_CURATION_TRIAGE_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da triagem (padrao: `low`)                                                   |
 | `OPENAI_CURATION_EDITOR_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da etapa editorial (padrao: `medium`)                                        |
 | `OPENAI_CURATION_WRITER_REASONING`      |     Nao     | Pipeline       | Esforco de raciocinio da redacao final (padrao: `low`)                                             |
-| `OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS` |     Nao     | Pipeline       | Limite de caracteres enviados por fonte aprovada (padrao: `3000`)                                  |
+| `OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS` |     Nao     | Pipeline       | Limite de caracteres enviados por fonte aprovada (padrao: `6000`)                                  |
 | `OPENAI_CURATION_SNIPPET_MAX_CHARS`     |     Nao     | Pipeline       | Limite de caracteres do snippet enviado aos modelos (padrao: `420`)                                |
 | `OPENAI_CURATION_MAX_RETRIES`           |     Nao     | Pipeline       | Numero de tentativas por etapa da curadoria (`triagem`, `plano`, `redacao`)                        |
 | `OPENAI_CURATION_REQUEST_TIMEOUT_SECONDS` |   Nao     | Pipeline       | Timeout das chamadas OpenAI por etapa (padrao: `180`)                                              |

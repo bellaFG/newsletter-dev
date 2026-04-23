@@ -1,8 +1,7 @@
 ---
 import Layout from '@/layouts/Layout.astro'
-import BrowseTabs from '@/components/BrowseTabs.astro'
-import CompactMasthead from '@/components/CompactMasthead.astro'
 import CategoryDivider from '@/components/CategoryDivider.astro'
+import PageFooterNav from '@/components/PageFooterNav.astro'
 import { supabase } from '@/lib/supabase'
 import type { Edition } from '@/lib/types'
 import { getEditionDisplayDate, listEditionsWithArticles } from '@/lib/editions'
@@ -24,9 +23,6 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
 <Layout title={`Arquivo — ${SITE_NAME}`}>
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
-
-      <CompactMasthead right="Arquivo" />
-      <BrowseTabs active="editions" />
 
       <div class="mb-10">
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
@@ -74,6 +70,8 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
           ))}
         </div>
       )}
+
+      <PageFooterNav leftLabel="← Início" leftHref="/" rightLabel="Artigos →" rightHref="/articles" />
 
     </div>
   </div>

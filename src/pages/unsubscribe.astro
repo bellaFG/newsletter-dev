@@ -47,7 +47,7 @@ const hasValidToken = Boolean(tokenDetails.email)
             <p class="text-muted-foreground leading-relaxed mb-8 max-w-sm mx-auto">
               Se você confirmar, vamos interromper os próximos envios da newsletter.
             </p>
-            <form method="post" action="/api/unsubscribe" class="mb-8">
+            <form method="post" action="/api/unsubscribe" class="mb-8" data-astro-reload>
               <input type="hidden" name="token" value={token} />
               <button
                 type="submit"

@@ -4,6 +4,8 @@ import ThemeToggle from '@/components/ThemeToggle.astro'
 import { SITE_NAME } from '@/lib/config'
 
 const pathname = Astro.url.pathname
+const initialSearchQuery = Astro.url.searchParams.get('q')?.trim() ?? ''
+const isSearchOpen = initialSearchQuery.length > 0
 
 const activeSection =
   pathname === '/'
@@ -12,11 +14,9 @@ const activeSection =
       ? 'editions'
       : pathname.startsWith('/articles')
         ? 'articles'
-        : pathname.startsWith('/buscar')
-          ? 'search'
-          : pathname.startsWith('/categoria/')
-            ? 'categories'
-            : ''
+        : pathname.startsWith('/categoria/')
+          ? 'categories'
+          : ''
 
 const navLinkClasses = (isActive: boolean) =>
   [
@@ -26,13 +26,20 @@ const navLinkClasses = (isActive: boolean) =>
       : 'border-transparent text-muted-foreground hover:border-foreground/20 hover:text-foreground',
   ].join(' ')
 
+const navActionClasses = [
+  'site-search-toggle whitespace-nowrap border-b border-transparent bg-transparent pb-1 text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground',
+].join(' ')
+
 const categories = CATEGORY_ORDER.map((category) => ({
   label: category,
   href: `/categoria/${CATEGORY_SLUGS[category]}`,
 }))
 ---
 
-<header class="sticky top-0 z-40 border-b border-foreground/10 bg-background/92 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+<header
+  data-site-header
+  class="sticky top-0 z-40 border-b border-foreground/10 bg-background/92 backdrop-blur supports-[backdrop-filter]:bg-background/85"
+>
   <div class="mx-auto max-w-6xl px-6 sm:px-10">
     <div class="flex min-h-14 items-center gap-4">
       <a
@@ -88,7 +95,16 @@ const categories = CATEGORY_ORDER.map((category) => ({
           </div>
         </details>
 
-        <a href="/buscar" class={navLinkClasses(activeSection === 'search')}>Buscar</a>
+        <button
+          type="button"
+          data-search-toggle
+          data-search-open={isSearchOpen ? 'true' : 'false'}
+          aria-controls="site-search-panel"
+          aria-expanded={isSearchOpen ? 'true' : 'false'}
+          class={navActionClasses}
+        >
+          Buscar
+        </button>
       </nav>
 
       <div class="ml-auto flex items-center gap-2">
@@ -97,7 +113,7 @@ const categories = CATEGORY_ORDER.map((category) => ({
         <button
           id="subscribe-open-btn"
           data-subscribe-open
-          class="inline-flex items-center border border-link px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-background"
+          class="inline-flex h-9 items-center border border-link px-3 font-mono text-[0.55rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-background"
         >
           Assinar
         </button>
@@ -113,7 +129,16 @@ const categories = CATEGORY_ORDER.map((category) => ({
           <a href="/" class={navLinkClasses(activeSection === 'home')}>Início</a>
           <a href="/archive" class={navLinkClasses(activeSection === 'editions')}>Edições</a>
           <a href="/articles" class={navLinkClasses(activeSection === 'articles')}>Artigos</a>
-          <a href="/buscar" class={navLinkClasses(activeSection === 'search')}>Buscar</a>
+          <button
+            type="button"
+            data-search-toggle
+            data-search-open={isSearchOpen ? 'true' : 'false'}
+            aria-controls="site-search-panel"
+            aria-expanded={isSearchOpen ? 'true' : 'false'}
+            class={navActionClasses}
+          >
+            Buscar
+          </button>
         </nav>
 
         <details class="relative shrink-0">
@@ -148,5 +173,110 @@ const categories = CATEGORY_ORDER.map((category) => ({
         </details>
       </div>
     </div>
+
+    <div
+      id="site-search-panel"
+      data-search-panel
+      data-open={isSearchOpen ? 'true' : 'false'}
+      aria-hidden={isSearchOpen ? 'false' : 'true'}
+      class="site-search-panel border-t border-foreground/10"
+    >
+      <div class="site-search-panel__inner">
+        <div class="py-4 sm:py-5">
+          <form
+            method="get"
+            action="/"
+            class="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4"
+            data-nav-search-form
+            data-astro-reload
+          >
+            <label class="relative flex-1">
+              <span class="sr-only">Buscar no acervo</span>
+              <svg
+                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+              <input
+                type="search"
+                name="q"
+                value={initialSearchQuery}
+                autocomplete="off"
+                enterkeyhint="search"
+                placeholder="Busque temas, fontes ou edições"
+                class="h-11 w-full border border-foreground/20 bg-background px-4 pl-10 text-sm font-mono placeholder:text-muted-foreground transition-colors focus:border-link focus:outline-none"
+                data-nav-search-input
+              />
+            </label>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="submit"
+                class="inline-flex h-11 items-center justify-center border border-link px-5 font-mono text-[0.58rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-white"
+              >
+                Buscar
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-11 items-center justify-center border border-foreground/15 px-4 font-mono text-[0.58rem] uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                data-search-close
+              >
+                Fechar
+              </button>
+            </div>
+          </form>
+
+          <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+            <p class="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
+              Busca por trechos · 1+ caractere · resultado instantâneo.
+            </p>
+            <p
+              class="hidden font-mono text-[0.55rem] uppercase tracking-[0.2em] text-link"
+              data-nav-search-meta
+            ></p>
+          </div>
+
+          <div
+            class="scrollbar-thin mt-4 hidden max-h-[min(60vh,34rem)] space-y-3 overflow-y-auto pr-1"
+            aria-live="polite"
+            data-nav-search-results
+          ></div>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
+
+<style>
+  .site-search-toggle[data-search-open='true'] {
+    border-color: var(--link);
+    color: var(--link);
+  }
+
+  .site-search-panel {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-10px);
+    transition:
+      grid-template-rows 260ms ease,
+      opacity 180ms ease,
+      transform 260ms ease;
+  }
+
+  .site-search-panel[data-open='true'] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .site-search-panel__inner {
+    overflow: hidden;
+  }
+</style>

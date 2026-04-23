@@ -1,9 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Database } from './types'
+import type { Article, Database, Edition } from './types'
 
 export const SEARCH_RESULTS_PER_PAGE = 20
 
-type SearchArticle = Database['public']['Functions']['search_articles']['Returns'][number]
+type SearchArticleRow = Article & {
+  editions: Pick<Edition, 'slug' | 'edition_number' | 'title' | 'published_at' | 'created_at'>
+}
 
 export type SearchResult = {
   id: string
@@ -11,7 +13,7 @@ export type SearchResult = {
   title: string
   summary: string
   excerpt: string
-  category: SearchArticle['category']
+  category: Article['category']
   primarySource: string
   sourceCount: number
   edition: {
@@ -34,7 +36,7 @@ function normalizePage(value: number | null | undefined): number {
   return Number.isFinite(value) && Number(value) > 0 ? Math.floor(Number(value)) : 1
 }
 
-function buildExcerpt(article: SearchArticle): string {
+function buildExcerpt(article: Pick<Article, 'content_ptbr' | 'summary_ptbr'>): string {
   const content = article.content_ptbr?.trim()
   if (content) {
     return content.replace(/\s+/g, ' ').slice(0, 180)
@@ -45,13 +47,17 @@ function buildExcerpt(article: SearchArticle): string {
 
 export async function searchArticles(
   supabase: SupabaseClient<Database>,
-  options: { query: string; page?: number; perPage?: number },
+  options: { query: string; page?: number; perPage?: number }
 ): Promise<SearchResponse> {
-  const query = options.query.trim().toLowerCase()
+  const query = options.query.trim()
   const perPage = normalizePage(options.perPage ?? SEARCH_RESULTS_PER_PAGE)
   const page = normalizePage(options.page)
+  const sanitized = query
+    .replace(/[,()\\%_]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 
-  if (query.length < 2) {
+  if (sanitized.length < 1) {
     return {
       results: [],
       page: 1,
@@ -61,17 +67,30 @@ export async function searchArticles(
   }
 
   const offset = (page - 1) * perPage
-  const { data, error } = await supabase.rpc('search_articles', {
-    search_query: query,
-    result_limit: perPage + 1,
-    result_offset: offset,
-  })
+  const pattern = `%${sanitized}%`
+  const orFilter = [
+    `title.ilike.${pattern}`,
+    `title_ptbr.ilike.${pattern}`,
+    `summary_ptbr.ilike.${pattern}`,
+    `content_ptbr.ilike.${pattern}`,
+    `category.ilike.${pattern}`,
+    `primary_source_label.ilike.${pattern}`,
+  ].join(',')
+  const { data, error } = await supabase
+    .from('articles')
+    .select('*, editions!inner(slug, edition_number, title, published_at, created_at)')
+    .eq('status', 'active')
+    .not('editions.published_at', 'is', null)
+    .or(orFilter)
+    .order('source_published_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + perPage)
 
   if (error) {
     throw new Error(`[search] ${error.message}`)
   }
 
-  const rows = (data ?? []) as SearchArticle[]
+  const rows = (data ?? []) as unknown as SearchArticleRow[]
   const hasMore = rows.length > perPage
   const results = rows.slice(0, perPage).map((article) => ({
     id: article.id,
@@ -83,11 +102,11 @@ export async function searchArticles(
     primarySource: article.primary_source_label ?? article.source,
     sourceCount: article.source_count,
     edition: {
-      slug: article.edition_slug,
-      edition_number: article.edition_number,
-      title: article.edition_title,
-      published_at: article.edition_published_at,
-      created_at: article.edition_created_at,
+      slug: article.editions.slug,
+      edition_number: article.editions.edition_number,
+      title: article.editions.title,
+      published_at: article.editions.published_at,
+      created_at: article.editions.created_at,
     },
   }))
 

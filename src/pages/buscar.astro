@@ -1,160 +1,21 @@
 ---
-import Layout from '@/layouts/Layout.astro'
-import CompactMasthead from '@/components/CompactMasthead.astro'
-import PageFooterNav from '@/components/PageFooterNav.astro'
-import { formatEditionNumber } from '@/lib/date'
-import { SITE_NAME } from '@/lib/config'
-import { SEARCH_RESULTS_PER_PAGE, searchArticles } from '@/lib/search'
-import { createServerClient } from '@/lib/supabase'
-
 const rawQuery = Astro.url.searchParams.get('q')?.trim() ?? ''
 const requestedPage = Number(Astro.url.searchParams.get('page') ?? '1')
 const currentPage =
   Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1
 
-const canonicalUrl = rawQuery
-  ? `/buscar?q=${encodeURIComponent(rawQuery)}${currentPage > 1 ? `&page=${currentPage}` : ''}`
-  : '/buscar'
+const params = new URLSearchParams()
 
-const supabase = createServerClient()
-const searchState = await searchArticles(supabase, { query: rawQuery, page: currentPage })
+if (rawQuery) {
+  params.set('q', rawQuery)
+}
 
-const pageHref = (value: number) =>
-  value <= 1
-    ? `/buscar?q=${encodeURIComponent(rawQuery)}`
-    : `/buscar?q=${encodeURIComponent(rawQuery)}&page=${value}`
+if (currentPage > 1) {
+  params.set('searchPage', String(currentPage))
+}
+
+return new Response(null, {
+  status: 302,
+  headers: { Location: params.toString() ? `/?${params.toString()}` : '/' },
+})
 ---
-
-<Layout
-  title={rawQuery ? `Buscar "${rawQuery}" — ${SITE_NAME}` : `Buscar — ${SITE_NAME}`}
-  description={`Busque artigos, temas e edições no acervo do ${SITE_NAME}.`}
-  canonicalUrl={canonicalUrl}
-  robots="noindex,follow"
->
-  <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-4xl px-6 py-10 sm:px-10">
-
-      <CompactMasthead right="Buscar" />
-
-      <header class="mb-8">
-        <p class="mb-3 font-mono text-[0.6rem] uppercase tracking-widest text-muted-foreground">
-          Busca no acervo
-        </p>
-        <h1 class="font-serif text-4xl font-bold tracking-tight">
-          Encontre temas, fontes e edições
-        </h1>
-      </header>
-
-      <form method="get" action="/buscar" class="mb-8 border border-foreground/15 p-4 sm:p-5">
-        <div class="flex flex-col gap-3 sm:flex-row">
-          <label class="relative flex-1">
-            <span class="sr-only">Buscar no acervo</span>
-            <svg
-              class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-            <input
-              type="search"
-              name="q"
-              value={rawQuery}
-              placeholder="Ex.: React, observabilidade, segurança"
-              class="w-full border border-foreground/20 bg-background px-4 py-3 pl-10 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-link transition-colors"
-            />
-          </label>
-
-          <button
-            type="submit"
-            class="border border-link px-5 py-3 font-mono text-[0.58rem] font-bold uppercase tracking-[0.24em] text-link transition-colors hover:bg-link hover:text-white"
-          >
-            Buscar
-          </button>
-        </div>
-
-        <p class="mt-3 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
-          {SEARCH_RESULTS_PER_PAGE} resultados por página.
-        </p>
-      </form>
-
-      {!rawQuery ? (
-        <div class="border-y border-foreground/10 py-12 text-center">
-          <p class="font-mono text-[0.6rem] uppercase tracking-widest text-muted-foreground">
-            Digite um tema para começar
-          </p>
-        </div>
-      ) : rawQuery.length < 2 ? (
-        <div class="border-y border-foreground/10 py-12 text-center">
-          <p class="font-mono text-[0.6rem] uppercase tracking-widest text-muted-foreground">
-            Use pelo menos 2 caracteres.
-          </p>
-        </div>
-      ) : searchState.results.length > 0 ? (
-        <>
-          <div class="mb-6 flex flex-wrap items-baseline justify-between gap-3 border-b border-foreground/10 pb-4">
-            <p class="font-mono text-[0.6rem] uppercase tracking-widest text-muted-foreground">
-              {searchState.results.length} resultado{searchState.results.length === 1 ? '' : 's'} para "{rawQuery}"
-            </p>
-            <p class="font-mono text-[0.6rem] uppercase tracking-widest text-link">
-              Página {searchState.page}
-            </p>
-          </div>
-
-          <div class="space-y-4">
-            {searchState.results.map((result) => (
-              <a
-                href={`/edicao/${result.edition.slug}/${result.slug}`}
-                class="block border border-foreground/10 p-5 transition-colors hover:border-link/40"
-              >
-                <div class="mb-2 flex flex-wrap items-center gap-2 font-mono text-[0.55rem] uppercase tracking-widest text-muted-foreground">
-                  <span class="text-link">#{formatEditionNumber(result.edition.edition_number)}</span>
-                  <span>{result.category}</span>
-                  <span>&middot;</span>
-                  <span>{result.sourceCount > 1 ? `${result.sourceCount} fontes` : result.primarySource}</span>
-                </div>
-
-                <h2 class="mb-2 font-serif text-2xl font-bold leading-snug tracking-tight">
-                  {result.title}
-                </h2>
-                <p class="mb-2 text-sm leading-relaxed text-foreground/75">{result.summary}</p>
-                <p class="text-sm leading-relaxed text-foreground/55">{result.excerpt}</p>
-              </a>
-            ))}
-          </div>
-
-          {(searchState.hasPrevious || searchState.hasMore) && (
-            <div class="mt-8 flex items-center justify-center gap-4 font-mono text-[0.6rem] uppercase tracking-widest">
-              {searchState.hasPrevious ? (
-                <a href={pageHref(searchState.page - 1)} class="text-muted-foreground transition-colors hover:text-foreground">
-                  &larr; Anterior
-                </a>
-              ) : (
-                <span class="text-muted-foreground/40">&larr; Anterior</span>
-              )}
-              <span class="text-muted-foreground">Página {searchState.page}</span>
-              {searchState.hasMore ? (
-                <a href={pageHref(searchState.page + 1)} class="text-link transition-opacity hover:opacity-70">
-                  Próxima &rarr;
-                </a>
-              ) : (
-                <span class="text-muted-foreground/40">Próxima &rarr;</span>
-              )}
-            </div>
-          )}
-        </>
-      ) : (
-        <div class="border-y border-foreground/10 py-12 text-center">
-          <p class="font-mono text-[0.6rem] uppercase tracking-widest text-muted-foreground">
-            Nenhum resultado para "{rawQuery}".
-          </p>
-        </div>
-      )}
-
-      <PageFooterNav leftLabel="← Início" leftHref="/" rightLabel="Todos os artigos →" rightHref="/articles" />
-
-    </div>
-  </div>
-</Layout>

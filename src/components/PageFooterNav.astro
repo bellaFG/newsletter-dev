@@ -6,10 +6,10 @@ interface Props {
   leftLabel: string
   leftHref: string
   rightLabel?: string
-  rightHref?: string
+  rightHref?: string | null
 }
 
-const { leftLabel, leftHref, rightLabel = 'Todas as edições →', rightHref = '/archive' } = Astro.props
+const { leftLabel, leftHref, rightLabel, rightHref } = Astro.props
 ---
 
 <footer class="border-t border-foreground/20 pt-8 mt-8 flex items-center justify-between">
@@ -19,7 +19,7 @@ const { leftLabel, leftHref, rightLabel = 'Todas as edições →', rightHref = 
   >
     {leftLabel}
   </a>
-  {rightHref && (
+  {rightHref && rightLabel && (
     <a
       href={rightHref}
       class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"

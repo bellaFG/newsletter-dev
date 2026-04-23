@@ -16,6 +16,7 @@ ArticleCategory = Literal[
 ]
 CollectorType = Literal["rss", "reddit", "github_trending"]
 StoryKind = Literal["lead", "secondary", "brief"]
+EstimatedDepth = Literal["raso", "medio", "profundo"]
 
 
 class RawArticle(BaseModel):
@@ -73,6 +74,8 @@ class AICurationCandidateTopic(BaseModel):
     impact_score: int = Field(ge=1, le=10)
     novelty_score: int = Field(ge=1, le=10)
     developer_urgency_score: int = Field(ge=1, le=10)
+    adversarial_notes_ptbr: str | None = None
+    estimated_depth: EstimatedDepth | None = None
     why_it_matters_ptbr: str
     critical_question_ptbr: str
 
@@ -95,7 +98,7 @@ class AICurationPlanStory(BaseModel):
     why_it_matters_ptbr: str
     editorial_angle_ptbr: str
     must_include_facts: list[str] = Field(default_factory=list)
-    target_paragraphs: int = Field(ge=1, le=4)
+    target_paragraphs: int = Field(ge=3, le=6)
     original_language: str = "en"
 
 

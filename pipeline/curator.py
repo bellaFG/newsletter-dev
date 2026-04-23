@@ -1,4 +1,5 @@
 import os
+import re
 from collections import Counter
 from time import monotonic
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
@@ -7,6 +8,7 @@ from openai import OpenAI
 from loguru import logger
 
 from pipeline.article_reader import enrich_articles
+from pipeline.editorial_rules import PARAGRAPH_LIMITS_BY_KIND, WORD_LIMITS_BY_KIND
 from pipeline.models import (
     AICurationPlanOutput,
     AITriageOutput,
@@ -32,7 +34,7 @@ EDITOR_REASONING = os.getenv("OPENAI_CURATION_EDITOR_REASONING", "medium")
 WRITER_MODEL = os.getenv("OPENAI_CURATION_WRITER_MODEL", "gpt-5.4-mini")
 WRITER_REASONING = os.getenv("OPENAI_CURATION_WRITER_REASONING", "low")
 MAX_RETRIES = int(os.getenv("OPENAI_CURATION_MAX_RETRIES", "3"))
-MAX_SOURCE_TEXT_CHARS = int(os.getenv("OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS", "3000"))
+MAX_SOURCE_TEXT_CHARS = int(os.getenv("OPENAI_CURATION_SOURCE_TEXT_MAX_CHARS", "6000"))
 MAX_SNIPPET_CHARS = int(os.getenv("OPENAI_CURATION_SNIPPET_MAX_CHARS", "420"))
 OPENAI_REQUEST_TIMEOUT_SECONDS = float(
     os.getenv("OPENAI_CURATION_REQUEST_TIMEOUT_SECONDS", "180")
@@ -190,6 +192,15 @@ def _validate_triage(output: AITriageOutput, indexed_articles: dict[int, RawArti
         if len(source_ids) > 6:
             raise ValueError("Triagem excedeu o limite de 6 fontes por tema")
 
+        if not (topic.adversarial_notes_ptbr or "").strip():
+            raise ValueError("Triagem precisa preencher adversarial_notes_ptbr")
+        if topic.estimated_depth is None:
+            raise ValueError("Triagem precisa preencher estimated_depth")
+        if topic.estimated_depth == "raso":
+            raise ValueError(
+                f"Triagem retornou topico raso que deveria ter sido cortado: {topic.canonical_topic}"
+            )
+
         for source_id in source_ids:
             if source_id not in indexed_articles:
                 raise ValueError(f"Triagem retornou source_id inexistente: {source_id}")
@@ -229,8 +240,12 @@ def _validate_plan(plan: AICurationPlanOutput, indexed_articles: dict[int, RawAr
             raise ValueError("Cada história precisa usar entre 1 e 5 fontes")
         if story.primary_source_id not in source_ids:
             raise ValueError("primary_source_id precisa estar dentro de source_ids")
-        if story.target_paragraphs < 1 or story.target_paragraphs > 4:
-            raise ValueError("target_paragraphs fora do intervalo esperado")
+        min_paragraphs, max_paragraphs = PARAGRAPH_LIMITS_BY_KIND[story.story_kind]
+        if not min_paragraphs <= story.target_paragraphs <= max_paragraphs:
+            raise ValueError(
+                f"target_paragraphs incompatível com story_kind={story.story_kind}: "
+                f"recebeu {story.target_paragraphs}, esperado {min_paragraphs}-{max_paragraphs}"
+            )
         if not story.editorial_angle_ptbr.strip() or not story.why_it_matters_ptbr.strip():
             raise ValueError("Plano editorial sem angulo editorial suficiente")
         if not story.must_include_facts:
@@ -251,6 +266,11 @@ def _validate_writing_output(writing: AIWritingOutput, plan: AICurationPlanOutpu
     if len(writing.stories) != len(plan.stories):
         raise ValueError("Writer retornou quantidade de histórias diferente do plano")
 
+    planned_by_topic = {
+        story.canonical_topic.strip().lower(): story
+        for story in plan.stories
+    }
+
     for story in writing.stories:
         topic_key = story.canonical_topic.strip().lower()
         if topic_key not in expected_topics:
@@ -261,6 +281,36 @@ def _validate_writing_output(writing: AIWritingOutput, plan: AICurationPlanOutpu
 
         if not story.summary_ptbr.strip() or not story.content_ptbr.strip():
             raise ValueError("Writer retornou historia sem summary ou content")
+
+        planned_story = planned_by_topic[topic_key]
+        min_words, max_words = WORD_LIMITS_BY_KIND[planned_story.story_kind]
+        word_count = _count_words(story.content_ptbr)
+        if not min_words <= word_count <= max_words:
+            raise ValueError(
+                f"Writer retornou {word_count} palavras para story_kind={planned_story.story_kind} "
+                f"em {story.canonical_topic}; esperado {min_words}-{max_words}"
+            )
+
+        paragraphs = _split_paragraphs(story.content_ptbr)
+        min_paragraphs, max_paragraphs = PARAGRAPH_LIMITS_BY_KIND[planned_story.story_kind]
+        paragraph_count = len(paragraphs)
+        if not min_paragraphs <= paragraph_count <= max_paragraphs:
+            raise ValueError(
+                f"Writer retornou {paragraph_count} paragrafos para story_kind={planned_story.story_kind} "
+                f"em {story.canonical_topic}; esperado {min_paragraphs}-{max_paragraphs}"
+            )
+
+
+def _count_words(value: str) -> int:
+    return len(re.findall(r"[^\W_]+(?:[-'][^\W_]+)?", value, flags=re.UNICODE))
+
+
+def _split_paragraphs(value: str) -> list[str]:
+    return [
+        paragraph.strip()
+        for paragraph in re.split(r"\n\s*\n", value.strip())
+        if paragraph.strip()
+    ]
 
 
 def _build_articles_payload(indexed_articles: dict[int, RawArticle], *, include_full_text: bool) -> list[dict]:

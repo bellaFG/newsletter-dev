@@ -20,6 +20,7 @@ from pipeline.storage import (
 
 MIN_READY_STORIES = 5
 MAX_READY_STORIES = 8
+DEFAULT_SITE_URL = "https://newsletter-dev.vercel.app"
 
 
 def slugify(text: str, max_length: int = 80) -> str:
@@ -106,7 +107,7 @@ def ensure_draft_edition(supabase, slug: str) -> dict:
 
 
 def trigger_newsletter_delivery(edition_id: str) -> dict:
-    web_url = os.environ.get("SITE_URL", "http://localhost:4321")
+    web_url = os.environ.get("SITE_URL", DEFAULT_SITE_URL).rstrip("/")
     api_secret = os.environ["NEWSLETTER_API_SECRET"]
 
     try:

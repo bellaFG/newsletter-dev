@@ -80,7 +80,12 @@ const encodedTitle = encodeURIComponent(title)
     })
   }
 
-  document.querySelectorAll('[data-share-root]').forEach((root) => {
-    initShare(root)
-  })
+  function bindShareButtons() {
+    document.querySelectorAll('[data-share-root]').forEach((root) => {
+      initShare(root)
+    })
+  }
+
+  bindShareButtons()
+  document.addEventListener('astro:page-load', bindShareButtons)
 </script>

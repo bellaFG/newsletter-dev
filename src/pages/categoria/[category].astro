@@ -1,6 +1,5 @@
 ---
 import Layout from '@/layouts/Layout.astro'
-import CategoryNav from '@/components/CategoryNav.astro'
 import PageFooterNav from '@/components/PageFooterNav.astro'
 import { getEditionDisplayDate } from '@/lib/editions'
 import { supabase } from '@/lib/supabase'
@@ -32,8 +31,6 @@ const articles = (articlesData ?? []) as unknown as ArticleWithEdition[]
 <Layout title={`${categoryName} — ${SITE_NAME}`} description={`Artigos sobre ${categoryName} no ${SITE_NAME}`}>
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
-
-      <CategoryNav mode="pills" active={categoryName} />
 
       <header class="mb-8">
         <h1 class="font-serif text-3xl sm:text-4xl font-black tracking-tight mb-2">
@@ -77,7 +74,7 @@ const articles = (articlesData ?? []) as unknown as ArticleWithEdition[]
         </p>
       )}
 
-      <PageFooterNav leftLabel="← Início" leftHref="/" />
+      <PageFooterNav leftLabel="← Início" leftHref="/" rightHref={null} />
 
     </div>
   </div>

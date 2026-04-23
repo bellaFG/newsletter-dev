@@ -3,7 +3,11 @@
  * Usado pelas paginas de edicao ([slug].astro) e pelo template de email (NewsletterEmail.tsx).
  */
 
-import type { Article, ArticleCategory, ArticleSource } from './types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Article, ArticleCategory, ArticleSource, Edition } from './types'
+import type { Database } from './types'
+import { getEditionDisplayDate } from './editions'
+import { formatRelativeTime } from './date'
 
 /** Gera um slug URL-safe a partir de texto (mesma logica do Python publisher) */
 export function slugify(text: string, maxLength = 80): string {
@@ -127,4 +131,78 @@ export function getArticleRecencyDate(
   article: Pick<Article, 'source_published_at' | 'created_at'>
 ): string {
   return article.source_published_at ?? article.created_at
+}
+
+type ArticleWithEditionDisplayDate = Pick<Article, 'position'> & {
+  editions: Pick<Edition, 'published_at' | 'created_at'>
+}
+
+export type PublishedArticleWithEdition = Article & {
+  editions: Pick<Edition, 'slug' | 'edition_number' | 'title' | 'published_at' | 'created_at'>
+}
+
+export type PaginatedArticleCard = {
+  href: string
+  title: string
+  summary: string
+  primarySourceLabel: string
+  sourceCount: number
+  readingTimeMin: number | null
+  recencyLabel: string
+}
+
+export function sortArticlesByEditionDisplayDate<T extends ArticleWithEditionDisplayDate>(
+  articles: T[]
+): T[] {
+  return [...articles].sort((a, b) => {
+    const editionDateA = getEditionDisplayDate(a.editions)
+    const editionDateB = getEditionDisplayDate(b.editions)
+    const editionTimeDiff = new Date(editionDateB).getTime() - new Date(editionDateA).getTime()
+    if (editionTimeDiff !== 0) return editionTimeDiff
+
+    return (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER)
+  })
+}
+
+export async function listPublishedArticles(
+  client: SupabaseClient<Database>
+): Promise<PublishedArticleWithEdition[]> {
+  const { data } = await client
+    .from('articles')
+    .select('*, editions!inner(slug, edition_number, title, published_at, created_at)')
+    .eq('status', 'active')
+    .not('editions.published_at', 'is', null)
+    .order('source_published_at', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+
+  return sortArticlesByEditionDisplayDate(
+    (data ?? []) as unknown as PublishedArticleWithEdition[]
+  )
+}
+
+export function paginateItems<T>(items: T[], requestedPage: number, perPage: number) {
+  const normalizedPerPage =
+    Number.isFinite(perPage) && perPage > 0 ? Math.floor(perPage) : 1
+  const normalizedRequestedPage =
+    Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1
+  const totalPages = Math.max(1, Math.ceil(items.length / normalizedPerPage))
+  const page = Math.min(normalizedRequestedPage, totalPages)
+
+  return {
+    page,
+    totalPages,
+    items: items.slice((page - 1) * normalizedPerPage, page * normalizedPerPage),
+  }
+}
+
+export function serializeArticleCard(article: PublishedArticleWithEdition): PaginatedArticleCard {
+  return {
+    href: `/edicao/${article.editions.slug}/${article.slug}`,
+    title: article.title_ptbr ?? article.title,
+    summary: article.summary_ptbr,
+    primarySourceLabel: getPrimarySource(article).label,
+    sourceCount: article.source_count,
+    readingTimeMin: article.reading_time_min,
+    recencyLabel: formatRelativeTime(getArticleRecencyDate(article)),
+  }
 }

@@ -1,5 +1,6 @@
 ---
 import '@/styles/globals.css'
+import { ClientRouter } from 'astro:transitions'
 import AnnouncementBanner from '@/components/AnnouncementBanner.astro'
 import SiteNav from '@/components/SiteNav.astro'
 import { SITE_NAME, SITE_DESCRIPTION, normalizePublicSiteUrl } from '@/lib/config'
@@ -34,19 +35,18 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+    <ClientRouter />
     <title>{title}</title>
     <meta name="description" content={description} />
     {robots && <meta name="robots" content={robots} />}
     <link rel="canonical" href={canonicalHref} />
     <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} RSS`} href={`${siteUrl}/rss.xml`} />
-    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content={socialTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonicalHref} />
     <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:locale" content="pt_BR" />
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content={socialTitle} />
     <meta name="twitter:description" content={description} />
@@ -56,15 +56,15 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
       rel="stylesheet"
     />
-    <!-- Anti-FOUC: aplica tema antes do render -->
     <script is:inline>
       // Deve corresponder a THEME_STORAGE_KEY em lib/config.ts
       ;(function () {
+        document.documentElement.dataset.routeReady = 'true'
         const saved = localStorage.getItem('devpulse-theme')
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        if (saved === 'dark' || (!saved && prefersDark)) {
-          document.documentElement.classList.add('dark')
-        }
+        const isDark = saved === 'dark' || (!saved && prefersDark)
+        document.documentElement.classList.toggle('dark', isDark)
+        document.documentElement.style.colorScheme = isDark ? 'dark' : 'light'
       })()
     </script>
   </head>
@@ -80,33 +80,27 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
         </div>
       )}
 
-      <main id="main-content" tabindex="-1">
+      <main id="main-content" tabindex="-1" transition:animate="fade">
         <slot />
       </main>
 
-      <!-- Footer -->
       <footer class="border-t border-foreground/10 py-6 text-center font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground">
         &copy; {new Date().getFullYear()} {SITE_NAME}. Todos os direitos reservados.
       </footer>
     </div>
 
-    <!-- Modal de assinatura -->
     <div id="subscribe-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <!-- Overlay -->
-      <div id="subscribe-overlay" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 transition-opacity duration-300"></div>
-      <!-- Card -->
-      <div class="flex items-center justify-center min-h-full p-4">
-        <div id="subscribe-card" class="relative bg-background border-2 border-foreground/20 w-full max-w-md p-8 sm:p-10 translate-y-4 opacity-0 transition-all duration-300">
-          <!-- Fechar -->
-          <button id="subscribe-close-btn" class="absolute top-4 right-4 font-mono text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer" aria-label="Fechar">
+      <div id="subscribe-overlay" class="absolute inset-0 bg-black/60 opacity-0 backdrop-blur-sm transition-opacity duration-300"></div>
+      <div class="flex min-h-full items-center justify-center p-4">
+        <div id="subscribe-card" class="relative w-full max-w-md translate-y-4 border-2 border-foreground/20 bg-background p-8 opacity-0 transition-all duration-300 sm:p-10">
+          <button id="subscribe-close-btn" class="absolute right-4 top-4 cursor-pointer font-mono text-xs text-muted-foreground transition-colors hover:text-foreground" aria-label="Fechar">
             &times;
           </button>
 
-          <!-- Conteudo do form -->
           <div id="subscribe-form-content">
-            <div class="text-center mb-6">
-              <div class="border-b-2 border-double border-foreground/30 pb-3 mb-4">
-                <p id="modal-title" class="font-serif text-2xl sm:text-3xl font-black tracking-tight uppercase">
+            <div class="mb-6 text-center">
+              <div class="mb-4 border-b-2 border-double border-foreground/30 pb-3">
+                <p id="modal-title" class="font-serif text-2xl font-black uppercase tracking-tight sm:text-3xl">
                   {SITE_NAME}
                 </p>
               </div>
@@ -115,7 +109,7 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
               </p>
             </div>
 
-            <form id="subscribe-form" class="space-y-3">
+            <form id="subscribe-form" class="space-y-3" data-astro-reload>
               <label class="sr-only" aria-hidden="true">
                 Não preencha este campo
                 <input
@@ -131,30 +125,29 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
                 name="email"
                 placeholder="seu@email.com"
                 required
-                class="w-full border-2 border-foreground/20 bg-background px-4 py-3 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-foreground transition-colors"
+                class="w-full border-2 border-foreground/20 bg-background px-4 py-3 text-sm font-mono placeholder:text-muted-foreground transition-colors focus:border-foreground focus:outline-none"
               />
               <button
                 type="submit"
                 data-subscribe-submit
-                class="w-full bg-link text-white font-mono text-[0.6rem] tracking-widest uppercase px-8 py-3 hover:opacity-75 transition-opacity cursor-pointer font-bold"
+                class="w-full bg-link px-8 py-3 font-mono text-[0.6rem] font-bold uppercase tracking-widest text-white transition-opacity hover:opacity-75"
               >
                 Assinar gratuitamente
               </button>
             </form>
-            <p id="subscribe-msg" class="mt-3 text-sm font-mono text-center hidden" aria-live="polite" role="status"></p>
-            <p class="mt-4 text-center text-[0.65rem] text-muted-foreground font-mono">
+            <p id="subscribe-msg" class="mt-3 hidden text-center text-sm font-mono" aria-live="polite" role="status"></p>
+            <p class="mt-4 text-center font-mono text-[0.65rem] text-muted-foreground">
               Gratuito, sem spam. Cancele quando quiser.
             </p>
           </div>
 
-          <!-- Estado de sucesso -->
-          <div id="subscribe-success" class="hidden text-center py-4">
+          <div id="subscribe-success" class="hidden py-4 text-center">
             <div class="mb-4">
-              <svg class="mx-auto w-12 h-12 text-foreground animate-[checkmark_0.4s_ease-in-out]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg class="mx-auto h-12 w-12 animate-[checkmark_0.4s_ease-in-out] text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path class="[stroke-dasharray:24] [stroke-dashoffset:24] animate-[dash_0.5s_0.2s_ease-out_forwards]" d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
-            <p class="font-serif text-xl font-bold mb-2">Inscrito com sucesso!</p>
+            <p class="mb-2 font-serif text-xl font-bold">Inscrito com sucesso!</p>
             <p class="text-sm text-muted-foreground">Ate segunda-feira no seu inbox.</p>
           </div>
         </div>
@@ -162,213 +155,8 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
     </div>
 
     <script>
-      // ── Modal de assinatura ──────────────────────────────────────────────
-      ;(function () {
-        const modal = document.getElementById('subscribe-modal')
-        const overlay = document.getElementById('subscribe-overlay')
-        const card = document.getElementById('subscribe-card')
-        const pageShell = document.getElementById('page-shell')
-        const openBtns = document.querySelectorAll('[data-subscribe-open], #subscribe-open-btn')
-        const closeBtn = document.getElementById('subscribe-close-btn')
-        const form = document.getElementById('subscribe-form') as HTMLFormElement | null
-        const msg = document.getElementById('subscribe-msg')
-        const formContent = document.getElementById('subscribe-form-content')
-        const successContent = document.getElementById('subscribe-success')
-        const submitBtn = document.querySelector('[data-subscribe-submit]') as HTMLButtonElement | null
-        let lastFocusedElement: HTMLElement | null = null
-        let closeTimer = 0
-
-        const EMAIL_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/
-
-        function isModalOpen() {
-          return Boolean(modal && !modal.classList.contains('hidden'))
-        }
-
-        function setPageInert(isInert: boolean) {
-          if (!(pageShell instanceof HTMLElement)) return
-
-          if (isInert) {
-            pageShell.setAttribute('inert', '')
-            pageShell.setAttribute('aria-hidden', 'true')
-          } else {
-            pageShell.removeAttribute('inert')
-            pageShell.removeAttribute('aria-hidden')
-          }
-        }
-
-        function getFocusableElements() {
-          if (!(card instanceof HTMLElement)) return []
-
-          return Array.from(
-            card.querySelectorAll<HTMLElement>(
-              'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
-            ),
-          ).filter((element) => {
-            if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') {
-              return false
-            }
-
-            if (element.tabIndex < 0) {
-              return false
-            }
-
-            if (
-              element instanceof HTMLInputElement &&
-              (element.type === 'hidden' || element.name === 'website')
-            ) {
-              return false
-            }
-
-            return true
-          })
-        }
-
-        function resetModalState() {
-          form?.reset()
-          formContent?.classList.remove('hidden')
-          successContent?.classList.add('hidden')
-          submitBtn?.removeAttribute('disabled')
-
-          if (msg) {
-            msg.textContent = ''
-            msg.className = 'mt-3 text-sm font-mono text-center hidden'
-          }
-        }
-
-        function openModal(event?: Event) {
-          if (!modal || !overlay || !card) return
-          window.clearTimeout(closeTimer)
-          lastFocusedElement = (event?.currentTarget as HTMLElement | null) ?? (document.activeElement as HTMLElement | null)
-          resetModalState()
-          modal.classList.remove('hidden')
-          document.body.classList.add('overflow-hidden')
-          setPageInert(true)
-          requestAnimationFrame(() => {
-            overlay.classList.remove('opacity-0')
-            overlay.classList.add('opacity-100')
-            card.classList.remove('translate-y-4', 'opacity-0')
-            card.classList.add('translate-y-0', 'opacity-100')
-            ;(form?.elements.namedItem('email') as HTMLInputElement | null)?.focus()
-          })
-        }
-
-        function closeModal() {
-          if (!modal || !overlay || !card) return
-          overlay.classList.remove('opacity-100')
-          overlay.classList.add('opacity-0')
-          card.classList.remove('translate-y-0', 'opacity-100')
-          card.classList.add('translate-y-4', 'opacity-0')
-          closeTimer = window.setTimeout(() => {
-            modal.classList.add('hidden')
-            document.body.classList.remove('overflow-hidden')
-            setPageInert(false)
-            lastFocusedElement?.focus()
-          }, 300)
-        }
-
-        openBtns.forEach(btn => btn.addEventListener('click', openModal))
-        closeBtn?.addEventListener('click', closeModal)
-        overlay?.addEventListener('click', closeModal)
-        document.addEventListener('keydown', (e) => {
-          if (!isModalOpen()) return
-
-          if (e.key === 'Escape') {
-            closeModal()
-            return
-          }
-
-          if (e.key !== 'Tab') return
-
-          const focusable = getFocusableElements()
-          if (focusable.length === 0) return
-
-          const first = focusable[0]
-          const last = focusable[focusable.length - 1]
-          const active = document.activeElement
-
-          if (!e.shiftKey && active === last) {
-            e.preventDefault()
-            first?.focus()
-          } else if (e.shiftKey && active === first) {
-            e.preventDefault()
-            last?.focus()
-          }
-        })
-
-        form?.addEventListener('submit', async (e) => {
-          e.preventDefault()
-          const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim().toLowerCase()
-          const website = (form.elements.namedItem('website') as HTMLInputElement | null)?.value ?? ''
-
-          if (!email || !EMAIL_RE.test(email)) {
-            if (msg) {
-              msg.classList.remove('hidden')
-              msg.textContent = 'Digite um email valido.'
-              msg.className = 'mt-3 text-sm font-mono text-center text-destructive'
-            }
-            return
-          }
-
-          submitBtn?.setAttribute('disabled', 'true')
-
-          try {
-            const res = await fetch('/api/subscribe', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, website }),
-            })
-            const data = await res.json()
-
-            if (res.ok) {
-              formContent?.classList.add('hidden')
-              successContent?.classList.remove('hidden')
-            } else {
-              if (msg) {
-                msg.classList.remove('hidden')
-                msg.textContent = data.error ?? 'Erro ao inscrever. Tente novamente.'
-                msg.className = 'mt-3 text-sm font-mono text-center text-destructive'
-              }
-            }
-          } catch {
-            if (msg) {
-              msg.classList.remove('hidden')
-              msg.textContent = 'Erro de conexao. Tente novamente.'
-              msg.className = 'mt-3 text-sm font-mono text-center text-destructive'
-            }
-          } finally {
-            submitBtn?.removeAttribute('disabled')
-          }
-        })
-      })()
-    </script>
-
-    <script>
-      // Deve corresponder a THEME_STORAGE_KEY em lib/config.ts
-      const html = document.documentElement
-      const themeToggle = document.getElementById('theme-toggle')
-      const moonIcon = themeToggle?.querySelector('[data-theme-icon="moon"]')
-      const sunIcon = themeToggle?.querySelector('[data-theme-icon="sun"]')
-      const themeLabel = document.getElementById('theme-label')
-
-      function updateThemeToggle() {
-        const isDark = html.classList.contains('dark')
-
-        moonIcon?.classList.toggle('hidden', isDark)
-        sunIcon?.classList.toggle('hidden', !isDark)
-        themeToggle?.setAttribute('aria-label', isDark ? 'Ativar tema claro' : 'Ativar tema escuro')
-
-        if (themeLabel) {
-          themeLabel.textContent = isDark ? 'Ativar tema claro' : 'Ativar tema escuro'
-        }
-      }
-
-      updateThemeToggle()
-
-      themeToggle?.addEventListener('click', () => {
-        const nowDark = html.classList.toggle('dark')
-        localStorage.setItem('devpulse-theme', nowDark ? 'dark' : 'light')
-        updateThemeToggle()
-      })
+      import '@/scripts/site-shell'
+      import '@/scripts/article-pagination'
     </script>
   </body>
 </html>

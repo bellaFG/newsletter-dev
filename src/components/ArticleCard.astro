@@ -17,7 +17,7 @@ const primarySource = getPrimarySource(article)
 
 <a
   href={href}
-  class="block border border-foreground/10 p-5 hover:border-link/40 transition-colors group"
+  class="group block border border-foreground/10 bg-background/70 p-5 transition-[transform,border-color] duration-300 hover:-translate-y-1 hover:border-link/40"
   data-title={(article.title_ptbr ?? article.title).toLowerCase()}
   data-summary={(article.summary_ptbr ?? '').toLowerCase()}
 >

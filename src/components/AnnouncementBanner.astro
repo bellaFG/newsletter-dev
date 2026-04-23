@@ -148,7 +148,12 @@ const eyebrowLabel = announcement.eyebrow ?? 'Comunicado'
     })
   }
 
-  document.querySelectorAll('[data-announcement-root]').forEach((root) => {
-    initAnnouncement(root)
-  })
+  function bindAnnouncements() {
+    document.querySelectorAll('[data-announcement-root]').forEach((root) => {
+      initAnnouncement(root)
+    })
+  }
+
+  bindAnnouncements()
+  document.addEventListener('astro:page-load', bindAnnouncements)
 </script>
