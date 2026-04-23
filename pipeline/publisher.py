@@ -136,7 +136,7 @@ def trigger_newsletter_delivery(edition_id: str) -> dict:
     return payload
 
 
-def prepare_draft(curation: CurationOutput) -> str:
+def prepare_draft(curation: CurationOutput) -> dict[str, int | str]:
     """
     Prepara o rascunho da edicao do dia no Supabase, sem publicar no site nem enviar emails.
     """
@@ -180,8 +180,14 @@ def prepare_draft(curation: CurationOutput) -> str:
             delete_edition_tree(supabase, edition_id)
         raise
 
-    logger.info(f"[Publisher] Rascunho pronto com {len(articles_payload)} matérias")
-    return edition_id
+    article_count = len(articles_payload)
+    logger.info(f"[Publisher] Rascunho pronto com {article_count} matérias")
+    return {
+        "edition_id": edition_id,
+        "slug": slug,
+        "edition_number": edition["edition_number"],
+        "article_count": article_count,
+    }
 
 
 def assert_draft_ready(slug: str | None = None) -> dict:
@@ -208,10 +214,14 @@ def assert_draft_ready(slug: str | None = None) -> dict:
     logger.info(
         f"[Publisher] Rascunho validado: #{edition['edition_number']} ({slug}) com {article_count} matérias"
     )
-    return edition
+    return {
+        **edition,
+        "article_count": article_count,
+        "slug": slug,
+    }
 
 
-def publish_ready_draft(slug: str | None = None) -> str:
+def publish_ready_draft(slug: str | None = None) -> dict[str, int | str]:
     """
     Publica no site e dispara o envio do email para o rascunho pronto do dia.
     """
@@ -232,20 +242,33 @@ def publish_ready_draft(slug: str | None = None) -> str:
 
     if edition.get("sent_at"):
         logger.info("[Publisher] Newsletter ja enviada anteriormente; nada a fazer")
-        return edition_id
+        return {
+            "edition_id": edition_id,
+            "slug": slug,
+            "edition_number": edition["edition_number"],
+            "article_count": edition["article_count"],
+            "already_sent": "já enviada anteriormente",
+        }
 
     payload = trigger_newsletter_delivery(edition_id)
     logger.info(
         f"[Publisher] Envio concluido: total={payload.get('sent_total', payload.get('sent_now', 0))}, "
         f"novo={payload.get('sent_now', 0)}, ja-entregue={payload.get('already_sent', 0)}"
     )
-    return edition_id
+    return {
+        "edition_id": edition_id,
+        "slug": slug,
+        "edition_number": edition["edition_number"],
+        "article_count": edition["article_count"],
+        "sent_total": payload.get("sent_total", payload.get("sent_now", 0)),
+        "sent_now": payload.get("sent_now", 0),
+        "already_sent": payload.get("already_sent", 0),
+    }
 
 
-def publish(curation: CurationOutput) -> str:
+def publish(curation: CurationOutput) -> dict[str, int | str]:
     """
     Compatibilidade/uso local: prepara o rascunho e publica imediatamente.
     """
-    edition_id = prepare_draft(curation)
-    publish_ready_draft()
-    return edition_id
+    prepare_draft(curation)
+    return publish_ready_draft()

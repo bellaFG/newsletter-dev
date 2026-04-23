@@ -9,7 +9,7 @@ from loguru import logger
 from pipeline.collectors import github_trending, reddit, rss
 from pipeline.curator import curate, normalize_url
 from pipeline.models import CurationOutput, RawArticle
-from pipeline.notifications import build_failure_alert, send_discord_alert
+from pipeline.notifications import build_failure_alert, build_success_alert, send_discord_alert
 from pipeline.publisher import assert_draft_ready, prepare_draft, publish, publish_ready_draft
 from pipeline.storage import create_service_supabase, list_editorial_suppressions
 
@@ -35,6 +35,11 @@ def parse_args() -> argparse.Namespace:
         "--notify-on-failure",
         action="store_true",
         help="Envia alerta ao Discord se o modo falhar",
+    )
+    parser.add_argument(
+        "--notify-on-success",
+        action="store_true",
+        help="Envia alerta ao Discord quando o modo concluir com sucesso",
     )
     parser.add_argument(
         "--dry-run",
@@ -180,19 +185,26 @@ def run(mode: str, *, dry_run: bool = False):
         if dry_run:
             logger.info("[Dry-run] Curadoria concluída; rascunho nao sera salvo no Supabase")
             _log_curation_preview(curation)
-            edition_id = "dry-run"
+            result = {"edition_id": "dry-run"}
         else:
             logger.info("Salvando rascunho preparado no Supabase...")
-            edition_id = prepare_draft(curation)
+            result = prepare_draft(curation)
     elif mode == "check-ready":
         logger.info("Verificando se o rascunho da semana esta pronto...")
         edition = assert_draft_ready()
-        edition_id = edition["id"]
         if dry_run:
             logger.info(
                 f"[Dry-run] Rascunho validado: slug={edition['slug']} "
                 f"edition_number={edition['edition_number']}"
             )
+            result = {"edition_id": edition["id"]}
+        else:
+            result = {
+                "edition_id": edition["id"],
+                "slug": edition["slug"],
+                "edition_number": edition["edition_number"],
+                "article_count": edition["article_count"],
+            }
     elif mode == "publish":
         if dry_run:
             logger.info("Validando publicacao sem alterar banco nem enviar emails...")
@@ -201,30 +213,37 @@ def run(mode: str, *, dry_run: bool = False):
                 f"[Dry-run] Publicaria a edicao {edition['slug']} "
                 f"(#{edition['edition_number']}) e chamaria /api/send-newsletter"
             )
-            edition_id = edition["id"]
+            result = {"edition_id": edition["id"]}
         else:
             logger.info("Publicando rascunho pronto e enviando emails...")
-            edition_id = publish_ready_draft()
+            result = publish_ready_draft()
     else:
         curation = collect_and_curate()
         if dry_run:
             logger.info("[Dry-run] Curadoria concluída; nada sera salvo nem publicado")
             _log_curation_preview(curation)
-            edition_id = "dry-run"
+            result = {"edition_id": "dry-run"}
         else:
             logger.info("Preparando e publicando edicao imediatamente...")
-            edition_id = publish(curation)
+            result = publish(curation)
 
     logger.info("=" * 50)
-    logger.info(f"Pipeline concluído com sucesso! edition_id={edition_id}")
+    logger.info(f"Pipeline concluído com sucesso! edition_id={result['edition_id']}")
     logger.info("=" * 50)
+    return result
 
 
 if __name__ == "__main__":
     args = parse_args()
 
     try:
-        run(args.mode, dry_run=args.dry_run)
+        result = run(args.mode, dry_run=args.dry_run)
+        if args.notify_on_success and not args.dry_run:
+            title, body = build_success_alert(args.mode, result)
+            try:
+                send_discord_alert(title, body)
+            except Exception:
+                logger.exception("Falha ao enviar alerta de sucesso ao Discord")
     except Exception as exc:
         logger.exception(f"Pipeline falhou no modo {args.mode}")
         if args.notify_on_failure:

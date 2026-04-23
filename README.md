@@ -219,8 +219,10 @@ O pipeline roda automaticamente toda segunda-feira via GitHub Actions, mas pode 
 ### Fluxo
 
 1. **Prepare (07:00 BRT)** — Busca artigos, roda triagem + leitura + curadoria e salva um rascunho pronto no Supabase
-2. **Check-ready (07:30 BRT)** — Verifica se a edicao ficou pronta 30 minutos antes da publicacao; se nao, alerta no Discord
+2. **Check-ready (07:30 BRT)** — Verifica se a edicao ficou pronta 30 minutos antes da publicacao
 3. **Publish (08:00 BRT)** — Publica a edicao no site e chama `POST /api/send-newsletter`
+
+Cada etapa pode enviar aviso ao Discord quando conclui com sucesso ou falha, usando o mesmo webhook operacional.
 
 ### Curadoria editorial
 
@@ -251,7 +253,7 @@ Isso melhora a qualidade porque a IA forte deixa de gastar contexto com lixo, re
 | `SUPABASE_SERVICE_ROLE_KEY`             |     Sim     | Web + Pipeline | Chave service role (bypassa RLS)                                                                   |
 | `BREVO_API_KEY`                         |     Sim     | Web            | Chave da API Brevo                                                                                 |
 | `EMAIL_FROM`                            |     Sim     | Web            | Remetente usado no envio via Brevo                                                                 |
-| `DISCORD_ALERT_WEBHOOK_URL`             |     Nao     | Pipeline       | Webhook do Discord para alertas operacionais                                                       |
+| `DISCORD_ALERT_WEBHOOK_URL`             |     Nao     | Pipeline       | Webhook do Discord para avisos do pipeline (prepare, check-ready, publish e falhas)                |
 | `NEWSLETTER_API_SECRET`                 |     Sim     | Web + Pipeline | Token Bearer para `/api/send-newsletter`                                                           |
 | `ADMIN_API_SECRET`                      |     Nao     | Web            | Secret opcional do painel `/admin/announcements`; se ausente, o painel usa `NEWSLETTER_API_SECRET` |
 | `UNSUBSCRIBE_TOKEN_SECRET`              |     Nao     | Web            | Secret opcional para criptografar links de unsubscribe; se ausente, usa `NEWSLETTER_API_SECRET`    |
@@ -293,9 +295,9 @@ Para configurar em um novo projeto:
 
 O workflow `.github/workflows/newsletter.yml` roda automaticamente:
 
-- **07:00 BRT**: prepara o rascunho da edicao da semana
-- **07:30 BRT**: verifica se o rascunho esta pronto e alerta no Discord se nao estiver
-- **08:00 BRT**: publica no site e envia os emails
+- **07:00 BRT**: prepara o rascunho da edicao da semana e avisa no Discord sobre sucesso ou falha
+- **07:30 BRT**: verifica se o rascunho esta pronto e avisa no Discord sobre sucesso ou falha
+- **08:00 BRT**: publica no site, envia os emails e posta um resumo no Discord
 - **Trigger manual**: Tambem pode ser disparado via `workflow_dispatch` com escolha de modo
 
 Configure as secrets no repositorio GitHub:

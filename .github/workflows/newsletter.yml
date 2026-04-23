@@ -70,7 +70,8 @@ jobs:
           BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
           NEWSLETTER_API_SECRET: ${{ secrets.NEWSLETTER_API_SECRET }}
           SITE_URL: ${{ secrets.SITE_URL }}
-        run: python -m pipeline.main prepare
+          DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
+        run: python -m pipeline.main prepare --notify-on-success --notify-on-failure
 
   check-ready:
     name: Check Draft Readiness
@@ -115,7 +116,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
-        run: python -m pipeline.main check-ready --notify-on-failure
+        run: python -m pipeline.main check-ready --notify-on-success --notify-on-failure
 
   publish-newsletter:
     name: Publish Newsletter
@@ -164,7 +165,7 @@ jobs:
           NEWSLETTER_API_SECRET: ${{ secrets.NEWSLETTER_API_SECRET }}
           SITE_URL: ${{ secrets.SITE_URL }}
           DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
-        run: python -m pipeline.main publish --notify-on-failure
+        run: python -m pipeline.main publish --notify-on-success --notify-on-failure
 
   full-pipeline:
     name: Run Full Pipeline
@@ -211,4 +212,4 @@ jobs:
           NEWSLETTER_API_SECRET: ${{ secrets.NEWSLETTER_API_SECRET }}
           SITE_URL: ${{ secrets.SITE_URL }}
           DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
-        run: python -m pipeline.main full --notify-on-failure
+        run: python -m pipeline.main full --notify-on-success --notify-on-failure

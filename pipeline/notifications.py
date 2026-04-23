@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Literal
+from typing import Any, Literal
 
 import requests
 from loguru import logger
@@ -41,6 +41,53 @@ def build_failure_alert(mode: PipelineMode, error: str) -> tuple[str, str]:
         body = "O fluxo completo da newsletter falhou."
 
     return title, f"{body}\n\nErro: {error}"
+
+
+def _format_metadata_line(label: str, value: Any) -> str | None:
+    if value in (None, "", []):
+        return None
+    return f"- {label}: {value}"
+
+
+def build_success_alert(mode: PipelineMode, payload: dict[str, Any]) -> tuple[str, str]:
+    slug = payload.get("slug")
+    edition_number = payload.get("edition_number")
+    article_count = payload.get("article_count")
+    sent_total = payload.get("sent_total")
+    sent_now = payload.get("sent_now")
+    already_sent = payload.get("already_sent")
+
+    if mode == "prepare":
+        title = "DevPulse preparou o rascunho da semana"
+        body = "A curadoria terminou e o rascunho ficou salvo no Supabase."
+    elif mode == "check-ready":
+        title = "DevPulse validou o rascunho da semana"
+        body = "A checagem das 07:30 BRT confirmou que a edição está pronta para publicação."
+    elif mode == "publish":
+        title = "DevPulse publicou a edição da semana"
+        body = "A edição foi publicada no site e o disparo da newsletter concluiu com sucesso."
+    else:
+        title = "DevPulse concluiu o pipeline completo"
+        body = "A edição da semana foi preparada, publicada e enviada sem falhas."
+
+    metadata_lines = [
+        _format_metadata_line("Slug", slug),
+        _format_metadata_line("Edição", f"#{edition_number}" if edition_number else None),
+        _format_metadata_line("Matérias", article_count),
+    ]
+
+    if mode in ("publish", "full"):
+        metadata_lines.extend([
+            _format_metadata_line("Envios totais", sent_total),
+            _format_metadata_line("Envios novos", sent_now),
+            _format_metadata_line("Já entregues", already_sent),
+        ])
+
+    metadata = "\n".join(line for line in metadata_lines if line)
+    if metadata:
+        body = f"{body}\n\n{metadata}"
+
+    return title, body
 
 
 def send_discord_alert(title: str, body: str) -> None:
