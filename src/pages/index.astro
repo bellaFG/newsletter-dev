@@ -8,8 +8,7 @@ import { getPrimarySource, listPublishedArticles, paginateItems } from '@/lib/ar
 import { getEditionDisplayDate, getLatestEditionWithArticles } from '@/lib/editions'
 import { formatFullDate, formatMediumDate, formatEditionNumber } from '@/lib/date'
 import { ARTICLE_LIST_PER_PAGE, normalizePositiveInteger } from '@/lib/pagination'
-import { getPublishingStatus } from '@/lib/publishing'
-import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
+import { PUBLISH_SCHEDULE_LABEL, SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
 const latest = (await getLatestEditionWithArticles(supabase)) as Edition | null
 
@@ -34,6 +33,7 @@ const { items: paginatedArticles, page, totalPages } = paginateItems(
   currentPage,
   ARTICLE_LIST_PER_PAGE,
 )
+const isEmptyState = allArticles.length === 0
 const pageHref = (value: number) => (value <= 1 ? '/' : `/?page=${value}`)
 
 if (allArticles.length > 0 && currentPage > totalPages) {
@@ -43,7 +43,6 @@ if (allArticles.length > 0 && currentPage > totalPages) {
   })
 }
 
-const publishingStatus = getPublishingStatus(latest)
 const today = formatFullDate(new Date())
 const featuredArticle = latestArticles[0] ?? null
 const remainingLatestArticles = latestArticles.slice(1)
@@ -73,7 +72,13 @@ const remainingCategories = [...new Set(remainingLatestArticles.map((article) =>
         </div>
       </header>
 
-      <section class="mb-12 sm:mb-14" data-route-fade>
+      <section
+        class:list={[
+          'transition-[margin] duration-300',
+          isEmptyState ? 'mb-6 sm:mb-8' : 'mb-12 sm:mb-14',
+        ]}
+        data-route-fade
+      >
         <div class="mx-auto max-w-4xl" data-home-search-root>
           <form
             method="get"
@@ -139,7 +144,7 @@ const remainingCategories = [...new Set(remainingLatestArticles.map((article) =>
                 {formatMediumDate(getEditionDisplayDate(latest))}
               </span>
               <span class="font-mono text-[0.55rem] uppercase tracking-widest text-muted-foreground">
-                {publishingStatus.featuredLabel}
+                Newsletter Semanal
               </span>
             </div>
 
@@ -177,25 +182,34 @@ const remainingCategories = [...new Set(remainingLatestArticles.map((article) =>
               href={`/edicao/${latest.slug}`}
               class="inline-block border-2 border-link px-5 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-widest text-link transition-colors hover:bg-link hover:text-white"
             >
-              {publishingStatus.featuredCtaLabel}
+              Ler edição completa →
             </a>
           </div>
         </section>
       ) : allArticles.length === 0 ? (
-        <section class="mb-14 py-16 text-center" data-route-fade>
-          <p class="mb-3 font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground">
-            {publishingStatus.isDelayed ? 'Estamos finalizando' : 'Em breve'}
-          </p>
-          <h2 class="mb-4 font-serif text-4xl font-bold sm:text-5xl">
-            {publishingStatus.isDelayed
-              ? 'A edição desta semana já devia ter saído.'
-              : 'A primeira edição chega segunda-feira.'}
-          </h2>
-          <p class="mx-auto max-w-lg text-muted-foreground">
-            {publishingStatus.isDelayed
-              ? 'A automação tropeçou, mas já estamos colocando a newsletter no ar.'
-              : `Inscreva-se para receber ${SITE_NAME} diretamente no seu email.`}
-          </p>
+        <section class="mb-10 py-8 text-center sm:py-10" data-route-fade>
+          <div class="mx-auto max-w-3xl border-y border-foreground/10 px-4 py-10 sm:px-8">
+            <p class="font-mono text-[0.62rem] uppercase tracking-[0.28em] text-muted-foreground">
+              Em breve · {SITE_NAME}
+            </p>
+            <h2 class="mx-auto mt-4 max-w-2xl text-balance font-serif text-3xl font-bold leading-[1.04] tracking-tight sm:text-4xl">
+              Sua newsletter sobre tecnologia para devs brasileiros.
+            </h2>
+            <div class="mx-auto mt-5 max-w-[44rem] space-y-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
+              <p>Artigos em português, curadoria das maiores fontes de tecnologia do mundo.</p>
+              <p>
+                Mantenha-se atualizado sobre tecnologia,
+                <br class="hidden sm:block" />
+                <span> toda {PUBLISH_SCHEDULE_LABEL} no seu </span>
+                <span class="whitespace-nowrap">e-mail.</span>
+              </p>
+              <p class="pt-2 font-mono text-[0.62rem] uppercase tracking-[0.22em] text-link">
+                <a href="#subscribe-form" data-subscribe-open class="inline-block transition-opacity hover:opacity-70">
+                  Inscreva-se!
+                </a>
+              </p>
+            </div>
+          </div>
         </section>
       ) : null}
 

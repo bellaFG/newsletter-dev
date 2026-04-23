@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import type { Edition } from '@/lib/types'
 import { getEditionDisplayDate, listEditionsWithArticles } from '@/lib/editions'
 import { formatCompactDate, formatEditionNumber } from '@/lib/date'
-import { SITE_NAME } from '@/lib/config'
+import { PUBLISH_SCHEDULE_LABEL, SITE_NAME } from '@/lib/config'
 
 const editions = (await listEditionsWithArticles(supabase)) as Edition[]
 
@@ -38,7 +38,10 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
           <p class="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-3">
             Em breve
           </p>
-          <p class="font-serif text-2xl font-bold">Nenhuma edição publicada ainda.</p>
+          <p class="font-serif text-2xl font-bold">As edições do {SITE_NAME} aparecem aqui.</p>
+          <p class="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            Sua newsletter sobre tecnologia, para devs brasileiros. Toda {PUBLISH_SCHEDULE_LABEL} no seu email.
+          </p>
         </div>
       ) : (
         <div class="space-y-10">
