@@ -1,5 +1,7 @@
 import type { APIRoute } from 'astro'
+import { recordAdminAudit } from '@/lib/admin-audit'
 import { hasAdminSession } from '@/lib/admin-auth'
+import { getRequestIpHash } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
 
 function redirect(location: string) {
@@ -27,6 +29,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
     return redirect('/admin/announcements?error=auth')
   }
 
+  const actor = getRequestIpHash(request)
   const formData = await request.formData()
   const action = formData.get('action')?.toString() ?? ''
   const id = formData.get('id')?.toString().trim() || null
@@ -57,6 +60,16 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         throw error
       }
 
+      await recordAdminAudit(supabase, {
+        actor,
+        action: id ? 'announcement_updated' : 'announcement_created',
+        targetId: id,
+        payload: {
+          dismissible,
+          messageLength: message.length,
+          title,
+        },
+      })
       return redirect('/admin/announcements?status=saved')
     }
 
@@ -73,6 +86,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         throw error
       }
 
+      await recordAdminAudit(supabase, {
+        actor,
+        action: 'announcement_activated',
+        targetId: id,
+      })
       return redirect('/admin/announcements?status=activated')
     }
 
@@ -85,6 +103,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         throw error
       }
 
+      await recordAdminAudit(supabase, {
+        actor,
+        action: 'announcement_deactivated',
+        targetId: id,
+      })
       return redirect('/admin/announcements?status=deactivated')
     }
 
@@ -97,6 +120,11 @@ export const POST: APIRoute = async ({ request, cookies }) => {
         throw error
       }
 
+      await recordAdminAudit(supabase, {
+        actor,
+        action: 'announcement_deleted',
+        targetId: id,
+      })
       return redirect('/admin/announcements?status=deleted')
     }
   } catch (error) {

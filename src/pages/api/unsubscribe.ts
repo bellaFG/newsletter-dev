@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro'
-import { readUnsubscribeToken } from '@/lib/unsubscribe'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
+import { readUnsubscribeTokenDetails } from '@/lib/unsubscribe'
 
 function redirect(location: string) {
   return new Response(null, {
@@ -12,13 +13,24 @@ function redirect(location: string) {
 export const POST: APIRoute = async ({ request }) => {
   const formData = await request.formData()
   const token = formData.get('token')?.toString().trim() ?? ''
-  const email = token ? readUnsubscribeToken(token) : null
+  const supabase = createServerClient()
+  const rateLimit = await checkRateLimit(supabase, request, 'unsubscribe', [
+    { limit: 10, windowSec: 60 },
+  ])
 
-  if (!email) {
-    return redirect('/unsubscribe?status=invalid')
+  if (!rateLimit.allowed) {
+    return redirect('/unsubscribe?status=rate_limit')
   }
 
-  const supabase = createServerClient()
+  const details = token
+    ? readUnsubscribeTokenDetails(token)
+    : { email: null, expired: false, version: null }
+  const email = details.email
+
+  if (!email) {
+    return redirect(details.expired ? '/unsubscribe?status=expired' : '/unsubscribe?status=invalid')
+  }
+
   const { error } = await supabase.from('subscribers').update({ active: false }).eq('email', email)
 
   if (error) {

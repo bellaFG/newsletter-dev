@@ -1,0 +1,117 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import CompactMasthead from '@/components/CompactMasthead.astro'
+import ArticleCard from '@/components/ArticleCard.astro'
+import BrowseTabs from '@/components/BrowseTabs.astro'
+import PageFooterNav from '@/components/PageFooterNav.astro'
+import { getEditionDisplayDate } from '@/lib/editions'
+import { supabase } from '@/lib/supabase'
+import type { Article, Edition } from '@/lib/types'
+import { SITE_NAME } from '@/lib/config'
+
+type ArticleWithEdition = Article & {
+  editions: Pick<Edition, 'slug' | 'edition_number' | 'title' | 'published_at' | 'created_at'>
+}
+
+const { data: allArticlesData } = await supabase
+  .from('articles')
+  .select('*, editions!inner(slug, edition_number, title, published_at, created_at)')
+  .eq('status', 'active')
+  .not('editions.published_at', 'is', null)
+  .order('source_published_at', { ascending: false, nullsFirst: false })
+  .order('created_at', { ascending: false })
+
+const articles = ((allArticlesData ?? []) as unknown as ArticleWithEdition[]).sort((a, b) => {
+  const editionDateA = getEditionDisplayDate(a.editions)
+  const editionDateB = getEditionDisplayDate(b.editions)
+  const editionTimeDiff = new Date(editionDateB).getTime() - new Date(editionDateA).getTime()
+  if (editionTimeDiff !== 0) return editionTimeDiff
+
+  return (a.position ?? Number.MAX_SAFE_INTEGER) - (b.position ?? Number.MAX_SAFE_INTEGER)
+})
+
+const PER_PAGE = 9
+const requestedPage = Number(Astro.url.searchParams.get('page') ?? '1')
+const currentPage =
+  Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1
+const totalPages = Math.max(1, Math.ceil(articles.length / PER_PAGE))
+const page = Math.min(currentPage, totalPages)
+const pageHref = (value: number) => (value <= 1 ? '/articles' : `/articles?page=${value}`)
+
+if (articles.length > 0 && currentPage > totalPages) {
+  return new Response(null, {
+    status: 302,
+    headers: { Location: pageHref(totalPages) },
+  })
+}
+
+const paginatedArticles = articles.slice((page - 1) * PER_PAGE, page * PER_PAGE)
+---
+
+<Layout
+  title={`Artigos — ${SITE_NAME}`}
+  description={`Todos os artigos publicados no ${SITE_NAME}.`}
+  canonicalUrl={pageHref(page)}
+>
+  <div class="min-h-screen bg-background text-foreground">
+    <div class="mx-auto max-w-6xl px-6 py-10 sm:px-10">
+
+      <CompactMasthead right="Artigos" />
+      <BrowseTabs active="articles" />
+
+      <div class="mb-10">
+        <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
+          {articles.length} {articles.length === 1 ? 'artigo publicado' : 'artigos publicados'}
+        </p>
+        <h1 class="font-serif text-4xl font-bold tracking-tight">
+          Todos os artigos
+        </h1>
+        {articles.length > 0 && totalPages > 1 && (
+          <p class="mt-3 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
+            Página {page} de {totalPages}
+          </p>
+        )}
+      </div>
+
+      {articles.length > 0 ? (
+        <section class="mb-10">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {paginatedArticles.map((article) => (
+              <ArticleCard article={article} href={`/edicao/${article.editions.slug}/${article.slug}`} />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div class="mt-8 flex items-center justify-center gap-4 font-mono text-[0.6rem] tracking-widest uppercase">
+              {page > 1 ? (
+                <a href={pageHref(page - 1)} class="text-muted-foreground transition-colors hover:text-foreground">
+                  &larr; Anterior
+                </a>
+              ) : (
+                <span class="text-muted-foreground/40">&larr; Anterior</span>
+              )}
+              <span class="text-muted-foreground">{page} / {totalPages}</span>
+              {page < totalPages ? (
+                <a href={pageHref(page + 1)} class="text-link transition-opacity hover:opacity-70">
+                  Próxima &rarr;
+                </a>
+              ) : (
+                <span class="text-muted-foreground/40">Próxima &rarr;</span>
+              )}
+            </div>
+          )}
+        </section>
+      ) : (
+        <div class="py-16 text-center border-y border-border mb-10">
+          <p class="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-3">
+            Em breve
+          </p>
+          <p class="font-serif text-2xl font-bold">Nenhum artigo publicado ainda.</p>
+        </div>
+      )}
+
+      <PageFooterNav leftLabel="← Início" leftHref="/" />
+
+    </div>
+  </div>
+</Layout>

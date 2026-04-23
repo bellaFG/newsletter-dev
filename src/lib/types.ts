@@ -39,6 +39,18 @@ export type Database = {
         Update: Partial<NewsletterDeliveryInsert>
         Relationships: []
       }
+      api_rate_limits: {
+        Row: ApiRateLimitRow
+        Insert: ApiRateLimitInsert
+        Update: Partial<ApiRateLimitInsert>
+        Relationships: []
+      }
+      admin_audit_log: {
+        Row: AdminAuditLogRow
+        Insert: AdminAuditLogInsert
+        Update: Partial<AdminAuditLogInsert>
+        Relationships: []
+      }
       site_announcements: {
         Row: SiteAnnouncementRow
         Insert: SiteAnnouncementInsert
@@ -53,6 +65,15 @@ export type Database = {
           announcement_id: string
         }
         Returns: undefined
+      }
+      bump_rate_limit_bucket: {
+        Args: {
+          p_ip_hash: string
+          p_endpoint: string
+          p_window_sec: number
+          p_bucket_start: string
+        }
+        Returns: number
       }
       deactivate_site_announcement: {
         Args: {
@@ -232,6 +253,46 @@ export type NewsletterDeliveryInsert = {
   last_attempt_at?: string
   sent_at?: string | null
   created_at?: string
+}
+
+export type ApiRateLimitRow = {
+  id: string
+  ip_hash: string
+  endpoint: string
+  window_sec: number
+  bucket_start: string
+  count: number
+  created_at: string
+  updated_at: string
+}
+
+export type ApiRateLimitInsert = {
+  id?: string
+  ip_hash: string
+  endpoint: string
+  window_sec: number
+  bucket_start: string
+  count?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export type AdminAuditLogRow = {
+  id: string
+  actor: string
+  action: string
+  target_id: string | null
+  payload: Record<string, unknown>
+  at: string
+}
+
+export type AdminAuditLogInsert = {
+  id?: string
+  actor: string
+  action: string
+  target_id?: string | null
+  payload?: Record<string, unknown>
+  at?: string
 }
 
 export type SiteAnnouncementRow = {

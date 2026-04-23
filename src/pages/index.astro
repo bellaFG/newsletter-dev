@@ -13,14 +13,15 @@ import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
 const latest = (await getLatestEditionWithArticles(supabase)) as Edition | null
 
-let articles: Article[] = []
+let latestArticles: Article[] = []
 if (latest) {
   const { data } = await supabase
     .from('articles')
     .select('*')
     .eq('edition_id', latest.id)
+    .eq('status', 'active')
     .order('position', { ascending: true })
-  articles = (data ?? []) as Article[]
+  latestArticles = (data ?? []) as Article[]
 }
 
 const recentEditions = (await listEditionsWithArticles(supabase, { from: 1, to: 5 })) as Pick<
@@ -30,6 +31,9 @@ const recentEditions = (await listEditionsWithArticles(supabase, { from: 1, to: 
 
 const publishingStatus = getPublishingStatus(latest)
 const today = formatFullDate(new Date())
+const featuredArticle = latestArticles[0] ?? null
+const remainingLatestArticles = latestArticles.slice(1)
+const remainingCategories = [...new Set(remainingLatestArticles.map((article) => article.category))]
 ---
 
 <Layout>
@@ -61,21 +65,33 @@ const today = formatFullDate(new Date())
 
       {/* -- SEARCH BAR -- */}
       <div class="mb-8">
-        <div class="relative max-w-md mx-auto">
-          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
-          <input
-            id="search-input"
-            type="text"
-            placeholder="Buscar temas no acervo..."
-            class="w-full border border-foreground/20 bg-background px-4 py-2.5 pl-10 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-link transition-colors"
-          />
-        </div>
+        <form method="get" action="/buscar" class="mx-auto max-w-2xl">
+          <div class="relative flex items-center gap-2">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+            <input
+              id="search-input"
+              name="q"
+              type="text"
+              placeholder="Buscar temas no acervo..."
+              class="w-full border border-foreground/20 bg-background px-4 py-2.5 pl-10 text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:border-link transition-colors"
+            />
+            <button
+              type="submit"
+              class="shrink-0 border border-link px-4 py-2.5 font-mono text-[0.55rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-white"
+            >
+              Buscar
+            </button>
+          </div>
+        </form>
+        <p class="mt-3 text-center font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
+          Resultados rápidos aqui. Busca compartilhável em <a href="/buscar" class="text-link transition-colors hover:opacity-70">/buscar</a>.
+        </p>
         <div id="search-results" class="hidden mt-4 max-w-3xl mx-auto space-y-3" aria-live="polite"></div>
       </div>
 
-      {latest && articles.length > 0 ? (
+      {latest && latestArticles.length > 0 ? (
         <>
           {/* -- FEATURED WEEKLY EDITION -- */}
           <section class="mb-10">
@@ -92,31 +108,36 @@ const today = formatFullDate(new Date())
                 </span>
               </div>
 
-              {articles[0] && (
+              {featuredArticle && (
                 <div class="mb-5">
                   <p class="font-mono text-[0.5rem] tracking-widest uppercase text-link mb-2">
-                    {articles[0].category} &middot; {getPrimarySource(articles[0]).label}
-                    {articles[0].source_count > 1 && ` · ${articles[0].source_count} fontes`}
+                    {featuredArticle.category} &middot; {getPrimarySource(featuredArticle).label}
+                    {featuredArticle.source_count > 1 && ` · ${featuredArticle.source_count} fontes`}
                   </p>
-                  <a href={`/edicao/${latest.slug}/${articles[0].slug}`} class="block group">
+                  <a href={`/edicao/${latest.slug}/${featuredArticle.slug}`} class="block group">
                     <h2 class="font-serif text-2xl sm:text-3xl font-black leading-[1.15] tracking-tight mb-2 group-hover:text-link transition-colors">
-                      {articles[0].title_ptbr ?? articles[0].title}
+                      {featuredArticle.title_ptbr ?? featuredArticle.title}
                     </h2>
                   </a>
                   <p class="text-sm leading-relaxed text-foreground/70 line-clamp-2">
-                    {articles[0].summary_ptbr}
+                    {featuredArticle.summary_ptbr}
                   </p>
                 </div>
               )}
 
-              <div class="h-px bg-foreground/10 mb-5"></div>
+              {remainingLatestArticles.length > 0 && (
+                <>
+                  <div class="h-px bg-foreground/10 mb-5"></div>
 
-              <p class="text-sm text-foreground/50 mb-5">
-                + {articles.length - 1} artigos sobre {[...new Set(articles.slice(1).map(a => a.category))].slice(0, 3).join(', ')} e mais
-              </p>
+                  <p class="text-sm text-foreground/50 mb-5">
+                    + {remainingLatestArticles.length} {remainingLatestArticles.length === 1 ? 'artigo' : 'artigos'} sobre {remainingCategories.slice(0, 3).join(', ')}
+                    {remainingCategories.length > 3 ? ' e mais' : ''}
+                  </p>
+                </>
+              )}
 
               <a
-                href={`/${latest.slug}`}
+                href={`/edicao/${latest.slug}`}
                 class="inline-block font-mono text-[0.55rem] tracking-widest uppercase px-5 py-2.5 border-2 border-link text-link hover:bg-link hover:text-white transition-colors font-bold"
               >
                 {publishingStatus.featuredCtaLabel}
@@ -124,26 +145,35 @@ const today = formatFullDate(new Date())
             </div>
           </section>
 
-          {/* -- GRID DE CARDS -- */}
-          <section class="mb-10" id="articles-grid">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" id="articles-container">
-              {articles.map((article) => (
-                <ArticleCard article={article} href={`/edicao/${latest.slug}/${article.slug}`} />
-              ))}
-            </div>
-
-            {articles.length > 9 && (
-              <div id="pagination" class="flex items-center justify-center gap-4 mt-8 font-mono text-[0.6rem] tracking-widest uppercase">
-                <button id="prev-page" class="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-30 disabled:cursor-default" disabled>
-                  &larr; Anterior
-                </button>
-                <span id="page-info" class="text-muted-foreground"></span>
-                <button id="next-page" class="text-link hover:opacity-70 transition-opacity disabled:opacity-30 disabled:cursor-default">
-                  Próxima &rarr;
-                </button>
+          {remainingLatestArticles.length > 0 && (
+            <section class="mb-10" id="articles-grid">
+              <SectionHeader title="Nesta edição" />
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {remainingLatestArticles.map((article) => (
+                  <ArticleCard article={article} href={`/edicao/${latest.slug}/${article.slug}`} />
+                ))}
               </div>
-            )}
-          </section>
+              <div class="mt-6 text-center">
+                <a
+                  href="/articles"
+                  class="font-mono text-[0.6rem] tracking-widest uppercase border-b border-link/50 pb-px text-link hover:opacity-70 transition-colors"
+                >
+                  Ver todos os artigos &rarr;
+                </a>
+              </div>
+            </section>
+          )}
+
+          {remainingLatestArticles.length === 0 && (
+            <div class="mb-10 text-center">
+              <a
+                href="/articles"
+                class="font-mono text-[0.6rem] tracking-widest uppercase border-b border-link/50 pb-px text-link hover:opacity-70 transition-colors"
+              >
+                Ver todos os artigos &rarr;
+              </a>
+            </div>
+          )}
         </>
       ) : (
         <section class="py-16 text-center mb-10">
@@ -171,7 +201,7 @@ const today = formatFullDate(new Date())
             {recentEditions.map((edition) => (
               <li>
                 <a
-                  href={`/${edition.slug}`}
+                  href={`/edicao/${edition.slug}`}
                   class="flex items-baseline justify-between py-3 hover:opacity-60 transition-opacity group gap-x-3"
                 >
                   <span class="font-mono text-[0.55rem] text-link shrink-0">
@@ -203,43 +233,8 @@ const today = formatFullDate(new Date())
 </Layout>
 
 <script>
-  const PER_PAGE = 9
   const input = document.getElementById('search-input') as HTMLInputElement | null
   const resultsContainer = document.getElementById('search-results')
-  const container = document.getElementById('articles-container')
-  const pagination = document.getElementById('pagination')
-  const prevBtn = document.getElementById('prev-page') as HTMLButtonElement | null
-  const nextBtn = document.getElementById('next-page') as HTMLButtonElement | null
-  const pageInfo = document.getElementById('page-info')
-
-  if (container) {
-    const allCards = Array.from(container.querySelectorAll('a[data-title]')) as HTMLAnchorElement[]
-    let currentPage = 1
-
-    function renderPage() {
-      const totalPages = Math.ceil(allCards.length / PER_PAGE)
-      const start = (currentPage - 1) * PER_PAGE
-      const end = start + PER_PAGE
-
-      allCards.forEach((card, i) => {
-        card.style.display = i >= start && i < end ? '' : 'none'
-      })
-
-      if (pagination && totalPages > 1) {
-        pagination.style.display = ''
-        if (prevBtn) prevBtn.disabled = currentPage <= 1
-        if (nextBtn) nextBtn.disabled = currentPage >= totalPages
-        if (pageInfo) pageInfo.textContent = `${currentPage} / ${totalPages}`
-      } else if (pagination) {
-        pagination.style.display = 'none'
-      }
-    }
-
-    prevBtn?.addEventListener('click', () => { currentPage--; renderPage() })
-    nextBtn?.addEventListener('click', () => { currentPage++; renderPage() })
-
-    renderPage()
-  }
 
   if (input && resultsContainer) {
     const searchInput = input
@@ -262,6 +257,23 @@ const today = formatFullDate(new Date())
       return String(n).padStart(3, '0')
     }
 
+    function renderSkeletons() {
+      searchResultsContainer.innerHTML = `
+        <div class="space-y-3" aria-hidden="true">
+          ${Array.from({ length: 3 }).map(() => `
+            <div class="border border-foreground/10 p-4 animate-pulse motion-reduce:animate-none">
+              <div class="mb-3 h-3 w-32 bg-foreground/10"></div>
+              <div class="mb-3 h-6 w-4/5 bg-foreground/10"></div>
+              <div class="mb-2 h-4 w-full bg-foreground/10"></div>
+              <div class="h-4 w-3/4 bg-foreground/10"></div>
+            </div>
+          `).join('')}
+        </div>
+      `
+      searchResultsContainer.classList.remove('hidden')
+      searchResultsContainer.setAttribute('aria-busy', 'true')
+    }
+
     async function loadSearchResults(page: number) {
       const query = searchInput.value.trim().toLowerCase()
 
@@ -269,20 +281,24 @@ const today = formatFullDate(new Date())
         lastController?.abort()
         searchResultsContainer.classList.add('hidden')
         searchResultsContainer.innerHTML = ''
+        searchResultsContainer.setAttribute('aria-busy', 'false')
         return
       }
 
       lastController?.abort()
       lastController = new AbortController()
+      renderSkeletons()
 
       try {
         const response = await fetch(
           `/api/search?q=${encodeURIComponent(query)}&page=${page}`,
           { signal: lastController.signal }
         )
-        if (!response.ok) throw new Error('Search failed')
-
         const data = await response.json()
+        if (!response.ok) {
+          throw new Error(typeof data?.error === 'string' ? data.error : 'Search failed')
+        }
+
         const results = Array.isArray(data.results) ? data.results : []
         const safeQuery = escapeHtml(searchInput.value.trim())
         const safePage = Number(data.page ?? page) || page
@@ -298,6 +314,7 @@ const today = formatFullDate(new Date())
               </p>
             `
           searchResultsContainer.classList.remove('hidden')
+          searchResultsContainer.setAttribute('aria-busy', 'false')
           return
         }
 
@@ -363,14 +380,16 @@ const today = formatFullDate(new Date())
             ${paginationMarkup}
           `
         searchResultsContainer.classList.remove('hidden')
+        searchResultsContainer.setAttribute('aria-busy', 'false')
       } catch (error: any) {
         if (error.name === 'AbortError') return
         searchResultsContainer.innerHTML = `
             <p class="font-mono text-[0.6rem] tracking-widest uppercase text-destructive text-center">
-              Falha ao buscar no acervo.
+              ${escapeHtml(error.message || 'Falha ao buscar no acervo.')}
             </p>
           `
         searchResultsContainer.classList.remove('hidden')
+        searchResultsContainer.setAttribute('aria-busy', 'false')
       }
     }
 

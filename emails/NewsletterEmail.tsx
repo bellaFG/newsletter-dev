@@ -1,7 +1,7 @@
 /**
  * Template de email da newsletter DevPulse.
  *
- * Layout espelha a pagina da edicao no site ([slug].astro).
+ * Layout espelha a pagina da edicao no site (edicao/[slug]/index.astro).
  * Fundo branco (Gmail) + folha com fundo do site (paper).
  * Usa inline styles (obrigatorio para compatibilidade com clientes de email).
  *
@@ -52,6 +52,20 @@ const rule = '#e0ddd8' // --border
 const blue = '#2563EB' // --link
 const fgLight = '#8a8580' // foreground/40
 
+function buildEditionUrl(siteUrl: string, edition: Pick<Edition, 'slug'>): string {
+  return `${siteUrl}/edicao/${edition.slug}`
+}
+
+function buildArticleUrl(
+  siteUrl: string,
+  edition: Pick<Edition, 'slug'>,
+  article: Pick<Article, 'slug'>
+): string {
+  return article.slug
+    ? `${siteUrl}/edicao/${edition.slug}/${article.slug}`
+    : buildEditionUrl(siteUrl, edition)
+}
+
 export function NewsletterEmail({
   edition,
   articles,
@@ -61,6 +75,7 @@ export function NewsletterEmail({
   const grouped = groupByCategory(articles)
   const orderedCategories = getOrderedCategories(grouped)
   const editionDate = formatFullDate(getEditionDisplayDate(edition))
+  const editionUrl = buildEditionUrl(siteUrl, edition)
 
   const previewText = edition.summary
     ? edition.summary.slice(0, 90)
@@ -93,7 +108,7 @@ export function NewsletterEmail({
                   </Text>
                 </Column>
                 <Column style={{ width: '34%', textAlign: 'center' }}>
-                  <Link href={siteUrl} style={{ textDecoration: 'none' }}>
+                  <Link href={editionUrl} style={{ textDecoration: 'none' }}>
                     <Text
                       style={{
                         fontFamily: serif,
@@ -180,9 +195,7 @@ export function NewsletterEmail({
                   </Section>
 
                   {catArticles.map((article, artIdx) => {
-                    const articleUrl = article.slug
-                      ? `${siteUrl}/edicao/${edition.slug}/${article.slug}`
-                      : `${siteUrl}/${edition.slug}`
+                    const articleUrl = buildArticleUrl(siteUrl, edition, article)
                     const primarySource = getPrimarySource(article)
 
                     return (
@@ -258,7 +271,7 @@ export function NewsletterEmail({
                                   fontWeight: 700,
                                 }}
                               >
-                                {'Leia mais →'}
+                                {'Ler na íntegra →'}
                               </Link>
                               <span style={{ display: 'inline-block', width: 16 }}> </span>
                               <Link

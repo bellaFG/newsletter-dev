@@ -1,0 +1,27 @@
+---
+interface Props {
+  minutes?: number | null
+  content?: string | null
+  class?: string
+}
+
+const { minutes, content, class: className = '' } = Astro.props
+const contentText = typeof content === 'string' ? content : ''
+
+const fallbackMinutes = Math.max(
+  1,
+  Math.ceil(
+    contentText
+      .split(/\s+/)
+      .map((chunk: string) => chunk.trim())
+      .filter(Boolean).length / 200,
+  ),
+)
+
+const displayMinutes =
+  typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0
+    ? Math.ceil(minutes)
+    : fallbackMinutes
+---
+
+<span class={className}>{displayMinutes} min de leitura</span>

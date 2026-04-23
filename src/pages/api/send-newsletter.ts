@@ -6,7 +6,7 @@ import { createServerClient } from '@/lib/supabase'
 import { createUnsubscribeToken } from '@/lib/unsubscribe'
 import { NewsletterEmail } from '../../../emails/NewsletterEmail'
 import type { Article, Edition, NewsletterDelivery } from '@/lib/types'
-import { EMAIL_BATCH_SIZE, DEFAULT_SITE_URL } from '@/lib/config'
+import { EMAIL_BATCH_SIZE, normalizePublicSiteUrl } from '@/lib/config'
 import { readEnv, requireEnv } from '@/lib/env'
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
@@ -127,7 +127,7 @@ export const POST: APIRoute = async ({ request }) => {
     })
   }
 
-  const baseUrl = readEnv('SITE_URL') ?? DEFAULT_SITE_URL
+  const baseUrl = normalizePublicSiteUrl(readEnv('SITE_URL'))
   const { data: deliveriesData, error: deliveriesError } = await supabase
     .from('newsletter_deliveries')
     .select('email, status, attempts, sent_at')

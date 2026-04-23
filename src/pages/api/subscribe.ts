@@ -1,5 +1,6 @@
 import type { APIRoute } from 'astro'
 import { promises as dns } from 'node:dns'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
@@ -14,6 +15,25 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json().catch(() => null)
     const email = body?.email?.toString().trim().toLowerCase()
+    const website = body?.website?.toString().trim() ?? ''
+    const supabase = createServerClient()
+
+    if (website) {
+      return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders })
+    }
+
+    const rateLimit = await checkRateLimit(supabase, request, 'subscribe', [
+      { limit: 5, windowSec: 60 },
+    ])
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({ error: 'Muitas tentativas. Tente novamente em instantes.' }), {
+        status: 429,
+        headers: {
+          ...jsonHeaders,
+          'Retry-After': String(rateLimit.retryAfter),
+        },
+      })
+    }
 
     // Formato, tamanho e dominio com TLD real (min 2 letras)
     if (
@@ -35,8 +55,6 @@ export const POST: APIRoute = async ({ request }) => {
         return new Response(JSON.stringify({ error: 'Domínio de email não existe.' }), { status: 400, headers: jsonHeaders })
       }
     }
-
-    const supabase = createServerClient()
 
     // Verifica se o email ja existe (ativo ou inativo)
     const { data: existing } = await supabase
@@ -72,6 +90,7 @@ export const POST: APIRoute = async ({ request }) => {
       console.error('[subscribe] Erro ao inserir subscriber:', error)
       return new Response(JSON.stringify({ error: 'Erro ao cadastrar. Tente novamente.' }), {
         status: 500,
+        headers: jsonHeaders,
       })
     }
 
@@ -80,6 +99,7 @@ export const POST: APIRoute = async ({ request }) => {
     console.error('[subscribe] Erro inesperado:', err)
     return new Response(JSON.stringify({ error: 'Erro ao cadastrar. Tente novamente.' }), {
       status: 500,
+      headers: jsonHeaders,
     })
   }
 }

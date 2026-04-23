@@ -1,5 +1,6 @@
 ---
 import Layout from '@/layouts/Layout.astro'
+import BrowseTabs from '@/components/BrowseTabs.astro'
 import CompactMasthead from '@/components/CompactMasthead.astro'
 import CategoryDivider from '@/components/CategoryDivider.astro'
 import { supabase } from '@/lib/supabase'
@@ -25,6 +26,7 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
     <div class="mx-auto max-w-3xl px-6 py-10">
 
       <CompactMasthead right="Arquivo" />
+      <BrowseTabs active="editions" />
 
       <div class="mb-10">
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
@@ -52,7 +54,7 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
                 {byYear[year].map((edition) => (
                   <li>
                     <a
-                      href={`/${edition.slug}`}
+                      href={`/edicao/${edition.slug}`}
                       class="flex flex-wrap sm:flex-nowrap items-baseline justify-between py-4 group hover:opacity-60 transition-opacity gap-x-3"
                     >
                       <span class="font-mono text-[0.65rem] text-link shrink-0">
@@ -72,18 +74,6 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
           ))}
         </div>
       )}
-
-      <div class="border-t border-foreground/20 pt-8 mt-12 text-center">
-        <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
-          Ainda não assinou?
-        </p>
-        <button
-          data-subscribe-open
-          class="font-serif text-xl font-bold hover:text-link transition-colors cursor-pointer"
-        >
-          Receba {SITE_NAME} toda segunda-feira &rarr;
-        </button>
-      </div>
 
     </div>
   </div>

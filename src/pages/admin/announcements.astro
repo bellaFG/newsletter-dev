@@ -29,6 +29,8 @@ if (isAuthenticated) {
 function getFeedbackMessage(statusValue: string | null, errorValue: string | null): string | null {
   if (errorValue === 'auth') return 'Sua sessão expirou. Entre novamente.'
   if (errorValue === 'login') return 'Secret inválido.'
+  if (errorValue === 'rate_limit') return 'Muitas tentativas. Aguarde alguns minutos antes de tentar de novo.'
+  if (errorValue === 'origin') return 'A solicitação foi bloqueada por segurança.'
   if (errorValue === 'missing_fields') return 'Preencha título e mensagem.'
   if (errorValue === 'too_long') return 'O título ou a mensagem ficaram grandes demais.'
   if (errorValue === 'save_failed') return 'Não foi possível salvar o recado.'

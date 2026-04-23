@@ -1,74 +1,39 @@
 import type { APIRoute } from 'astro'
+import { checkRateLimit } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
-import type { Database } from '@/lib/types'
+import { searchArticles } from '@/lib/search'
 
 const jsonHeaders = { 'Content-Type': 'application/json' }
-const MAX_RESULTS = 20
 
-type SearchArticle = Database['public']['Functions']['search_articles']['Returns'][number]
-
-function buildExcerpt(article: SearchArticle): string {
-  const content = article.content_ptbr?.trim()
-  if (content) {
-    return content.replace(/\s+/g, ' ').slice(0, 180)
-  }
-  return article.summary_ptbr.replace(/\s+/g, ' ').slice(0, 180)
-}
-
-export const GET: APIRoute = async ({ url }) => {
+export const GET: APIRoute = async ({ request, url }) => {
   const query = url.searchParams.get('q')?.trim().toLowerCase() ?? ''
-  if (query.length < 2) {
-    return new Response(
-      JSON.stringify({ results: [], page: 1, hasMore: false, hasPrevious: false }),
-      { headers: jsonHeaders }
-    )
-  }
-
   const requestedPage = Number(url.searchParams.get('page') ?? '1')
-  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1
-  const offset = (page - 1) * MAX_RESULTS
 
   const supabase = createServerClient()
-  const { data, error } = await supabase.rpc('search_articles', {
-    search_query: query,
-    result_limit: MAX_RESULTS + 1,
-    result_offset: offset,
-  })
+  if (query.length >= 2) {
+    const rateLimit = await checkRateLimit(supabase, request, 'search', [
+      { limit: 30, windowSec: 60 },
+    ])
 
-  if (error) {
+    if (!rateLimit.allowed) {
+      return new Response(JSON.stringify({ error: 'Muitas buscas em sequência. Tente novamente em instantes.' }), {
+        status: 429,
+        headers: {
+          ...jsonHeaders,
+          'Retry-After': String(rateLimit.retryAfter),
+        },
+      })
+    }
+  }
+
+  try {
+    const data = await searchArticles(supabase, { query, page: requestedPage })
+
+    return new Response(JSON.stringify(data), { headers: jsonHeaders })
+  } catch {
     return new Response(JSON.stringify({ error: 'Search failed' }), {
       status: 500,
       headers: jsonHeaders,
     })
   }
-
-  const rows = (data ?? []) as SearchArticle[]
-  const hasMore = rows.length > MAX_RESULTS
-  const results = rows.slice(0, MAX_RESULTS).map((article) => ({
-    id: article.id,
-    slug: article.slug,
-    title: article.title_ptbr ?? article.title,
-    summary: article.summary_ptbr,
-    excerpt: buildExcerpt(article),
-    category: article.category,
-    primarySource: article.primary_source_label ?? article.source,
-    sourceCount: article.source_count,
-    edition: {
-      slug: article.edition_slug,
-      edition_number: article.edition_number,
-      title: article.edition_title,
-      published_at: article.edition_published_at,
-      created_at: article.edition_created_at,
-    },
-  }))
-
-  return new Response(
-    JSON.stringify({
-      results,
-      page,
-      hasMore,
-      hasPrevious: page > 1,
-    }),
-    { headers: jsonHeaders }
-  )
 }

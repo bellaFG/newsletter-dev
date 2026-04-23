@@ -1,7 +1,9 @@
 ---
 import '@/styles/globals.css'
 import AnnouncementBanner from '@/components/AnnouncementBanner.astro'
-import { SITE_NAME, SITE_TITLE, SITE_DESCRIPTION } from '@/lib/config'
+import SiteNav from '@/components/SiteNav.astro'
+import { SITE_NAME, SITE_DESCRIPTION, normalizePublicSiteUrl } from '@/lib/config'
+import { readEnv } from '@/lib/env'
 import { getActiveSiteAnnouncement } from '@/lib/site-announcements'
 import { supabase } from '@/lib/supabase'
 
@@ -9,16 +11,21 @@ interface Props {
   title?: string
   description?: string
   ogTitle?: string
+  canonicalUrl?: string
+  robots?: string
 }
 
 const {
-  title = SITE_TITLE,
+  title = SITE_NAME,
   description = SITE_DESCRIPTION,
   ogTitle,
+  canonicalUrl,
+  robots,
 } = Astro.props
 
 const socialTitle = ogTitle ?? title
-const canonicalUrl = new URL(Astro.url.pathname, Astro.site ?? 'https://newsletter-dev.vercel.app')
+const canonicalHref = new URL(canonicalUrl ?? Astro.url.pathname, Astro.url).href
+const siteUrl = normalizePublicSiteUrl(readEnv('SITE_URL'))
 const topAnnouncement = await getActiveSiteAnnouncement(supabase)
 ---
 
@@ -29,12 +36,14 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonicalUrl.href} />
+    {robots && <meta name="robots" content={robots} />}
+    <link rel="canonical" href={canonicalHref} />
+    <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} RSS`} href={`${siteUrl}/rss.xml`} />
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:title" content={socialTitle} />
     <meta property="og:description" content={description} />
-    <meta property="og:url" content={canonicalUrl.href} />
+    <meta property="og:url" content={canonicalHref} />
     <meta property="og:site_name" content={SITE_NAME} />
     <meta property="og:locale" content="pt_BR" />
     <!-- Twitter Card -->
@@ -60,31 +69,26 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
     </script>
   </head>
   <body class="antialiased">
-    <!-- Header global com botao assinar -->
-    <header class="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur-sm border-b border-foreground/10">
-      <div class="mx-auto max-w-6xl px-6 sm:px-10 flex items-center justify-between h-10">
-        <a href="/" class="font-serif text-sm font-black tracking-tight uppercase hover:opacity-60 transition-opacity">
-          {SITE_NAME}
-        </a>
-        <button
-          id="subscribe-open-btn"
-          class="font-mono text-[0.55rem] tracking-widest uppercase border border-link text-link px-3 py-1 hover:bg-link hover:text-background transition-colors cursor-pointer font-bold"
-        >
-          Assinar
-        </button>
-      </div>
-    </header>
+    <div id="page-shell">
+      <a href="#main-content" class="skip-link">Pular para o conteúdo</a>
 
-    <!-- Spacer para compensar o header fixo -->
-    <div class="h-10"></div>
+      <SiteNav />
 
-    {topAnnouncement && (
-      <div data-announcement-slot class="mx-auto max-w-6xl px-6 pt-4 sm:px-10">
-        <AnnouncementBanner announcement={topAnnouncement} compact />
-      </div>
-    )}
+      {topAnnouncement && (
+        <div data-announcement-slot class="mx-auto max-w-6xl px-6 pt-4 sm:px-10">
+          <AnnouncementBanner announcement={topAnnouncement} compact />
+        </div>
+      )}
 
-    <slot />
+      <main id="main-content" tabindex="-1">
+        <slot />
+      </main>
+
+      <!-- Footer -->
+      <footer class="border-t border-foreground/10 py-6 text-center font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground">
+        &copy; {new Date().getFullYear()} {SITE_NAME}. Todos os direitos reservados.
+      </footer>
+    </div>
 
     <!-- Modal de assinatura -->
     <div id="subscribe-modal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -112,6 +116,16 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
             </div>
 
             <form id="subscribe-form" class="space-y-3">
+              <label class="sr-only" aria-hidden="true">
+                Não preencha este campo
+                <input
+                  type="text"
+                  name="website"
+                  tabindex="-1"
+                  autocomplete="off"
+                  class="sr-only"
+                />
+              </label>
               <input
                 type="email"
                 name="email"
@@ -121,12 +135,13 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
               />
               <button
                 type="submit"
+                data-subscribe-submit
                 class="w-full bg-link text-white font-mono text-[0.6rem] tracking-widest uppercase px-8 py-3 hover:opacity-75 transition-opacity cursor-pointer font-bold"
               >
                 Assinar gratuitamente
               </button>
             </form>
-            <p id="subscribe-msg" class="mt-3 text-sm font-mono text-center hidden"></p>
+            <p id="subscribe-msg" class="mt-3 text-sm font-mono text-center hidden" aria-live="polite" role="status"></p>
             <p class="mt-4 text-center text-[0.65rem] text-muted-foreground font-mono">
               Gratuito, sem spam. Cancele quando quiser.
             </p>
@@ -146,44 +161,94 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
       </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="border-t border-foreground/10 py-6 text-center font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground">
-      &copy; {new Date().getFullYear()} {SITE_NAME}. Todos os direitos reservados.
-    </footer>
-
-    <!-- Toggle de tema fixo -->
-    <button
-      id="theme-toggle"
-      aria-label="Alternar tema claro/escuro"
-      class="fixed bottom-6 right-6 z-50 font-mono text-[0.6rem] tracking-widest uppercase border border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground px-3 py-2 transition-colors cursor-pointer select-none"
-    >
-      <span id="theme-icon" aria-hidden="true"></span>
-    </button>
-
     <script>
       // ── Modal de assinatura ──────────────────────────────────────────────
       ;(function () {
         const modal = document.getElementById('subscribe-modal')
         const overlay = document.getElementById('subscribe-overlay')
         const card = document.getElementById('subscribe-card')
+        const pageShell = document.getElementById('page-shell')
         const openBtns = document.querySelectorAll('[data-subscribe-open], #subscribe-open-btn')
         const closeBtn = document.getElementById('subscribe-close-btn')
         const form = document.getElementById('subscribe-form') as HTMLFormElement | null
         const msg = document.getElementById('subscribe-msg')
         const formContent = document.getElementById('subscribe-form-content')
         const successContent = document.getElementById('subscribe-success')
+        const submitBtn = document.querySelector('[data-subscribe-submit]') as HTMLButtonElement | null
+        let lastFocusedElement: HTMLElement | null = null
+        let closeTimer = 0
 
         const EMAIL_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/
 
-        function openModal() {
+        function isModalOpen() {
+          return Boolean(modal && !modal.classList.contains('hidden'))
+        }
+
+        function setPageInert(isInert: boolean) {
+          if (!(pageShell instanceof HTMLElement)) return
+
+          if (isInert) {
+            pageShell.setAttribute('inert', '')
+            pageShell.setAttribute('aria-hidden', 'true')
+          } else {
+            pageShell.removeAttribute('inert')
+            pageShell.removeAttribute('aria-hidden')
+          }
+        }
+
+        function getFocusableElements() {
+          if (!(card instanceof HTMLElement)) return []
+
+          return Array.from(
+            card.querySelectorAll<HTMLElement>(
+              'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            ),
+          ).filter((element) => {
+            if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') {
+              return false
+            }
+
+            if (element.tabIndex < 0) {
+              return false
+            }
+
+            if (
+              element instanceof HTMLInputElement &&
+              (element.type === 'hidden' || element.name === 'website')
+            ) {
+              return false
+            }
+
+            return true
+          })
+        }
+
+        function resetModalState() {
+          form?.reset()
+          formContent?.classList.remove('hidden')
+          successContent?.classList.add('hidden')
+          submitBtn?.removeAttribute('disabled')
+
+          if (msg) {
+            msg.textContent = ''
+            msg.className = 'mt-3 text-sm font-mono text-center hidden'
+          }
+        }
+
+        function openModal(event?: Event) {
           if (!modal || !overlay || !card) return
+          window.clearTimeout(closeTimer)
+          lastFocusedElement = (event?.currentTarget as HTMLElement | null) ?? (document.activeElement as HTMLElement | null)
+          resetModalState()
           modal.classList.remove('hidden')
           document.body.classList.add('overflow-hidden')
+          setPageInert(true)
           requestAnimationFrame(() => {
             overlay.classList.remove('opacity-0')
             overlay.classList.add('opacity-100')
             card.classList.remove('translate-y-4', 'opacity-0')
             card.classList.add('translate-y-0', 'opacity-100')
+            ;(form?.elements.namedItem('email') as HTMLInputElement | null)?.focus()
           })
         }
 
@@ -193,9 +258,11 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
           overlay.classList.add('opacity-0')
           card.classList.remove('translate-y-0', 'opacity-100')
           card.classList.add('translate-y-4', 'opacity-0')
-          setTimeout(() => {
+          closeTimer = window.setTimeout(() => {
             modal.classList.add('hidden')
             document.body.classList.remove('overflow-hidden')
+            setPageInert(false)
+            lastFocusedElement?.focus()
           }, 300)
         }
 
@@ -203,12 +270,35 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
         closeBtn?.addEventListener('click', closeModal)
         overlay?.addEventListener('click', closeModal)
         document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) closeModal()
+          if (!isModalOpen()) return
+
+          if (e.key === 'Escape') {
+            closeModal()
+            return
+          }
+
+          if (e.key !== 'Tab') return
+
+          const focusable = getFocusableElements()
+          if (focusable.length === 0) return
+
+          const first = focusable[0]
+          const last = focusable[focusable.length - 1]
+          const active = document.activeElement
+
+          if (!e.shiftKey && active === last) {
+            e.preventDefault()
+            first?.focus()
+          } else if (e.shiftKey && active === first) {
+            e.preventDefault()
+            last?.focus()
+          }
         })
 
         form?.addEventListener('submit', async (e) => {
           e.preventDefault()
           const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim().toLowerCase()
+          const website = (form.elements.namedItem('website') as HTMLInputElement | null)?.value ?? ''
 
           if (!email || !EMAIL_RE.test(email)) {
             if (msg) {
@@ -219,11 +309,13 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
             return
           }
 
+          submitBtn?.setAttribute('disabled', 'true')
+
           try {
             const res = await fetch('/api/subscribe', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email }),
+              body: JSON.stringify({ email, website }),
             })
             const data = await res.json()
 
@@ -243,6 +335,8 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
               msg.textContent = 'Erro de conexao. Tente novamente.'
               msg.className = 'mt-3 text-sm font-mono text-center text-destructive'
             }
+          } finally {
+            submitBtn?.removeAttribute('disabled')
           }
         })
       })()
@@ -251,18 +345,29 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
     <script>
       // Deve corresponder a THEME_STORAGE_KEY em lib/config.ts
       const html = document.documentElement
-      const icon = document.getElementById('theme-icon')
+      const themeToggle = document.getElementById('theme-toggle')
+      const moonIcon = themeToggle?.querySelector('[data-theme-icon="moon"]')
+      const sunIcon = themeToggle?.querySelector('[data-theme-icon="sun"]')
+      const themeLabel = document.getElementById('theme-label')
 
-      function updateIcon() {
-        if (icon) icon.textContent = html.classList.contains('dark') ? '○ CLARO' : '● ESCURO'
+      function updateThemeToggle() {
+        const isDark = html.classList.contains('dark')
+
+        moonIcon?.classList.toggle('hidden', isDark)
+        sunIcon?.classList.toggle('hidden', !isDark)
+        themeToggle?.setAttribute('aria-label', isDark ? 'Ativar tema claro' : 'Ativar tema escuro')
+
+        if (themeLabel) {
+          themeLabel.textContent = isDark ? 'Ativar tema claro' : 'Ativar tema escuro'
+        }
       }
 
-      updateIcon()
+      updateThemeToggle()
 
-      document.getElementById('theme-toggle')?.addEventListener('click', () => {
+      themeToggle?.addEventListener('click', () => {
         const nowDark = html.classList.toggle('dark')
         localStorage.setItem('devpulse-theme', nowDark ? 'dark' : 'light')
-        updateIcon()
+        updateThemeToggle()
       })
     </script>
   </body>

@@ -1,7 +1,10 @@
 ---
 import Layout from '@/layouts/Layout.astro'
+import Breadcrumbs from '@/components/Breadcrumbs.astro'
 import PageFooterNav from '@/components/PageFooterNav.astro'
+import ReadingTime from '@/components/ReadingTime.astro'
 import SectionHeader from '@/components/SectionHeader.astro'
+import ShareButtons from '@/components/ShareButtons.astro'
 import { getEditionDisplayDate } from '@/lib/editions'
 import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
@@ -44,22 +47,20 @@ const related = (relatedData ?? []) as Article[]
 const categorySlug = CATEGORY_SLUGS[article.category]
 const sources = getArticleSources(article)
 const primarySource = getPrimarySource(article)
+const articleUrl = Astro.url.href
 ---
 
 <Layout title={`${article.title_ptbr ?? article.title} — ${SITE_NAME}`} description={article.summary_ptbr.slice(0, 160)}>
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-6 py-10">
 
-      {/* -- BREADCRUMB -- */}
-      <nav class="mb-8 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground flex flex-wrap items-center gap-y-1">
-        <a href="/" class="text-link hover:opacity-70 transition-colors">Início</a>
-        <span class="mx-1">/</span>
-        <a href={`/${edition.slug}`} class="text-link hover:opacity-70 transition-colors">
-          Edição #{formatEditionNumber(edition.edition_number)}
-        </a>
-        <span class="mx-1">/</span>
-        <span class="text-foreground/60">Artigo</span>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: 'Início', href: '/' },
+          { label: `Edição #${formatEditionNumber(edition.edition_number)}`, href: `/edicao/${edition.slug}` },
+          { label: 'Artigo' },
+        ]}
+      />
 
       <article>
         <a
@@ -86,12 +87,11 @@ const primarySource = getPrimarySource(article)
               <span>{article.source_count} fontes</span>
             </>
           )}
-          {article.reading_time_min && (
-            <>
-              <span>&middot;</span>
-              <span>{article.reading_time_min} min de leitura</span>
-            </>
-          )}
+          <span>&middot;</span>
+          <ReadingTime
+            minutes={article.reading_time_min}
+            content={article.content_ptbr ?? article.summary_ptbr}
+          />
           <span>&middot;</span>
           <span>{formatMediumDate(getEditionDisplayDate(edition))}</span>
         </div>
@@ -104,8 +104,8 @@ const primarySource = getPrimarySource(article)
           ))}
         </div>
 
-        {/* -- CTAs -- */}
-        <div class="flex flex-col sm:flex-row gap-3 mb-10">
+        {/* -- CTA -- */}
+        <div class="mb-10">
           <a
             href={primarySource.url}
             target="_blank"
@@ -114,13 +114,12 @@ const primarySource = getPrimarySource(article)
           >
             Fonte principal &rarr;
           </a>
-          <a
-            href={`/${edition.slug}`}
-            class="inline-flex items-center justify-center font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground px-6 py-3 hover:text-link transition-colors"
-          >
-            Ver edição #{formatEditionNumber(edition.edition_number)}
-          </a>
         </div>
+
+        <section class="border-t border-foreground/20 pt-8 mt-4">
+          <SectionHeader title="Compartilhar" />
+          <ShareButtons title={article.title_ptbr ?? article.title} url={articleUrl} />
+        </section>
 
         <section class="border-t border-foreground/20 pt-8 mt-4">
           <SectionHeader title="Fontes desta análise" />
@@ -193,8 +192,8 @@ const primarySource = getPrimarySource(article)
       </div>
 
       <PageFooterNav
-        leftLabel={`← Edição #${formatEditionNumber(edition.edition_number)}`}
-        leftHref={`/${edition.slug}`}
+        leftLabel="← Mais artigos"
+        leftHref="/articles"
       />
 
     </div>

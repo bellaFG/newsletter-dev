@@ -1,11 +1,14 @@
 ---
 import Layout from '@/layouts/Layout.astro'
 import { SITE_NAME } from '@/lib/config'
-import { readUnsubscribeToken } from '@/lib/unsubscribe'
+import { readUnsubscribeTokenDetails } from '@/lib/unsubscribe'
 
 const token = Astro.url.searchParams.get('token')?.trim() ?? ''
 const status = Astro.url.searchParams.get('status') ?? ''
-const hasValidToken = Boolean(token && readUnsubscribeToken(token))
+const tokenDetails = token
+  ? readUnsubscribeTokenDetails(token)
+  : { email: null, expired: false, version: null }
+const hasValidToken = Boolean(tokenDetails.email)
 ---
 
 <Layout title={`Cancelar inscrição — ${SITE_NAME}`}>
@@ -65,6 +68,10 @@ const hasValidToken = Boolean(token && readUnsubscribeToken(token))
             <p class="text-muted-foreground leading-relaxed mb-8 max-w-sm mx-auto">
               {status === 'error'
                 ? 'Não foi possível processar sua solicitação agora. Tente novamente em alguns instantes.'
+                : status === 'rate_limit'
+                  ? 'Recebemos tentativas demais em sequência. Aguarde um pouco antes de tentar novamente.'
+                  : status === 'expired' || tokenDetails.expired
+                    ? 'Este link expirou. Use o email mais recente que você recebeu para gerar um novo cancelamento.'
                 : 'Este link é inválido ou expirou. Verifique o email recebido e tente novamente.'}
             </p>
           </>

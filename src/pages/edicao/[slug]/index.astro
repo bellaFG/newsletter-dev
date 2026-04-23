@@ -1,0 +1,120 @@
+---
+import Layout from '@/layouts/Layout.astro'
+import CompactMasthead from '@/components/CompactMasthead.astro'
+import CategoryDivider from '@/components/CategoryDivider.astro'
+import PageFooterNav from '@/components/PageFooterNav.astro'
+import { getEditionDisplayDate } from '@/lib/editions'
+import { supabase } from '@/lib/supabase'
+import type { Article, Edition } from '@/lib/types'
+import { getOrderedCategories, getPrimarySource, groupByCategory } from '@/lib/articles'
+import { formatFullDate, formatEditionNumber } from '@/lib/date'
+import { SITE_NAME } from '@/lib/config'
+
+const { slug } = Astro.params
+
+const { data: editionData } = await supabase
+  .from('editions')
+  .select('*')
+  .eq('slug', slug!)
+  .single()
+
+const edition = editionData as Edition | null
+
+if (!edition || !edition.published_at) {
+  return new Response(null, { status: 404 })
+}
+
+const { data: articlesData } = await supabase
+  .from('articles')
+  .select('*')
+  .eq('edition_id', edition.id)
+  .eq('status', 'active')
+  .order('position', { ascending: true })
+
+const articles = (articlesData ?? []) as Article[]
+if (articles.length === 0) {
+  return new Response(null, { status: 404 })
+}
+
+const grouped = groupByCategory(articles)
+const orderedCategories = getOrderedCategories(grouped)
+---
+
+<Layout title={`${edition.title} — ${SITE_NAME}`} description={edition.summary ?? undefined}>
+  <div class="min-h-screen bg-background text-foreground">
+    <div class="mx-auto max-w-3xl px-6 py-10">
+
+      <CompactMasthead
+        left={formatFullDate(getEditionDisplayDate(edition))}
+        right={`Edição #${formatEditionNumber(edition.edition_number)}`}
+      />
+
+      {edition.summary && (
+        <div class="mb-10">
+          <p class="text-lg leading-relaxed text-muted-foreground">
+            {edition.summary}
+          </p>
+        </div>
+      )}
+
+      <div class="mb-10 border-t border-foreground/20"></div>
+
+      <div>
+        {orderedCategories.map((cat) => (
+          <section class="mb-12 border-b border-foreground/8 pb-12 last:border-b-0 last:pb-0">
+            <CategoryDivider label={cat} />
+
+            <div class="space-y-10">
+              {grouped[cat]!.map((article) => (
+                <article>
+                  <div class="mb-2 flex items-center gap-2 font-mono text-[0.65rem] text-link">
+                    <span class="tracking-widest">{getPrimarySource(article).label}</span>
+                    {article.source_count > 1 && (
+                      <>
+                        <span class="text-foreground/40">&middot;</span>
+                        <span>{article.source_count} fontes</span>
+                      </>
+                    )}
+                    {article.reading_time_min && (
+                      <>
+                        <span class="text-foreground/40">&middot;</span>
+                        <span>{article.reading_time_min} min de leitura</span>
+                      </>
+                    )}
+                  </div>
+                  <a href={`/edicao/${edition.slug}/${article.slug}`} class="block group">
+                    <h2 class="font-serif text-2xl font-bold leading-snug transition-colors group-hover:text-link sm:text-3xl">
+                      {article.title_ptbr ?? article.title}
+                    </h2>
+                  </a>
+                  <p class="mb-4 leading-relaxed text-foreground/80">
+                    {article.summary_ptbr}
+                  </p>
+                  <div class="flex items-center gap-4">
+                    <a
+                      href={`/edicao/${edition.slug}/${article.slug}`}
+                      class="font-mono text-[0.65rem] uppercase tracking-widest text-link transition-opacity hover:opacity-60"
+                    >
+                      Leia mais &rarr;
+                    </a>
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground transition-colors hover:text-link"
+                    >
+                      Fonte principal &nearr;
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      <PageFooterNav leftLabel="← Início" leftHref="/" />
+
+    </div>
+  </div>
+</Layout>

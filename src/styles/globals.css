@@ -1,3 +1,5 @@
+@import './print.css';
+
 @font-face {
   font-family: 'Geist Sans';
   src: url('/fonts/GeistVF.woff') format('woff');
@@ -22,7 +24,6 @@
   }
 }
 
-/* Animacao do checkmark no modal de sucesso */
 @keyframes dash {
   to {
     stroke-dashoffset: 0;
@@ -97,5 +98,44 @@
   html {
     @apply font-sans;
     scroll-behavior: smooth;
+  }
+  :focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 3px;
+  }
+}
+
+.skip-link {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 60;
+  transform: translateY(-150%);
+  border: 1px solid var(--link);
+  background: var(--background);
+  color: var(--link);
+  padding: 0.6rem 0.9rem;
+  font-family: 'Geist Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: transform 160ms ease;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

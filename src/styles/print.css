@@ -1,0 +1,48 @@
+@media print {
+  :root {
+    --background: #ffffff;
+    --foreground: #111111;
+    --muted-foreground: #444444;
+    --border: #d0d0d0;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    transition: none !important;
+    background-image: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+
+  #page-shell > header,
+  #page-shell > footer,
+  #subscribe-modal,
+  .skip-link,
+  nav,
+  footer,
+  [data-announcement-slot] {
+    display: none !important;
+  }
+
+  main,
+  article,
+  section,
+  div,
+  p,
+  h1,
+  h2,
+  h3 {
+    color: #111111 !important;
+  }
+
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    color: #444444;
+  }
+}

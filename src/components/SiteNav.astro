@@ -1,0 +1,152 @@
+---
+import { CATEGORY_ORDER, CATEGORY_SLUGS } from '@/lib/articles'
+import ThemeToggle from '@/components/ThemeToggle.astro'
+import { SITE_NAME } from '@/lib/config'
+
+const pathname = Astro.url.pathname
+
+const activeSection =
+  pathname === '/'
+    ? 'home'
+    : pathname.startsWith('/archive') || pathname.startsWith('/edicao/')
+      ? 'editions'
+      : pathname.startsWith('/articles')
+        ? 'articles'
+        : pathname.startsWith('/buscar')
+          ? 'search'
+          : pathname.startsWith('/categoria/')
+            ? 'categories'
+            : ''
+
+const navLinkClasses = (isActive: boolean) =>
+  [
+    'whitespace-nowrap border-b pb-1 transition-colors',
+    isActive
+      ? 'border-link text-link'
+      : 'border-transparent text-muted-foreground hover:border-foreground/20 hover:text-foreground',
+  ].join(' ')
+
+const categories = CATEGORY_ORDER.map((category) => ({
+  label: category,
+  href: `/categoria/${CATEGORY_SLUGS[category]}`,
+}))
+---
+
+<header class="sticky top-0 z-40 border-b border-foreground/10 bg-background/92 backdrop-blur supports-[backdrop-filter]:bg-background/85">
+  <div class="mx-auto max-w-6xl px-6 sm:px-10">
+    <div class="flex min-h-14 items-center gap-4">
+      <a
+        href="/"
+        class="shrink-0 font-serif text-sm font-black uppercase tracking-tight transition-opacity hover:opacity-60"
+      >
+        {SITE_NAME}
+      </a>
+
+      <nav
+        aria-label="Navegação principal"
+        class="ml-4 hidden flex-1 items-center justify-center gap-5 font-mono text-[0.58rem] uppercase tracking-[0.24em] md:flex"
+      >
+        <a href="/" class={navLinkClasses(activeSection === 'home')}>Início</a>
+        <a href="/archive" class={navLinkClasses(activeSection === 'editions')}>Edições</a>
+        <a href="/articles" class={navLinkClasses(activeSection === 'articles')}>Artigos</a>
+
+        <details class="group relative">
+          <summary
+            class:list={[
+              'flex cursor-pointer list-none items-center gap-1 border-b pb-1 transition-colors',
+              activeSection === 'categories'
+                ? 'border-link text-link'
+                : 'border-transparent text-muted-foreground hover:border-foreground/20 hover:text-foreground',
+            ]}
+          >
+            Categorias
+            <svg
+              class="h-3 w-3 transition-transform group-open:rotate-180"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <path d="m4 6 4 4 4-4" />
+            </svg>
+          </summary>
+
+          <div class="absolute left-1/2 top-full z-50 mt-3 hidden w-72 -translate-x-1/2 border border-foreground/15 bg-background p-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)] group-open:block">
+            <div class="grid grid-cols-2 gap-2">
+              {categories.map((category) => (
+                <a
+                  href={category.href}
+                  class="border border-transparent px-2 py-2 font-mono text-[0.52rem] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:border-foreground/10 hover:text-link"
+                >
+                  {category.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </details>
+
+        <a href="/buscar" class={navLinkClasses(activeSection === 'search')}>Buscar</a>
+      </nav>
+
+      <div class="ml-auto flex items-center gap-2">
+        <ThemeToggle />
+
+        <button
+          id="subscribe-open-btn"
+          data-subscribe-open
+          class="inline-flex items-center border border-link px-3 py-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-background"
+        >
+          Assinar
+        </button>
+      </div>
+    </div>
+
+    <div class="border-t border-foreground/10 md:hidden">
+      <div class="flex items-center justify-between gap-3 py-3">
+        <nav
+          aria-label="Navegação principal"
+          class="scrollbar-thin flex flex-1 items-center gap-4 overflow-x-auto whitespace-nowrap font-mono text-[0.55rem] uppercase tracking-[0.22em]"
+        >
+          <a href="/" class={navLinkClasses(activeSection === 'home')}>Início</a>
+          <a href="/archive" class={navLinkClasses(activeSection === 'editions')}>Edições</a>
+          <a href="/articles" class={navLinkClasses(activeSection === 'articles')}>Artigos</a>
+          <a href="/buscar" class={navLinkClasses(activeSection === 'search')}>Buscar</a>
+        </nav>
+
+        <details class="relative shrink-0">
+          <summary class="flex cursor-pointer list-none items-center gap-1 font-mono text-[0.55rem] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground">
+            Categorias
+            <svg
+              class="h-3 w-3"
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              aria-hidden="true"
+            >
+              <path d="m4 6 4 4 4-4" />
+            </svg>
+          </summary>
+
+          <div class="absolute right-0 top-full z-50 mt-3 w-64 border border-foreground/15 bg-background p-4 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+            <div class="grid gap-2">
+              {categories.map((category) => (
+                <a
+                  href={category.href}
+                  class="border border-transparent px-2 py-2 font-mono text-[0.52rem] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:border-foreground/10 hover:text-link"
+                >
+                  {category.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </div>
+</header>
