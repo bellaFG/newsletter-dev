@@ -38,6 +38,8 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
     <ClientRouter />
     <title>{title}</title>
     <meta name="description" content={description} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="shortcut icon" href="/favicon.svg" />
     {robots && <meta name="robots" content={robots} />}
     <link rel="canonical" href={canonicalHref} />
     <link rel="alternate" type="application/rss+xml" title={`${SITE_NAME} RSS`} href={`${siteUrl}/rss.xml`} />
