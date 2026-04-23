@@ -1,7 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { SEARCH_RESULTS_PER_PAGE, normalizePositiveInteger } from './pagination'
 import type { Article, Database, Edition } from './types'
-
-export const SEARCH_RESULTS_PER_PAGE = 20
 
 type SearchArticleRow = Article & {
   editions: Pick<Edition, 'slug' | 'edition_number' | 'title' | 'published_at' | 'created_at'>
@@ -32,10 +31,6 @@ export type SearchResponse = {
   hasPrevious: boolean
 }
 
-function normalizePage(value: number | null | undefined): number {
-  return Number.isFinite(value) && Number(value) > 0 ? Math.floor(Number(value)) : 1
-}
-
 function buildExcerpt(article: Pick<Article, 'content_ptbr' | 'summary_ptbr'>): string {
   const content = article.content_ptbr?.trim()
   if (content) {
@@ -50,8 +45,8 @@ export async function searchArticles(
   options: { query: string; page?: number; perPage?: number }
 ): Promise<SearchResponse> {
   const query = options.query.trim()
-  const perPage = normalizePage(options.perPage ?? SEARCH_RESULTS_PER_PAGE)
-  const page = normalizePage(options.page)
+  const perPage = normalizePositiveInteger(options.perPage, SEARCH_RESULTS_PER_PAGE)
+  const page = normalizePositiveInteger(options.page, 1)
   const sanitized = query
     .replace(/[,()\\%_]/g, ' ')
     .replace(/\s+/g, ' ')

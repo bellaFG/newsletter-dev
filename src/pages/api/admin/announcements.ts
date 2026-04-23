@@ -1,15 +1,9 @@
 import type { APIRoute } from 'astro'
 import { recordAdminAudit } from '@/lib/admin-audit'
 import { hasAdminSession } from '@/lib/admin-auth'
+import { redirect } from '@/lib/http'
 import { getRequestIpHash } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
-
-function redirect(location: string) {
-  return new Response(null, {
-    status: 303,
-    headers: { Location: location },
-  })
-}
 
 function fail(code: string, editId?: string | null) {
   const editQuery = editId ? `&edit=${encodeURIComponent(editId)}` : ''

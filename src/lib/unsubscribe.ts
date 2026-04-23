@@ -1,11 +1,11 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto'
+import { isValidEmailAddress, normalizeEmailAddress } from './email'
 import { readEnv, requireEnv } from './env'
 
 const TOKEN_VERSION_V1 = 'v1'
 const TOKEN_VERSION_V2 = 'v2'
 const IV_BYTES = 12
 const AUTH_TAG_BYTES = 16
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DEFAULT_TOKEN_TTL_MS = 365 * 24 * 60 * 60 * 1000
 
 export type UnsubscribeTokenDetails = {
@@ -22,10 +22,6 @@ function fromBase64Url(value: string): Buffer {
   return Buffer.from(value, 'base64url')
 }
 
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase()
-}
-
 function getUnsubscribeKey(): Buffer {
   const secret = readEnv('UNSUBSCRIBE_TOKEN_SECRET') ?? requireEnv('NEWSLETTER_API_SECRET')
 
@@ -33,7 +29,7 @@ function getUnsubscribeKey(): Buffer {
 }
 
 export function createUnsubscribeToken(email: string): string {
-  const normalizedEmail = normalizeEmail(email)
+  const normalizedEmail = normalizeEmailAddress(email)
   const payload = Buffer.from(
     JSON.stringify({
       email: normalizedEmail,
@@ -77,9 +73,9 @@ export function readUnsubscribeTokenDetails(token: string): UnsubscribeTokenDeta
 
     const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8')
     const payload = JSON.parse(decrypted) as { email?: string; exp?: number; v?: string }
-    const email = normalizeEmail(payload.email ?? '')
+    const email = normalizeEmailAddress(payload.email ?? '')
 
-    if (payload.v !== version || !EMAIL_RE.test(email)) {
+    if (payload.v !== version || !isValidEmailAddress(email)) {
       return { email: null, expired: false, version: null }
     }
 

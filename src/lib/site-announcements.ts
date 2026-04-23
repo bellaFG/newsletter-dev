@@ -4,7 +4,7 @@ import type { Database, SiteAnnouncementRow } from './types'
 
 type DatabaseClient = SupabaseClient<Database>
 
-export function mapAnnouncementRowToSiteAnnouncement(row: SiteAnnouncementRow): SiteAnnouncement {
+function mapAnnouncementRowToSiteAnnouncement(row: SiteAnnouncementRow): SiteAnnouncement {
   return {
     id: row.id,
     scope: 'global',

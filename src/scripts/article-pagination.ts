@@ -1,3 +1,5 @@
+import { ARTICLE_LIST_PER_PAGE } from '@/lib/pagination'
+
 declare global {
   interface Window {
     __devpulseArticlePaginationInitialized?: boolean
@@ -129,7 +131,7 @@ function setArticlePaginationLoading(root: HTMLElement, isLoading: boolean) {
 
 async function loadArticlePage(root: HTMLElement, page: number) {
   const endpoint = root.dataset.articlePaginationEndpoint
-  const perPage = Number(root.dataset.articlePaginationPerPage ?? '9')
+  const perPage = Number(root.dataset.articlePaginationPerPage ?? String(ARTICLE_LIST_PER_PAGE))
 
   if (!endpoint) return
 
@@ -140,7 +142,7 @@ async function loadArticlePage(root: HTMLElement, page: number) {
 
   try {
     const response = await fetch(
-      `${endpoint}?page=${page}&perPage=${Number.isFinite(perPage) && perPage > 0 ? perPage : 9}`,
+      `${endpoint}?page=${page}&perPage=${Number.isFinite(perPage) && perPage > 0 ? perPage : ARTICLE_LIST_PER_PAGE}`,
       { signal: controller.signal },
     )
     const data = (await response.json()) as Partial<ArticlePaginationResponse> & { error?: string }

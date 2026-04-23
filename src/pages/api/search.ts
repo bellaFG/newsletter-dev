@@ -1,9 +1,8 @@
 import type { APIRoute } from 'astro'
+import { jsonHeaders } from '@/lib/http'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
 import { searchArticles } from '@/lib/search'
-
-const jsonHeaders = { 'Content-Type': 'application/json' }
 
 export const GET: APIRoute = async ({ request, url }) => {
   const query = url.searchParams.get('q')?.trim() ?? ''

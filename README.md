@@ -90,7 +90,6 @@ newsletter/
 |   |
 |   |-- components/
 |   |   |-- ArticleCard.astro        # Card de artigo na grid
-|   |   |-- CategoryNav.astro        # Navegacao por categorias (pills/links)
 |   |   |-- CompactMasthead.astro    # Masthead de paginas internas
 |   |   |-- CategoryDivider.astro    # Divisor estilo jornal
 |   |   |-- SectionHeader.astro      # Cabecalho de secao

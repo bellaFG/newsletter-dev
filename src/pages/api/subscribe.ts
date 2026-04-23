@@ -1,9 +1,9 @@
 import type { APIRoute } from 'astro'
 import { promises as dns } from 'node:dns'
+import { isValidEmailAddress, normalizeEmailAddress } from '@/lib/email'
+import { jsonHeaders } from '@/lib/http'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
-
-const jsonHeaders = { 'Content-Type': 'application/json' }
 
 /**
  * POST /api/subscribe
@@ -14,7 +14,7 @@ const jsonHeaders = { 'Content-Type': 'application/json' }
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json().catch(() => null)
-    const email = body?.email?.toString().trim().toLowerCase()
+    const email = normalizeEmailAddress(body?.email?.toString() ?? '')
     const website = body?.website?.toString().trim() ?? ''
     const supabase = createServerClient()
 
@@ -36,11 +36,7 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Formato, tamanho e dominio com TLD real (min 2 letras)
-    if (
-      !email ||
-      email.length > 254 ||
-      !/^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/.test(email)
-    ) {
+    if (!isValidEmailAddress(email)) {
       return new Response(JSON.stringify({ error: 'Email inválido' }), { status: 400, headers: jsonHeaders })
     }
 

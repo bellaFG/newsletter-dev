@@ -8,8 +8,7 @@ import { NewsletterEmail } from '../../../emails/NewsletterEmail'
 import type { Article, Edition, NewsletterDelivery } from '@/lib/types'
 import { EMAIL_BATCH_SIZE, normalizePublicSiteUrl } from '@/lib/config'
 import { readEnv, requireEnv } from '@/lib/env'
-
-const jsonHeaders = { 'Content-Type': 'application/json' }
+import { jsonHeaders } from '@/lib/http'
 
 /** Comparacao de strings em tempo constante (previne timing attacks) */
 function safeCompare(a: string, b: string): boolean {

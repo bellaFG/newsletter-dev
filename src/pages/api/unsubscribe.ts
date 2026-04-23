@@ -1,14 +1,8 @@
 import type { APIRoute } from 'astro'
+import { redirect } from '@/lib/http'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
 import { readUnsubscribeTokenDetails } from '@/lib/unsubscribe'
-
-function redirect(location: string) {
-  return new Response(null, {
-    status: 303,
-    headers: { Location: location },
-  })
-}
 
 export const POST: APIRoute = async ({ request }) => {
   const formData = await request.formData()

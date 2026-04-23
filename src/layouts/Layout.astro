@@ -3,7 +3,12 @@ import '@/styles/globals.css'
 import { ClientRouter } from 'astro:transitions'
 import AnnouncementBanner from '@/components/AnnouncementBanner.astro'
 import SiteNav from '@/components/SiteNav.astro'
-import { SITE_NAME, SITE_DESCRIPTION, normalizePublicSiteUrl } from '@/lib/config'
+import {
+  SITE_NAME,
+  SITE_DESCRIPTION,
+  THEME_STORAGE_KEY,
+  normalizePublicSiteUrl,
+} from '@/lib/config'
 import { readEnv } from '@/lib/env'
 import { getActiveSiteAnnouncement } from '@/lib/site-announcements'
 import { supabase } from '@/lib/supabase'
@@ -58,11 +63,11 @@ const topAnnouncement = await getActiveSiteAnnouncement(supabase)
       href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap"
       rel="stylesheet"
     />
-    <script is:inline>
-      // Deve corresponder a THEME_STORAGE_KEY em lib/config.ts
+    <script is:inline define:vars={{ themeStorageKey: THEME_STORAGE_KEY }}>
+      // Compartilha a mesma chave do bundle client para evitar drift.
       ;(function () {
         document.documentElement.dataset.routeReady = 'true'
-        const saved = localStorage.getItem('devpulse-theme')
+        const saved = localStorage.getItem(themeStorageKey)
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
         const isDark = saved === 'dark' || (!saved && prefersDark)
         document.documentElement.classList.toggle('dark', isDark)

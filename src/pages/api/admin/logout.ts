@@ -1,12 +1,6 @@
 import type { APIRoute } from 'astro'
 import { clearAdminSession } from '@/lib/admin-auth'
-
-function redirect(location: string) {
-  return new Response(null, {
-    status: 303,
-    headers: { Location: location },
-  })
-}
+import { redirect } from '@/lib/http'
 
 export const POST: APIRoute = async ({ cookies }) => {
   clearAdminSession(cookies)

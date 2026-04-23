@@ -1,29 +1,29 @@
 import type { APIRoute } from 'astro'
 import { listPublishedArticles, paginateItems, serializeArticleCard } from '@/lib/articles'
+import { jsonHeaders } from '@/lib/http'
+import {
+  ARTICLE_LIST_PER_PAGE,
+  normalizeArticleListPerPage,
+  normalizePositiveInteger,
+} from '@/lib/pagination'
 import { supabase } from '@/lib/supabase'
-
-const jsonHeaders = { 'Content-Type': 'application/json' }
-const DEFAULT_PER_PAGE = 9
-const MAX_PER_PAGE = 24
 
 export const GET: APIRoute = async ({ url }) => {
   const requestedPage = Number(url.searchParams.get('page') ?? '1')
-  const requestedPerPage = Number(url.searchParams.get('perPage') ?? String(DEFAULT_PER_PAGE))
-  const perPage =
-    Number.isFinite(requestedPerPage) && requestedPerPage > 0
-      ? Math.min(Math.floor(requestedPerPage), MAX_PER_PAGE)
-      : DEFAULT_PER_PAGE
+  const requestedPerPage = Number(url.searchParams.get('perPage') ?? String(ARTICLE_LIST_PER_PAGE))
+  const page = normalizePositiveInteger(requestedPage, 1)
+  const perPage = normalizeArticleListPerPage(requestedPerPage)
 
   try {
     const articles = await listPublishedArticles(supabase)
-    const { items, page, totalPages } = paginateItems(articles, requestedPage, perPage)
+    const { items, page: currentPage, totalPages } = paginateItems(articles, page, perPage)
 
     return new Response(
       JSON.stringify({
-        page,
+        page: currentPage,
         totalPages,
-        hasPrevious: page > 1,
-        hasMore: page < totalPages,
+        hasPrevious: currentPage > 1,
+        hasMore: currentPage < totalPages,
         items: items.map(serializeArticleCard),
       }),
       { headers: jsonHeaders }

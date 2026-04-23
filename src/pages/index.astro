@@ -7,6 +7,7 @@ import type { Article, Edition } from '@/lib/types'
 import { getPrimarySource, listPublishedArticles, paginateItems } from '@/lib/articles'
 import { getEditionDisplayDate, getLatestEditionWithArticles } from '@/lib/editions'
 import { formatFullDate, formatMediumDate, formatEditionNumber } from '@/lib/date'
+import { ARTICLE_LIST_PER_PAGE, normalizePositiveInteger } from '@/lib/pagination'
 import { getPublishingStatus } from '@/lib/publishing'
 import { SITE_NAME, SITE_TAGLINE, MASTHEAD_SUBTITLE } from '@/lib/config'
 
@@ -26,11 +27,13 @@ if (latest) {
 const allArticles = await listPublishedArticles(supabase)
 const initialSearchQuery = Astro.url.searchParams.get('q')?.trim() ?? ''
 
-const PER_PAGE = 9
 const requestedPage = Number(Astro.url.searchParams.get('page') ?? '1')
-const currentPage =
-  Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1
-const { items: paginatedArticles, page, totalPages } = paginateItems(allArticles, currentPage, PER_PAGE)
+const currentPage = normalizePositiveInteger(requestedPage, 1)
+const { items: paginatedArticles, page, totalPages } = paginateItems(
+  allArticles,
+  currentPage,
+  ARTICLE_LIST_PER_PAGE,
+)
 const pageHref = (value: number) => (value <= 1 ? '/' : `/?page=${value}`)
 
 if (allArticles.length > 0 && currentPage > totalPages) {
@@ -204,7 +207,7 @@ const remainingCategories = [...new Set(remainingLatestArticles.map((article) =>
           data-article-pagination-root
           data-article-pagination-endpoint="/api/articles"
           data-article-pagination-path="/"
-          data-article-pagination-per-page={String(PER_PAGE)}
+          data-article-pagination-per-page={String(ARTICLE_LIST_PER_PAGE)}
           data-article-pagination-current-page={String(page)}
           data-article-pagination-total-pages={String(totalPages)}
         >

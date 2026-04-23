@@ -1,11 +1,12 @@
+import { THEME_STORAGE_KEY } from '@/lib/config'
+import { formatEditionNumber } from '@/lib/date'
+import { isValidEmailAddress, normalizeEmailAddress } from '@/lib/email'
+
 declare global {
   interface Window {
     __devpulseSiteShellInitialized?: boolean
   }
 }
-
-const THEME_STORAGE_KEY = 'devpulse-theme'
-const EMAIL_RE = /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z]{2,}$/
 
 let lastFocusedElement: HTMLElement | null = null
 let modalCloseTimer = 0
@@ -277,10 +278,6 @@ function escapeHtml(value: string) {
   })
 }
 
-function formatEditionNumber(value: number) {
-  return String(value).padStart(3, '0')
-}
-
 function renderSearchSkeletons() {
   const { results, meta } = getSearchElements()
   if (!results) return
@@ -490,12 +487,10 @@ function syncSearchFromUrl() {
 
 async function handleSubscribeSubmit(form: HTMLFormElement) {
   const { msg, formContent, successContent, submitBtn } = getModalElements()
-  const email = (form.elements.namedItem('email') as HTMLInputElement).value
-    .trim()
-    .toLowerCase()
+  const email = normalizeEmailAddress((form.elements.namedItem('email') as HTMLInputElement).value)
   const website = (form.elements.namedItem('website') as HTMLInputElement | null)?.value ?? ''
 
-  if (!email || !EMAIL_RE.test(email)) {
+  if (!isValidEmailAddress(email)) {
     if (msg) {
       msg.classList.remove('hidden')
       msg.textContent = 'Digite um email válido.'

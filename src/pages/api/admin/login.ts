@@ -1,15 +1,9 @@
 import type { APIRoute } from 'astro'
 import { recordAdminAudit } from '@/lib/admin-audit'
 import { isValidAdminSecret, setAdminSession } from '@/lib/admin-auth'
+import { redirect } from '@/lib/http'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { createServerClient } from '@/lib/supabase'
-
-function redirect(location: string) {
-  return new Response(null, {
-    status: 303,
-    headers: { Location: location },
-  })
-}
 
 function normalizeRedirect(value: string | null): string {
   if (!value || !value.startsWith('/')) return '/admin/announcements'
