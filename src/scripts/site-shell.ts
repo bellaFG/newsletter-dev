@@ -32,7 +32,21 @@ function getModalElements() {
 }
 
 function getSearchElements() {
+  const homeInput = queryElement<HTMLInputElement>('[data-home-search-input]')
+
+  if (homeInput) {
+    return {
+      kind: 'home' as const,
+      header: queryElement<HTMLElement>('[data-site-header]'),
+      panel: null,
+      input: homeInput,
+      results: queryElement<HTMLElement>('[data-home-search-results]'),
+      meta: queryElement<HTMLElement>('[data-home-search-meta]'),
+    }
+  }
+
   return {
+    kind: 'nav' as const,
     header: queryElement<HTMLElement>('[data-site-header]'),
     panel: queryElement<HTMLElement>('[data-search-panel]'),
     input: queryElement<HTMLInputElement>('[data-nav-search-input]'),
@@ -449,7 +463,7 @@ async function loadSearchResults(page: number, providedQuery?: string) {
 }
 
 function syncSearchFromUrl() {
-  const { input } = getSearchElements()
+  const { input, panel } = getSearchElements()
   if (!input) return
 
   const url = new URL(window.location.href)
@@ -461,12 +475,16 @@ function syncSearchFromUrl() {
   if (!query) {
     input.value = ''
     clearSearchResults()
-    setSearchPanelOpen(false)
+    if (panel) {
+      setSearchPanelOpen(false)
+    }
     return
   }
 
   input.value = query
-  setSearchPanelOpen(true)
+  if (panel) {
+    setSearchPanelOpen(true)
+  }
   void loadSearchResults(page, query)
 }
 
@@ -581,16 +599,20 @@ function bindGlobalHandlers() {
     const target = event.target
     if (!(target instanceof HTMLFormElement)) return
 
-    if (target.matches('[data-nav-search-form]')) {
+    if (target.matches('[data-nav-search-form], [data-home-search-form]')) {
       event.preventDefault()
-      const query = queryElement<HTMLInputElement>('[data-nav-search-input]', target)?.value.trim() ?? ''
+      const query =
+        queryElement<HTMLInputElement>('[data-nav-search-input], [data-home-search-input]', target)
+          ?.value.trim() ?? ''
 
       if (!query) {
         clearSearchResults()
         return
       }
 
-      setSearchPanelOpen(true, { keepResults: true })
+      if (getSearchElements().panel) {
+        setSearchPanelOpen(true, { keepResults: true })
+      }
       currentSearchPage = 1
       void loadSearchResults(1, query)
       return
@@ -605,7 +627,7 @@ function bindGlobalHandlers() {
   document.addEventListener('input', (event) => {
     const target = event.target
     if (!(target instanceof HTMLInputElement)) return
-    if (!target.matches('[data-nav-search-input]')) return
+    if (!target.matches('[data-nav-search-input], [data-home-search-input]')) return
 
     window.clearTimeout(searchDebounceTimer)
     searchDebounceTimer = window.setTimeout(() => {
@@ -617,7 +639,9 @@ function bindGlobalHandlers() {
         return
       }
 
-      setSearchPanelOpen(true, { keepResults: true })
+      if (getSearchElements().panel) {
+        setSearchPanelOpen(true, { keepResults: true })
+      }
       void loadSearchResults(1, query)
     }, 220)
   })
