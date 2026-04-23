@@ -27,7 +27,7 @@ const navLinkClasses = (isActive: boolean) =>
   ].join(' ')
 
 const navActionClasses = [
-  'site-search-toggle whitespace-nowrap border-b border-transparent bg-transparent pb-1 text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground',
+  'site-search-toggle whitespace-nowrap border-b border-transparent bg-transparent pb-1 font-mono text-[0.55rem] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground md:text-[0.58rem] md:tracking-[0.24em]',
 ].join(' ')
 
 const categories = CATEGORY_ORDER.map((category) => ({
@@ -113,7 +113,7 @@ const categories = CATEGORY_ORDER.map((category) => ({
         <button
           id="subscribe-open-btn"
           data-subscribe-open
-          class="inline-flex h-9 items-center border border-link px-3 font-mono text-[0.55rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-background"
+          class="inline-flex h-8 items-center border border-link px-3 font-mono text-[0.55rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-background"
         >
           Assinar
         </button>
@@ -208,7 +208,7 @@ const categories = CATEGORY_ORDER.map((category) => ({
                 autocomplete="off"
                 enterkeyhint="search"
                 placeholder="Busque temas, fontes ou edições"
-                class="h-11 w-full border border-foreground/20 bg-background px-4 pl-10 text-sm font-mono placeholder:text-muted-foreground transition-colors focus:border-link focus:outline-none"
+                class="h-9 w-full border border-foreground/20 bg-background px-4 pl-10 text-sm font-mono placeholder:text-muted-foreground transition-colors focus:border-link focus:outline-none"
                 data-nav-search-input
               />
             </label>
@@ -216,24 +216,14 @@ const categories = CATEGORY_ORDER.map((category) => ({
             <div class="flex items-center gap-2">
               <button
                 type="submit"
-                class="inline-flex h-11 items-center justify-center border border-link px-5 font-mono text-[0.58rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-white"
+                class="inline-flex h-9 items-center justify-center border border-link px-4 font-mono text-[0.56rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-white"
               >
                 Buscar
-              </button>
-              <button
-                type="button"
-                class="inline-flex h-11 items-center justify-center border border-foreground/15 px-4 font-mono text-[0.58rem] uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-                data-search-close
-              >
-                Fechar
               </button>
             </div>
           </form>
 
-          <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <p class="font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground">
-              Busca por trechos · 1+ caractere · resultado instantâneo.
-            </p>
+          <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
             <p
               class="hidden font-mono text-[0.55rem] uppercase tracking-[0.2em] text-link"
               data-nav-search-meta
