@@ -33,7 +33,7 @@ if (articles.length > 0 && currentPage > totalPages) {
   canonicalUrl={pageHref(page)}
 >
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-6xl px-6 py-10 sm:px-10">
+    <div class="mx-auto max-w-6xl px-4 py-10 sm:px-10">
 
       <div class="mb-12 sm:mb-14" data-route-fade>
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
@@ -74,7 +74,7 @@ if (articles.length > 0 && currentPage > totalPages) {
           </div>
 
           {totalPages > 1 && (
-            <div class="mt-8 flex items-center justify-center gap-4 font-mono text-[0.6rem] tracking-widest uppercase">
+            <div class="mt-8 flex flex-wrap items-center justify-center gap-3 font-mono text-[0.6rem] tracking-widest uppercase sm:gap-4">
               <a
                 href={pageHref(Math.max(1, page - 1))}
                 class:list={[

@@ -42,7 +42,7 @@ const orderedCategories = getOrderedCategories(grouped)
 
 <Layout title={`${edition.title} — ${SITE_NAME}`} description={edition.summary ?? undefined}>
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-3xl px-6 py-10">
+    <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
 
       <CompactMasthead
         left={formatFullDate(getEditionDisplayDate(edition))}
@@ -67,7 +67,7 @@ const orderedCategories = getOrderedCategories(grouped)
             <div class="space-y-10">
               {grouped[cat]!.map((article) => (
                 <article>
-                  <div class="mb-2 flex items-center gap-2 font-mono text-[0.65rem] text-link">
+                  <div class="mb-2 flex flex-wrap items-center gap-2 font-mono text-[0.65rem] text-link">
                     <span class="tracking-widest">{getPrimarySource(article).label}</span>
                     {article.source_count > 1 && (
                       <>
@@ -90,7 +90,7 @@ const orderedCategories = getOrderedCategories(grouped)
                   <p class="mb-4 leading-relaxed text-foreground/80">
                     {article.summary_ptbr}
                   </p>
-                  <div class="flex items-center gap-4">
+                  <div class="flex flex-wrap items-center gap-3 sm:gap-4">
                     <a
                       href={`/edicao/${edition.slug}/${article.slug}`}
                       class="font-mono text-[0.65rem] uppercase tracking-widest text-link transition-opacity hover:opacity-60"

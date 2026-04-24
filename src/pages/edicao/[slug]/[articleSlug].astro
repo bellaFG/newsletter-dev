@@ -52,7 +52,7 @@ const articleUrl = Astro.url.href
 
 <Layout title={`${article.title_ptbr ?? article.title} — ${SITE_NAME}`} description={article.summary_ptbr.slice(0, 160)}>
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-3xl px-6 py-10">
+    <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
 
       <Breadcrumbs
         items={[

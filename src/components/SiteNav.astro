@@ -41,11 +41,11 @@ const categories = CATEGORY_ORDER.map((category) => ({
   data-site-header
   class="sticky top-0 z-40 border-b border-foreground/10 bg-background/92 backdrop-blur supports-[backdrop-filter]:bg-background/85"
 >
-  <div class="mx-auto max-w-6xl px-6 sm:px-10">
-    <div class="flex min-h-14 items-center gap-4">
+  <div class="mx-auto max-w-6xl px-4 sm:px-10">
+    <div class="flex min-h-12 items-center gap-3 sm:min-h-14 sm:gap-4">
       <a
         href="/"
-        class="shrink-0 font-serif text-sm font-black uppercase tracking-tight transition-opacity hover:opacity-60"
+        class="shrink-0 font-serif text-[0.95rem] font-black uppercase tracking-tight transition-opacity hover:opacity-60 sm:text-sm"
       >
         {SITE_NAME}
       </a>
@@ -110,13 +110,13 @@ const categories = CATEGORY_ORDER.map((category) => ({
         )}
       </nav>
 
-      <div class="ml-auto flex items-center gap-2">
+      <div class="ml-auto flex shrink-0 items-center gap-2">
         <ThemeToggle />
 
         <button
           id="subscribe-open-btn"
           data-subscribe-open
-          class="inline-flex h-8 items-center border border-link px-3 font-mono text-[0.55rem] font-bold uppercase tracking-[0.22em] text-link transition-colors hover:bg-link hover:text-background"
+          class="inline-flex h-8 items-center border border-link px-2.5 font-mono text-[0.52rem] font-bold uppercase tracking-[0.18em] text-link transition-colors hover:bg-link hover:text-background sm:px-3 sm:text-[0.55rem] sm:tracking-[0.22em]"
         >
           Assinar
         </button>
@@ -127,7 +127,7 @@ const categories = CATEGORY_ORDER.map((category) => ({
       <div class="flex items-center justify-between gap-3 py-3">
         <nav
           aria-label="Navegação principal"
-          class="scrollbar-thin flex flex-1 items-center gap-4 overflow-x-auto whitespace-nowrap font-mono text-[0.55rem] uppercase tracking-[0.22em]"
+          class="scrollbar-thin flex min-w-0 flex-1 items-center gap-3 overflow-x-auto whitespace-nowrap font-mono text-[0.55rem] uppercase tracking-[0.22em] sm:gap-4"
         >
           <a href="/" class={navLinkClasses(activeSection === 'home')}>Início</a>
           <a href="/archive" class={navLinkClasses(activeSection === 'editions')}>Edições</a>

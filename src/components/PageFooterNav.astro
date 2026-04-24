@@ -12,17 +12,17 @@ interface Props {
 const { leftLabel, leftHref, rightLabel, rightHref } = Astro.props
 ---
 
-<footer class="border-t border-foreground/20 pt-8 mt-8 flex items-center justify-between">
+<footer class="mt-8 flex flex-col gap-3 border-t border-foreground/20 pt-8 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
   <a
     href={leftHref}
-    class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
+    class="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-link transition-colors hover:opacity-70 sm:text-[0.65rem] sm:tracking-widest"
   >
     {leftLabel}
   </a>
   {rightHref && rightLabel && (
     <a
       href={rightHref}
-      class="font-mono text-[0.65rem] tracking-widest uppercase text-link hover:opacity-70 transition-colors"
+      class="font-mono text-[0.6rem] uppercase tracking-[0.2em] text-link transition-colors hover:opacity-70 sm:text-[0.65rem] sm:tracking-widest"
     >
       {rightLabel}
     </a>

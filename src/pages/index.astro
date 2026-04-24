@@ -51,10 +51,10 @@ const remainingCategories = [...new Set(remainingLatestArticles.map((article) =>
 
 <Layout>
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-6xl px-6 py-8 sm:px-10 sm:py-10">
+    <div class="mx-auto max-w-6xl px-4 py-6 sm:px-10 sm:py-10">
       <header class="mb-8 sm:mb-10" data-route-fade>
-        <div class="flex items-center justify-between gap-4 border-b border-foreground/10 pb-4">
-          <p class="font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-foreground/10 pb-4">
+          <p class="font-mono text-[0.56rem] uppercase tracking-[0.18em] text-muted-foreground sm:text-[0.65rem] sm:tracking-widest">
             {today}
           </p>
           <p class="hidden font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground sm:block">
@@ -62,12 +62,23 @@ const remainingCategories = [...new Set(remainingLatestArticles.map((article) =>
           </p>
         </div>
 
-        <div class="mt-4 border-y-4 border-double border-foreground px-2 py-8 text-center sm:py-10">
-          <h1 class="font-serif text-[clamp(3.5rem,14vw,7rem)] font-black uppercase leading-[0.85] tracking-tighter">
+        <div class="mt-4 border-y-4 border-double border-foreground px-1 py-6 text-center sm:px-2 sm:py-10">
+          <h1 class="font-serif text-[clamp(2rem,10.5vw,7rem)] font-black uppercase leading-[0.85] tracking-tighter">
             {SITE_NAME.toUpperCase()}
           </h1>
-          <p class="mt-3 font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
-            {MASTHEAD_SUBTITLE}
+          <p
+            aria-label={MASTHEAD_SUBTITLE}
+            class="mt-3 flex flex-nowrap items-center justify-center gap-1.5 px-1 font-mono text-[0.48rem] uppercase leading-none text-muted-foreground sm:gap-3 sm:text-xs"
+          >
+            <span class="tracking-[0.16em] sm:tracking-[0.3em]">Newsletter</span>
+            <span aria-hidden="true" class="text-[0.36rem] text-muted-foreground/70 sm:text-[0.5rem]">
+              &middot;
+            </span>
+            <span class="tracking-[0.16em] sm:tracking-[0.3em]">Semanal</span>
+            <span aria-hidden="true" class="text-[0.36rem] text-muted-foreground/70 sm:text-[0.5rem]">
+              &middot;
+            </span>
+            <span class="tracking-[0.16em] sm:tracking-[0.3em]">IA &amp; Dev</span>
           </p>
         </div>
       </header>
@@ -238,7 +249,7 @@ const remainingCategories = [...new Set(remainingLatestArticles.map((article) =>
           </div>
 
           {totalPages > 1 && (
-            <div class="mt-8 flex items-center justify-center gap-4 font-mono text-[0.6rem] uppercase tracking-widest">
+            <div class="mt-8 flex flex-wrap items-center justify-center gap-3 font-mono text-[0.6rem] uppercase tracking-widest sm:gap-4">
               <a
                 href={pageHref(Math.max(1, page - 1))}
                 class:list={[
