@@ -217,6 +217,13 @@ function updateSearchToggleState(isOpen: boolean) {
   })
 }
 
+function closeCategoryMenus(target?: Element) {
+  document.querySelectorAll<HTMLDetailsElement>('[data-category-menu][open]').forEach((menu) => {
+    if (target && menu.contains(target)) return
+    menu.open = false
+  })
+}
+
 function clearSearchResults() {
   const { results, meta } = getSearchElements()
 
@@ -537,12 +544,14 @@ function bindGlobalHandlers() {
     if (themeToggle instanceof HTMLElement) {
       event.preventDefault()
       toggleTheme()
+      closeCategoryMenus()
       return
     }
 
     const subscribeOpen = target.closest('[data-subscribe-open], #subscribe-open-btn')
     if (subscribeOpen instanceof HTMLElement) {
       event.preventDefault()
+      closeCategoryMenus()
       openModal(subscribeOpen)
       return
     }
@@ -554,6 +563,8 @@ function bindGlobalHandlers() {
       closeModal()
       return
     }
+
+    closeCategoryMenus(target)
 
     const searchToggle = target.closest('[data-search-toggle]')
     if (searchToggle instanceof HTMLElement) {

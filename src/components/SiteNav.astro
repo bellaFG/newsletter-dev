@@ -58,7 +58,7 @@ const categories = CATEGORY_ORDER.map((category) => ({
         <a href="/archive" class={navLinkClasses(activeSection === 'editions')}>Edições</a>
         <a href="/articles" class={navLinkClasses(activeSection === 'articles')}>Artigos</a>
 
-        <details class="group relative">
+        <details class="group relative" data-category-menu>
           <summary
             class:list={[
               'flex cursor-pointer list-none items-center gap-1 border-b pb-1 transition-colors',
@@ -146,7 +146,7 @@ const categories = CATEGORY_ORDER.map((category) => ({
           )}
         </nav>
 
-        <details class="relative shrink-0">
+        <details class="relative shrink-0" data-category-menu>
           <summary class="flex cursor-pointer list-none items-center gap-1 font-mono text-[0.55rem] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground">
             Categorias
             <svg
