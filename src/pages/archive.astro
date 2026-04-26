@@ -22,9 +22,9 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
 
 <Layout title={`Arquivo — ${SITE_NAME}`}>
   <div class="min-h-screen bg-background text-foreground">
-    <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+    <div class="mx-auto max-w-6xl px-4 py-10 sm:px-10">
 
-      <div class="mb-10">
+      <div class="mb-12 sm:mb-14" data-route-fade>
         <p class="font-mono text-[0.6rem] tracking-widest uppercase text-muted-foreground mb-3">
           {editions.length} {editions.length === 1 ? 'edição publicada' : 'edições publicadas'}
         </p>
@@ -34,7 +34,7 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
       </div>
 
       {editions.length === 0 ? (
-        <div class="py-16 text-center border-y border-border">
+        <div class="py-16 text-center border-y border-border mb-10" data-route-fade>
           <p class="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-3">
             Em breve
           </p>
@@ -44,7 +44,7 @@ const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a))
           </p>
         </div>
       ) : (
-        <div class="space-y-10">
+        <div class="space-y-10" data-route-fade>
           {years.map((year) => (
             <section>
               <CategoryDivider label={year} />
