@@ -547,7 +547,9 @@ function bindGlobalHandlers() {
       return
     }
 
-    if (target.closest('#subscribe-close-btn') || target.closest('#subscribe-overlay')) {
+    const modal = target.closest('#subscribe-modal')
+    const modalCard = target.closest('#subscribe-card')
+    if (target.closest('#subscribe-close-btn') || (isModalOpen() && modal && !modalCard)) {
       event.preventDefault()
       closeModal()
       return
