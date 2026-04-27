@@ -47,7 +47,16 @@ const related = (relatedData ?? []) as Article[]
 const categorySlug = CATEGORY_SLUGS[article.category]
 const sources = getArticleSources(article)
 const primarySource = getPrimarySource(article)
+const secondarySources = sources.filter((source) => !source.is_primary)
 const articleUrl = Astro.url.href
+
+function getSourceHost(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return 'fonte externa'
+  }
+}
 ---
 
 <Layout title={`${article.title_ptbr ?? article.title} — ${SITE_NAME}`} description={article.summary_ptbr.slice(0, 160)}>
@@ -104,74 +113,118 @@ const articleUrl = Astro.url.href
           ))}
         </div>
 
-        {/* -- CTA -- */}
-        <div class="mb-10">
-          <a
-            href={primarySource.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center justify-center border-2 border-link/30 px-5 py-2.5 font-mono text-[0.58rem] font-bold uppercase tracking-widest text-link transition-colors hover:border-link"
-          >
-            Fonte principal &rarr;
-          </a>
-        </div>
+        <section class="mt-10 border-y border-link/25 py-5">
+          <div class="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div>
+              <p class="mb-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.24em] text-link">
+                Link externo da apuração
+              </p>
+              <h2 class="font-serif text-xl font-bold leading-snug text-foreground">
+                {primarySource.title ?? article.title}
+              </h2>
+              <p class="mt-2 text-sm leading-relaxed text-foreground/60">
+                Fonte original em <span class="text-foreground/80">{primarySource.label}</span>
+                <span class="text-foreground/35"> / </span>
+                {getSourceHost(primarySource.url)}
+              </p>
+            </div>
+            <a
+              href={primarySource.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center justify-center justify-self-start border border-link/50 px-4 py-2.5 font-mono text-[0.58rem] font-bold uppercase tracking-widest text-link transition-all hover:border-link hover:bg-link hover:text-white sm:justify-self-end"
+            >
+              Abrir fonte &nearr;
+            </a>
+          </div>
+        </section>
 
         <section class="border-t border-foreground/20 pt-8 mt-4">
           <SectionHeader title="Compartilhar" />
           <ShareButtons title={article.title_ptbr ?? article.title} url={articleUrl} />
         </section>
 
-        <section class="border-t border-foreground/20 pt-8 mt-4">
-          <SectionHeader title="Fontes desta análise" />
+        {secondarySources.length > 0 && (
+          <section class="border-t border-foreground/20 pt-8 mt-4">
+            <SectionHeader title="Outras fontes consultadas" />
 
-          <div class="space-y-4">
-            {sources.map((source) => (
-              <a
-                href={source.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="block border border-foreground/10 p-4 hover:border-link/40 transition-colors"
-              >
-                <div class="flex flex-wrap items-center gap-2 mb-2 font-mono text-[0.55rem] tracking-widest uppercase text-muted-foreground">
-                  <span class="text-link">{source.label}</span>
-                  {source.is_primary && (
-                    <span class="border border-link/30 px-2 py-0.5 text-link">Principal</span>
-                  )}
-                </div>
-                {source.title && (
-                  <h3 class="font-serif text-lg font-bold leading-snug mb-1">
-                    {source.title}
-                  </h3>
-                )}
-                {source.snippet && (
-                  <p class="text-sm text-foreground/65 leading-relaxed line-clamp-3">
-                    {source.snippet}
+            <div class="divide-y divide-foreground/10 border-y border-foreground/10">
+              {secondarySources.map((source) => (
+                <a
+                  href={source.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="group grid gap-2 py-4 transition-colors hover:text-link sm:grid-cols-[10rem_1fr_auto]"
+                >
+                  <p class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-link">
+                    {source.label}
                   </p>
-                )}
-              </a>
-            ))}
-          </div>
-        </section>
+                  <div>
+                    {source.title && (
+                      <h3 class="font-serif text-base font-bold leading-snug text-foreground transition-colors group-hover:text-link">
+                        {source.title}
+                      </h3>
+                    )}
+                    {source.snippet && (
+                      <p class="mt-1 text-sm leading-relaxed text-foreground/60 line-clamp-2">
+                        {source.snippet}
+                      </p>
+                    )}
+                  </div>
+                  <span class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground sm:text-right">
+                    Externo &nearr;
+                  </span>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
       </article>
 
       {related.length > 0 && (
-        <section class="border-t border-foreground/20 pt-8 mt-4">
-          <SectionHeader title={`Mais em ${article.category}`} />
+        <section class="border-t border-foreground/20 pt-10 mt-10">
+          <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p class="mb-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+                Continue no DevPulse
+              </p>
+              <h2 class="font-serif text-2xl font-bold leading-tight">
+                Mais em {article.category}
+              </h2>
+            </div>
+            <a
+              href={`/categoria/${categorySlug}`}
+              class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-link transition-opacity hover:opacity-70"
+            >
+              Ver categoria &rarr;
+            </a>
+          </div>
 
-          <div class="space-y-6">
-            {related.map((rel) => (
-              <a href={`/edicao/${edition.slug}/${rel.slug}`} class="block group">
-                <h3 class="font-serif text-lg font-bold leading-snug group-hover:text-link transition-colors mb-1">
-                  {rel.title_ptbr ?? rel.title}
-                </h3>
-                <p class="text-sm text-foreground/60 line-clamp-2 leading-relaxed mb-1">
-                  {rel.summary_ptbr}
-                </p>
-                <p class="font-mono text-[0.5rem] text-link">
-                  {getPrimarySource(rel).label}
-                  {rel.source_count > 1 ? ` · ${rel.source_count} fontes` : ''}
-                  {rel.reading_time_min ? ` · ${rel.reading_time_min} min` : ''}
-                </p>
+          <div class="divide-y divide-foreground/10 border-y border-foreground/10">
+            {related.map((rel, index) => (
+              <a
+                href={`/edicao/${edition.slug}/${rel.slug}`}
+                class="group grid gap-3 py-5 transition-colors hover:text-link sm:grid-cols-[2.5rem_1fr_auto] sm:items-start"
+              >
+                <span class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground">
+                  {String(index + 1).padStart(2, '0')}
+                </span>
+                <div>
+                  <h3 class="font-serif text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-link">
+                    {rel.title_ptbr ?? rel.title}
+                  </h3>
+                  <p class="mt-1 text-sm text-foreground/60 line-clamp-2 leading-relaxed">
+                    {rel.summary_ptbr}
+                  </p>
+                  <p class="mt-2 font-mono text-[0.5rem] uppercase tracking-[0.12em] text-link">
+                    {getPrimarySource(rel).label}
+                    {rel.source_count > 1 ? ` / ${rel.source_count} fontes` : ''}
+                    {rel.reading_time_min ? ` / ${rel.reading_time_min} min` : ''}
+                  </p>
+                </div>
+                <span class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground transition-colors group-hover:text-link sm:text-right">
+                  Ler aqui &rarr;
+                </span>
               </a>
             ))}
           </div>
