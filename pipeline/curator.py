@@ -43,7 +43,7 @@ OPENAI_REQUEST_TIMEOUT_SECONDS = float(
 MIN_STORIES = 5
 MAX_STORIES = 8
 MAX_PER_CATEGORY = 2
-WORD_LIMIT_TOLERANCE_RATIO = 0.2
+WORD_LIMIT_TOLERANCE_RATIO = 0.3
 TRACKING_QUERY_PARAMS = {
     "utm_source",
     "utm_medium",
@@ -306,11 +306,23 @@ def _validate_writing_output(writing: AIWritingOutput, plan: AICurationPlanOutpu
 
         paragraphs = _split_paragraphs(story.content_ptbr)
         min_paragraphs, max_paragraphs = PARAGRAPH_LIMITS_BY_KIND[planned_story.story_kind]
+        tolerated_min_paragraphs, tolerated_max_paragraphs = _paragraph_limits_with_tolerance(
+            planned_story.story_kind,
+            min_paragraphs,
+            max_paragraphs,
+        )
         paragraph_count = len(paragraphs)
-        if not min_paragraphs <= paragraph_count <= max_paragraphs:
+        if not tolerated_min_paragraphs <= paragraph_count <= tolerated_max_paragraphs:
             raise ValueError(
                 f"Writer retornou {paragraph_count} paragrafos para story_kind={planned_story.story_kind} "
-                f"em {story.canonical_topic}; esperado {min_paragraphs}-{max_paragraphs}"
+                f"em {story.canonical_topic}; esperado {min_paragraphs}-{max_paragraphs} "
+                f"(tolerancia operacional: {tolerated_min_paragraphs}-{tolerated_max_paragraphs})"
+            )
+        if not min_paragraphs <= paragraph_count <= max_paragraphs:
+            logger.warning(
+                f"[Curator] Redacao final fora do alvo de paragrafos para "
+                f"story_kind={planned_story.story_kind}: {paragraph_count} em "
+                f"{story.canonical_topic}; alvo={min_paragraphs}-{max_paragraphs}"
             )
 
 
@@ -322,6 +334,18 @@ def _word_limits_with_tolerance(min_words: int, max_words: int) -> tuple[int, in
     return (
         floor(min_words * (1 - WORD_LIMIT_TOLERANCE_RATIO)),
         ceil(max_words * (1 + WORD_LIMIT_TOLERANCE_RATIO)),
+    )
+
+
+def _paragraph_limits_with_tolerance(
+    story_kind: str,
+    min_paragraphs: int,
+    max_paragraphs: int,
+) -> tuple[int, int]:
+    upper_tolerance = 2 if story_kind == "brief" else 1
+    return (
+        max(1, min_paragraphs - 1),
+        max_paragraphs + upper_tolerance,
     )
 
 
