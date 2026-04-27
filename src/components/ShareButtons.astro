@@ -13,6 +13,7 @@ const encodedLinkedInText = encodeURIComponent(`${title}\n\n${url}`)
 <div
   class="flex flex-wrap items-center gap-2"
   data-share-root
+  data-share-title={title}
 >
   <button
     type="button"
@@ -29,6 +30,7 @@ const encodedLinkedInText = encodeURIComponent(`${title}\n\n${url}`)
 
   <a
     href={`https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encodedUrl}`}
+    data-share-x
     target="_blank"
     rel="noopener noreferrer"
     class="inline-flex items-center gap-2 border border-foreground/15 px-3 py-1.5 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground motion-reduce:transition-none"
@@ -40,7 +42,8 @@ const encodedLinkedInText = encodeURIComponent(`${title}\n\n${url}`)
   </a>
 
   <a
-    href={`https://www.linkedin.com/feed/?shareActive=true&text=${encodedLinkedInText}`}
+    href={`https://www.linkedin.com/feed/?shareActive=true&shareUrl=${encodedUrl}&text=${encodedLinkedInText}`}
+    data-share-linkedin
     target="_blank"
     rel="noopener noreferrer"
     class="inline-flex items-center gap-2 border border-foreground/15 px-3 py-1.5 font-mono text-[0.55rem] uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:border-foreground hover:text-foreground motion-reduce:transition-none"
@@ -55,17 +58,60 @@ const encodedLinkedInText = encodeURIComponent(`${title}\n\n${url}`)
 </div>
 
 <script>
+  const publicShareOrigin = 'https://newsletter-dev.vercel.app'
+  const localShareHosts = new Set(['localhost', '0.0.0.0', '::1', '[::1]'])
+
+  function normalizeShareUrl(rawUrl: string | undefined): string {
+    const fallbackPath = window.location.pathname + window.location.search + window.location.hash
+
+    try {
+      const url = new URL(rawUrl || fallbackPath, window.location.href)
+      const hostname = url.hostname.toLowerCase()
+
+      if (localShareHosts.has(hostname) || hostname.startsWith('127.')) {
+        return `${publicShareOrigin}${url.pathname}${url.search}${url.hash}`
+      }
+
+      return url.href
+    } catch {
+      return `${publicShareOrigin}${fallbackPath}`
+    }
+  }
+
+  function buildXShareUrl(title: string, url: string): string {
+    return `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`
+  }
+
+  function buildLinkedInShareUrl(title: string, url: string): string {
+    const text = `${title}\n\n${url}`
+    return `https://www.linkedin.com/feed/?shareActive=true&shareUrl=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`
+  }
+
   function initShare(root: Element) {
     if (!(root instanceof HTMLElement) || root.dataset.shareInit === '1') return
     root.dataset.shareInit = '1'
 
     const copyButton = root.querySelector('[data-share-copy]')
+    const xLink = root.querySelector('[data-share-x]')
+    const linkedInLink = root.querySelector('[data-share-linkedin]')
     const feedback = root.querySelector('[data-share-feedback]')
 
     if (!(copyButton instanceof HTMLButtonElement)) return
 
+    const title = root.dataset.shareTitle || document.title
+    const shareUrl = normalizeShareUrl(copyButton.dataset.shareUrl)
+    copyButton.dataset.shareUrl = shareUrl
+
+    if (xLink instanceof HTMLAnchorElement) {
+      xLink.href = buildXShareUrl(title, shareUrl)
+    }
+
+    if (linkedInLink instanceof HTMLAnchorElement) {
+      linkedInLink.href = buildLinkedInShareUrl(title, shareUrl)
+    }
+
     copyButton.addEventListener('click', async () => {
-      const url = copyButton.dataset.shareUrl
+      const url = normalizeShareUrl(copyButton.dataset.shareUrl)
       if (!url) return
 
       try {
