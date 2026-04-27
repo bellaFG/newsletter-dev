@@ -1,5 +1,6 @@
 import { defineMiddleware } from 'astro:middleware'
 import { clearAdminSession, hasAdminSession, refreshAdminSession } from '@/lib/admin-auth'
+import { readEnv } from '@/lib/env'
 
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
@@ -27,6 +28,47 @@ function applySecurityHeaders(response: Response): Response {
   return response
 }
 
+function addOriginFromHost(origins: Set<string>, protocol: string, host: string | null): void {
+  const normalizedHost = host?.split(',')[0]?.trim()
+  if (!normalizedHost) return
+
+  try {
+    origins.add(new URL(`${protocol}://${normalizedHost}`).origin)
+  } catch {
+    // Ignora headers malformados; a validacao principal continua fechada.
+  }
+}
+
+function addOriginFromUrl(origins: Set<string>, value: string | undefined): void {
+  const rawValue = value?.trim()
+  if (!rawValue) return
+
+  try {
+    origins.add(new URL(rawValue).origin)
+  } catch {
+    try {
+      origins.add(new URL(`https://${rawValue}`).origin)
+    } catch {
+      // Ignora env vars malformadas.
+    }
+  }
+}
+
+function getAllowedOrigins(request: Request, requestUrl: URL): Set<string> {
+  const origins = new Set<string>([requestUrl.origin])
+  const forwardedProtocol =
+    request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() ??
+    requestUrl.protocol.replace(':', '') ??
+    'https'
+
+  addOriginFromHost(origins, forwardedProtocol, request.headers.get('x-forwarded-host'))
+  addOriginFromHost(origins, forwardedProtocol, request.headers.get('host'))
+  addOriginFromUrl(origins, readEnv('SITE_URL'))
+  addOriginFromUrl(origins, readEnv('VERCEL_URL'))
+
+  return origins
+}
+
 function isAllowedOrigin(request: Request): boolean {
   if (request.method !== 'POST') return true
 
@@ -37,7 +79,7 @@ function isAllowedOrigin(request: Request): boolean {
   if (!origin) return true
 
   try {
-    return new URL(origin).origin === requestUrl.origin
+    return getAllowedOrigins(request, requestUrl).has(new URL(origin).origin)
   } catch {
     return false
   }

@@ -27,14 +27,7 @@ type ArticleWithEdition = Article & {
 
 const articles = (articlesData ?? []) as unknown as ArticleWithEdition[]
 const currentCategoryIndex = CATEGORY_ORDER.indexOf(categoryName)
-const previousCategory =
-  CATEGORY_ORDER[(currentCategoryIndex - 1 + CATEGORY_ORDER.length) % CATEGORY_ORDER.length]
 const nextCategory = CATEGORY_ORDER[(currentCategoryIndex + 1) % CATEGORY_ORDER.length]
-const categoryLinks = CATEGORY_ORDER.map((category) => ({
-  label: category,
-  href: `/categoria/${CATEGORY_SLUGS[category]}`,
-  isActive: category === categoryName,
-}))
 ---
 
 <Layout title={`${categoryName} — ${SITE_NAME}`} description={`Artigos sobre ${categoryName} no ${SITE_NAME}`}>
@@ -83,49 +76,14 @@ const categoryLinks = CATEGORY_ORDER.map((category) => ({
         </p>
       )}
 
-      <nav aria-label="Outras categorias" class="mt-12 border-t border-foreground/20 pt-8">
-        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p class="font-mono text-[0.55rem] uppercase tracking-[0.22em] text-link">
-              Outras categorias
-            </p>
-            <h2 class="mt-2 font-serif text-2xl font-black tracking-tight">
-              Continue explorando
-            </h2>
-          </div>
-          <div class="grid grid-cols-2 gap-2 sm:w-auto">
-            <a
-              href={`/categoria/${CATEGORY_SLUGS[previousCategory]}`}
-              class="inline-flex min-h-10 items-center justify-center border border-foreground/20 px-3 text-center font-mono text-[0.55rem] font-bold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:border-link hover:text-link"
-            >
-              ← Anterior
-            </a>
-            <a
-              href={`/categoria/${CATEGORY_SLUGS[nextCategory]}`}
-              class="inline-flex min-h-10 items-center justify-center border border-link px-3 text-center font-mono text-[0.55rem] font-bold uppercase tracking-[0.18em] text-link transition-colors hover:bg-link hover:text-background"
-            >
-              Próxima →
-            </a>
-          </div>
-        </div>
-
-        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {categoryLinks.map((category) => (
-            <a
-              href={category.href}
-              aria-current={category.isActive ? 'page' : undefined}
-              class:list={[
-                'min-h-12 border px-3 py-3 font-mono text-[0.55rem] uppercase tracking-[0.16em] transition-colors',
-                category.isActive
-                  ? 'border-link bg-link/10 text-link'
-                  : 'border-foreground/15 text-muted-foreground hover:border-link hover:text-link',
-              ]}
-            >
-              {category.label}
-            </a>
-          ))}
-        </div>
-      </nav>
+      <div class="mt-12 border-t border-foreground/20 pt-8">
+        <a
+          href={`/categoria/${CATEGORY_SLUGS[nextCategory]}`}
+          class="inline-flex min-h-10 items-center justify-center border border-link px-4 font-mono text-[0.55rem] font-bold uppercase tracking-[0.18em] text-link transition-colors hover:bg-link hover:text-background"
+        >
+          Outras categorias &gt;
+        </a>
+      </div>
 
       <PageFooterNav leftLabel="← Início" leftHref="/" rightHref={null} />
 
