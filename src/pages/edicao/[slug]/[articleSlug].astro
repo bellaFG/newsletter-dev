@@ -137,7 +137,7 @@ function getSourceHost(url: string): string {
           </div>
         </section>
 
-        <section class="border-t border-foreground/20 pt-8 mt-4">
+        <section class="pt-7 mt-4">
           <SectionHeader title="Compartilhar" />
           <ShareButtons title={article.title_ptbr ?? article.title} url={articleUrl} />
         </section>
@@ -180,8 +180,8 @@ function getSourceHost(url: string): string {
       </article>
 
       {related.length > 0 && (
-        <section class="border-t border-foreground/20 pt-10 mt-10">
-          <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <section class="pt-12 mt-8">
+          <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p class="mb-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.24em] text-muted-foreground">
                 Continue no DevPulse
@@ -198,11 +198,11 @@ function getSourceHost(url: string): string {
             </a>
           </div>
 
-          <div class="divide-y divide-foreground/10 border-t border-foreground/10">
+          <div class="space-y-1">
             {related.map((rel, index) => (
               <a
                 href={`/edicao/${edition.slug}/${rel.slug}`}
-                class="group grid gap-3 py-5 transition-colors hover:text-link sm:grid-cols-[2.5rem_1fr] sm:items-start"
+                class="group grid gap-3 py-3 transition-colors hover:text-link sm:grid-cols-[2.5rem_1fr] sm:items-start"
               >
                 <span class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground">
                   {String(index + 1).padStart(2, '0')}
