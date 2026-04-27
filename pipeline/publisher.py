@@ -6,6 +6,7 @@ from datetime import date, datetime, timezone
 import requests
 from loguru import logger
 
+from pipeline.email_delivery import deliver_newsletter_direct
 from pipeline.models import CurationOutput
 from pipeline.storage import (
     count_articles_for_edition,
@@ -107,6 +108,10 @@ def ensure_draft_edition(supabase, slug: str) -> dict:
 
 
 def trigger_newsletter_delivery(edition_id: str) -> dict:
+    if os.environ.get("BREVO_API_KEY") and os.environ.get("EMAIL_FROM"):
+        logger.info("[Publisher] Enviando newsletter direto pelo pipeline Python")
+        return deliver_newsletter_direct(edition_id)
+
     web_url = os.environ.get("SITE_URL", DEFAULT_SITE_URL).rstrip("/")
     api_secret = os.environ["NEWSLETTER_API_SECRET"]
 
