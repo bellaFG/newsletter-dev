@@ -62,6 +62,7 @@ jobs:
         run: supabase db push --yes
 
       - name: Prepare draft
+        id: prepare_draft
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -72,6 +73,37 @@ jobs:
           SITE_URL: ${{ secrets.SITE_URL }}
           DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
         run: python -m pipeline.main prepare --notify-on-success --notify-on-failure
+
+      - name: Notify Discord if job failed before pipeline alert
+        if: ${{ failure() && steps.prepare_draft.outcome != 'failure' }}
+        env:
+          DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
+          DISCORD_TITLE: DevPulse falhou antes de preparar o rascunho
+          DISCORD_BODY: O job das 07:00 BRT falhou antes de o pipeline Python conseguir enviar o alerta interno. Verifique setup do Actions, secrets, Supabase CLI ou migrations.
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$DISCORD_ALERT_WEBHOOK_URL" ]; then
+            echo "DISCORD_ALERT_WEBHOOK_URL ausente; alerta nao enviado"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          content = (
+              f"**{os.environ['DISCORD_TITLE']}**\n"
+              f"{os.environ['DISCORD_BODY']}\n\n"
+              f"GitHub Actions: {os.environ['GITHUB_RUN_URL']}"
+          )
+          request = urllib.request.Request(
+              os.environ["DISCORD_ALERT_WEBHOOK_URL"],
+              data=json.dumps({"content": content}).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          urllib.request.urlopen(request, timeout=15).read()
+          PY
 
   check-ready:
     name: Check Draft Readiness
@@ -111,11 +143,43 @@ jobs:
         run: supabase db push --yes
 
       - name: Check draft readiness
+        id: check_ready
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
         run: python -m pipeline.main check-ready --notify-on-success --notify-on-failure
+
+      - name: Notify Discord if job failed before pipeline alert
+        if: ${{ failure() && steps.check_ready.outcome != 'failure' }}
+        env:
+          DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
+          DISCORD_TITLE: DevPulse nao ficou pronto ate 07:30 BRT
+          DISCORD_BODY: A checagem das 07:30 BRT falhou antes de o pipeline Python conseguir enviar o alerta interno. Se nao houver rascunho preparado, a publicacao das 08:00 BRT fica bloqueada. Verifique setup do Actions, secrets, Supabase CLI ou migrations.
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$DISCORD_ALERT_WEBHOOK_URL" ]; then
+            echo "DISCORD_ALERT_WEBHOOK_URL ausente; alerta nao enviado"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          content = (
+              f"**{os.environ['DISCORD_TITLE']}**\n"
+              f"{os.environ['DISCORD_BODY']}\n\n"
+              f"GitHub Actions: {os.environ['GITHUB_RUN_URL']}"
+          )
+          request = urllib.request.Request(
+              os.environ["DISCORD_ALERT_WEBHOOK_URL"],
+              data=json.dumps({"content": content}).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          urllib.request.urlopen(request, timeout=15).read()
+          PY
 
   publish-newsletter:
     name: Publish Newsletter
@@ -155,6 +219,7 @@ jobs:
         run: supabase db push --yes
 
       - name: Publish newsletter
+        id: publish_newsletter
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -165,6 +230,37 @@ jobs:
           SITE_URL: ${{ secrets.SITE_URL }}
           DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
         run: python -m pipeline.main publish --notify-on-success --notify-on-failure
+
+      - name: Notify Discord if job failed before pipeline alert
+        if: ${{ failure() && steps.publish_newsletter.outcome != 'failure' }}
+        env:
+          DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
+          DISCORD_TITLE: DevPulse falhou na publicacao das 08:00 BRT
+          DISCORD_BODY: O job das 08:00 BRT falhou antes de o pipeline Python conseguir enviar o alerta interno. Verifique setup do Actions, secrets, Supabase CLI ou migrations.
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$DISCORD_ALERT_WEBHOOK_URL" ]; then
+            echo "DISCORD_ALERT_WEBHOOK_URL ausente; alerta nao enviado"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          content = (
+              f"**{os.environ['DISCORD_TITLE']}**\n"
+              f"{os.environ['DISCORD_BODY']}\n\n"
+              f"GitHub Actions: {os.environ['GITHUB_RUN_URL']}"
+          )
+          request = urllib.request.Request(
+              os.environ["DISCORD_ALERT_WEBHOOK_URL"],
+              data=json.dumps({"content": content}).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          urllib.request.urlopen(request, timeout=15).read()
+          PY
 
   full-pipeline:
     name: Run Full Pipeline
@@ -202,6 +298,7 @@ jobs:
         run: supabase db push --yes
 
       - name: Run full pipeline
+        id: full_pipeline
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -212,3 +309,34 @@ jobs:
           SITE_URL: ${{ secrets.SITE_URL }}
           DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
         run: python -m pipeline.main full --notify-on-success --notify-on-failure
+
+      - name: Notify Discord if job failed before pipeline alert
+        if: ${{ failure() && steps.full_pipeline.outcome != 'failure' }}
+        env:
+          DISCORD_ALERT_WEBHOOK_URL: ${{ secrets.DISCORD_ALERT_WEBHOOK_URL }}
+          DISCORD_TITLE: DevPulse falhou antes de rodar o pipeline completo
+          DISCORD_BODY: O job manual do pipeline completo falhou antes de o pipeline Python conseguir enviar o alerta interno. Verifique setup do Actions, secrets, Supabase CLI ou migrations.
+          GITHUB_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$DISCORD_ALERT_WEBHOOK_URL" ]; then
+            echo "DISCORD_ALERT_WEBHOOK_URL ausente; alerta nao enviado"
+            exit 0
+          fi
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          content = (
+              f"**{os.environ['DISCORD_TITLE']}**\n"
+              f"{os.environ['DISCORD_BODY']}\n\n"
+              f"GitHub Actions: {os.environ['GITHUB_RUN_URL']}"
+          )
+          request = urllib.request.Request(
+              os.environ["DISCORD_ALERT_WEBHOOK_URL"],
+              data=json.dumps({"content": content}).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          urllib.request.urlopen(request, timeout=15).read()
+          PY
