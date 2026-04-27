@@ -17,6 +17,9 @@ from pipeline.storage import create_service_supabase
 BREVO_API_URL = "https://api.brevo.com/v3/smtp/email"
 DEFAULT_SITE_URL = "https://newsletter-dev.vercel.app"
 EMAIL_BATCH_SIZE = 100
+EMAIL_ARTICLE_LIMIT = 5
+EMAIL_INTRO_MAX_CHARS = 280
+EMAIL_SUMMARY_MAX_CHARS = 220
 TOKEN_VERSION_V2 = "v2"
 UNSUBSCRIBE_TOKEN_TTL_SECONDS = 365 * 24 * 60 * 60
 
@@ -291,8 +294,11 @@ def _render_newsletter_html(
     unsubscribe_url: str,
 ) -> str:
     edition_url = f"{site_url}/edicao/{edition['slug']}"
+    email_articles = articles[:EMAIL_ARTICLE_LIMIT]
+    omitted_count = max(0, len(articles) - len(email_articles))
+
     grouped_articles: dict[str, list[dict]] = defaultdict(list)
-    for article in articles:
+    for article in email_articles:
         grouped_articles[article.get("category") or "Outros"].append(article)
 
     sections = []
@@ -304,58 +310,122 @@ def _render_newsletter_html(
             article_url = f"{edition_url}/{article_slug}" if article_slug else edition_url
             source_url = article.get("primary_source_url") or article.get("url") or article_url
             source_label = article.get("primary_source_label") or article.get("source") or "Fonte"
-            summary = article.get("summary_ptbr") or ""
+            summary = _truncate_text(article.get("summary_ptbr") or "", EMAIL_SUMMARY_MAX_CHARS)
             items.append(
                 f"""
-                <article style="border-top:1px solid #e0ddd8;padding:18px 0">
-                  <p style="margin:0 0 6px;font:11px Menlo,Consolas,monospace;color:#2563eb">{_escape(source_label)}</p>
-                  <h3 style="margin:0 0 8px;font:700 22px Georgia,serif;line-height:1.25">
-                    <a href="{_escape(article_url)}" style="color:#1a1816;text-decoration:none">{_escape(title)}</a>
-                  </h3>
-                  <p style="margin:0 0 12px;color:#3a3735;line-height:1.7">{_escape(summary)}</p>
-                  <p style="margin:0;font:11px Menlo,Consolas,monospace;text-transform:uppercase;letter-spacing:.08em">
-                    <a href="{_escape(article_url)}" style="color:#2563eb;text-decoration:none">Ler na integra</a>
-                    <span style="color:#8a8580"> · </span>
-                    <a href="{_escape(source_url)}" style="color:#6b6662;text-decoration:none">Fonte principal</a>
-                  </p>
-                </article>
+                <tr>
+                  <td style="border-top:1px solid #ded8cf;padding:18px 0 16px">
+                    <p style="margin:0 0 6px;font-family:Menlo,Consolas,'Courier New',monospace;font-size:11px;line-height:1.4;color:#2563eb">
+                      {_escape(_truncate_text(source_label, 48))}
+                    </p>
+                    <h3 class="story-title" style="margin:0 0 8px;font-family:Georgia,'Times New Roman',serif;font-size:21px;font-weight:700;line-height:1.25;color:#1a1816">
+                      <a href="{_escape(article_url)}" style="color:#1a1816;text-decoration:none">{_escape(title)}</a>
+                    </h3>
+                    <p style="margin:0 0 12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#3a3735">
+                      {_escape(summary)}
+                    </p>
+                    <p style="margin:0;font-family:Menlo,Consolas,'Courier New',monospace;font-size:10px;line-height:1.5;text-transform:uppercase;letter-spacing:.08em">
+                      <a href="{_escape(article_url)}" style="color:#2563eb;text-decoration:none">Ler na integra</a>
+                      <span style="color:#8a8580"> / </span>
+                      <a href="{_escape(source_url)}" style="color:#6b6662;text-decoration:none">Fonte principal</a>
+                    </p>
+                  </td>
+                </tr>
                 """
             )
         sections.append(
             f"""
-            <section>
-              <h2 style="margin:28px 0 0;font:700 11px Menlo,Consolas,monospace;text-transform:uppercase;letter-spacing:.18em;color:#6b6662">
-                {_escape(category)}
-              </h2>
-              {''.join(items)}
-            </section>
+            <tr>
+              <td style="padding-top:18px">
+                <p style="margin:0;font-family:Menlo,Consolas,'Courier New',monospace;font-size:10px;line-height:1.4;text-transform:uppercase;letter-spacing:.18em;color:#6b6662">
+                  {_escape(category)}
+                </p>
+              </td>
+            </tr>
+            {''.join(items)}
             """
         )
 
-    summary = edition.get("summary") or ""
+    summary = _truncate_text(edition.get("summary") or "", EMAIL_INTRO_MAX_CHARS)
+    more_link = ""
+    if omitted_count:
+        more_link = f"""
+        <tr>
+          <td style="border-top:1px solid #ded8cf;padding:20px 0 4px;text-align:center">
+            <p style="margin:0 0 14px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#3a3735">
+              Mais {omitted_count} materia{'' if omitted_count == 1 else 's'} na edicao completa.
+            </p>
+            <a href="{_escape(edition_url)}" style="display:inline-block;border:1px solid #2563eb;padding:10px 14px;font-family:Menlo,Consolas,'Courier New',monospace;font-size:10px;line-height:1;text-transform:uppercase;letter-spacing:.08em;color:#2563eb;text-decoration:none">
+              Abrir edicao completa
+            </a>
+          </td>
+        </tr>
+        """
+
     return f"""<!doctype html>
 <html lang="pt-BR">
-  <body style="margin:0;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;color:#1a1816">
-    <main style="max-width:640px;margin:0 auto;padding:24px 16px">
-      <div style="background:#faf8f5;border:1px solid #e0ddd8;padding:24px">
-        <p style="margin:0 0 12px;font:11px Menlo,Consolas,monospace;color:#2563eb;text-transform:uppercase;letter-spacing:.12em">
-          DevPulse
-        </p>
-        <h1 style="margin:0 0 16px;font:900 34px Georgia,serif;line-height:1.05">
-          <a href="{_escape(edition_url)}" style="color:#1a1816;text-decoration:none">{_escape(edition.get('title') or 'DevPulse')}</a>
-        </h1>
-        <p style="margin:0 0 18px;color:#3a3735;line-height:1.7">{_escape(summary)}</p>
-        {''.join(sections)}
-        <hr style="border:none;border-top:1px solid #e0ddd8;margin:28px 0 16px" />
-        <p style="margin:0;color:#6b6662;font-size:12px;line-height:1.6">
-          Voce recebe este email porque se inscreveu no DevPulse.
-          <a href="{_escape(unsubscribe_url)}" style="color:#2563eb">Cancelar inscricao</a>.
-        </p>
-      </div>
-    </main>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      @media screen and (max-width: 680px) {{
+        .shell {{ width:100% !important; }}
+        .paper-cell {{ padding:22px 18px !important; }}
+        .headline {{ font-size:31px !important; }}
+        .story-title {{ font-size:20px !important; }}
+      }}
+    </style>
+  </head>
+  <body style="margin:0;padding:0;background-color:#ffffff;color:#1a1816">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse;background-color:#ffffff">
+      <tr>
+        <td align="center" style="padding:28px 12px">
+          <table role="presentation" class="shell" width="640" cellspacing="0" cellpadding="0" border="0" style="width:640px;max-width:100%;border-collapse:collapse;background-color:#f8f5ef;border:1px solid #ded8cf">
+            <tr>
+              <td class="paper-cell" style="padding:24px 24px 22px">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-collapse:collapse">
+                  <tr>
+                    <td>
+                      <p style="margin:0 0 12px;font-family:Menlo,Consolas,'Courier New',monospace;font-size:11px;line-height:1.4;color:#2563eb;text-transform:uppercase;letter-spacing:.12em">
+                        DevPulse
+                      </p>
+                      <h1 class="headline" style="margin:0 0 14px;font-family:Georgia,'Times New Roman',serif;font-size:36px;font-weight:900;line-height:1.05;color:#1a1816">
+                        <a href="{_escape(edition_url)}" style="color:#1a1816;text-decoration:none">{_escape(edition.get('title') or 'DevPulse')}</a>
+                      </h1>
+                      <p style="margin:0 0 6px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.65;color:#3a3735">
+                        {_escape(summary)}
+                      </p>
+                    </td>
+                  </tr>
+                  {''.join(sections)}
+                  {more_link}
+                  <tr>
+                    <td style="border-top:1px solid #ded8cf;padding:16px 0 0">
+                      <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;font-size:12px;line-height:1.6;color:#6b6662">
+                        Voce recebe este email porque se inscreveu no DevPulse.
+                        <a href="{_escape(unsubscribe_url)}" style="color:#2563eb;text-decoration:underline">Cancelar inscricao</a>.
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
   </body>
 </html>"""
 
 
 def _escape(value: object) -> str:
     return html.escape(str(value or ""), quote=True)
+
+
+def _truncate_text(value: object, max_chars: int) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    if len(text) <= max_chars:
+        return text
+
+    cut = text[: max_chars - 3].rsplit(" ", 1)[0].rstrip()
+    return f"{cut or text[: max_chars - 3]}..."
