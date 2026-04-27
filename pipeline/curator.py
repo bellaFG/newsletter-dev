@@ -43,7 +43,24 @@ OPENAI_REQUEST_TIMEOUT_SECONDS = float(
 MIN_STORIES = 5
 MAX_STORIES = 8
 MAX_PER_CATEGORY = 2
+MIN_REFERENCE_SOURCES_PER_STORY = 3
+MAX_SOURCES_PER_STORY = 5
 WORD_LIMIT_TOLERANCE_RATIO = 0.3
+NON_REFERENCE_SOURCE_NAMES = {
+    "dev.to",
+    "github trending",
+    "hacker news",
+    "lobste.rs",
+}
+NON_REFERENCE_SOURCE_PREFIXES = ("r/",)
+NON_REFERENCE_HOSTS = {
+    "dev.to",
+    "lobste.rs",
+    "news.ycombinator.com",
+    "old.reddit.com",
+    "reddit.com",
+    "www.reddit.com",
+}
 TRACKING_QUERY_PARAMS = {
     "utm_source",
     "utm_medium",
@@ -74,6 +91,136 @@ def normalize_url(url: str) -> str:
         if key.lower() not in TRACKING_QUERY_PARAMS
     ])
     return urlunsplit((scheme, netloc, path, query, ""))
+
+
+def _normalize_source_label(label: str | None) -> str:
+    return re.sub(r"\s+", " ", (label or "").strip().lower())
+
+
+def _source_host(url: str | None) -> str:
+    if not url:
+        return ""
+    try:
+        host = urlsplit(normalize_url(url)).netloc.lower()
+    except ValueError:
+        host = urlsplit(url.strip()).netloc.lower()
+    if host.startswith("www."):
+        host = host[4:]
+    return host
+
+
+def _source_identity(label: str | None, url: str | None) -> str:
+    host = _source_host(url)
+    if host:
+        return host
+    return _normalize_source_label(label)
+
+
+def _is_reference_source(
+    *,
+    label: str | None,
+    url: str | None,
+    collector: str | None = None,
+) -> bool:
+    source_label = _normalize_source_label(label)
+    host = _source_host(url)
+
+    if collector in {"github_trending", "reddit"}:
+        return False
+    if source_label in NON_REFERENCE_SOURCE_NAMES:
+        return False
+    if source_label.startswith(NON_REFERENCE_SOURCE_PREFIXES):
+        return False
+    if host in NON_REFERENCE_HOSTS:
+        return False
+
+    return bool(source_label or host)
+
+
+def _is_reference_raw_article(article: RawArticle) -> bool:
+    return _is_reference_source(
+        label=article.source,
+        url=article.url,
+        collector=article.collector,
+    )
+
+
+def _is_reference_article_source(source: ArticleSource) -> bool:
+    return _is_reference_source(
+        label=source.label,
+        url=source.url,
+    )
+
+
+def _validate_distinct_reference_source_ids(
+    source_ids: list[int],
+    indexed_articles: dict[int, RawArticle],
+    *,
+    context: str,
+    allow_extra_signal_sources: bool,
+) -> None:
+    reference_ids = [
+        source_id
+        for source_id in source_ids
+        if source_id in indexed_articles and _is_reference_raw_article(indexed_articles[source_id])
+    ]
+    reference_identities = {
+        _source_identity(indexed_articles[source_id].source, indexed_articles[source_id].url)
+        for source_id in reference_ids
+    }
+
+    if len(reference_identities) < MIN_REFERENCE_SOURCES_PER_STORY:
+        raise ValueError(
+            f"{context} precisa ter pelo menos {MIN_REFERENCE_SOURCES_PER_STORY} "
+            "fontes de referência distintas"
+        )
+
+    if len(reference_ids) != len(reference_identities):
+        raise ValueError(f"{context} retornou fontes de referência repetidas")
+
+    if allow_extra_signal_sources:
+        return
+
+    if (
+        len(source_ids) < MIN_REFERENCE_SOURCES_PER_STORY
+        or len(source_ids) > MAX_SOURCES_PER_STORY
+    ):
+        raise ValueError(
+            f"{context} precisa usar entre {MIN_REFERENCE_SOURCES_PER_STORY} e "
+            f"{MAX_SOURCES_PER_STORY} fontes de referência"
+        )
+
+    if len(source_ids) != len(reference_ids):
+        raise ValueError(
+            f"{context} só pode usar fontes de referência; agregadores e comunidade "
+            "servem para sinal, não para compor a matéria final"
+        )
+
+
+def _validate_curated_article_sources(article: CuratedArticle) -> None:
+    sources = article.source_items
+    if len(sources) < MIN_REFERENCE_SOURCES_PER_STORY:
+        raise ValueError(
+            f"Matéria precisa ter pelo menos {MIN_REFERENCE_SOURCES_PER_STORY} fontes"
+        )
+    if len(sources) > MAX_SOURCES_PER_STORY:
+        raise ValueError(f"Matéria excedeu o limite de {MAX_SOURCES_PER_STORY} fontes")
+
+    reference_sources = [source for source in sources if _is_reference_article_source(source)]
+    if len(reference_sources) != len(sources):
+        raise ValueError(
+            "Matéria final contém fonte que não é referência editorial confiável"
+        )
+
+    identities = {
+        _source_identity(source.label, source.url)
+        for source in reference_sources
+    }
+    if len(identities) != len(reference_sources):
+        raise ValueError("Matéria final contém fontes repetidas")
+
+    if article.source_count != len(sources):
+        raise ValueError("source_count da matéria não bate com source_items")
 
 
 def _resolve_output(
@@ -114,8 +261,12 @@ def _resolve_output(
                 )
             )
 
-        if len(resolved_sources) < 1 or len(resolved_sources) > 5:
-            raise ValueError("Cada matéria precisa consolidar entre 1 e 5 fontes")
+        _validate_distinct_reference_source_ids(
+            source_ids,
+            indexed_articles,
+            context="Plano editorial",
+            allow_extra_signal_sources=False,
+        )
 
         primary_source = indexed_articles[planned_story.primary_source_id]
         curated_articles.append(
@@ -166,8 +317,7 @@ def _validate_curation(result: CurationOutput) -> None:
     for article in result.articles:
         if not article.summary_ptbr.strip() or not (article.content_ptbr or "").strip():
             raise ValueError("Todas as matérias precisam ter resumo e conteúdo completo")
-        if article.source_count < 1:
-            raise ValueError("Todas as matérias precisam ter ao menos 1 fonte")
+        _validate_curated_article_sources(article)
 
         topic_key = (article.canonical_topic or article.title_ptbr or article.title).strip().lower()
         if topic_key in topic_keys:
@@ -191,8 +341,10 @@ def _validate_triage(output: AITriageOutput, indexed_articles: dict[int, RawArti
         source_ids = list(dict.fromkeys(topic.source_ids))
         if source_ids != topic.source_ids:
             raise ValueError("Triagem retornou source_ids duplicados")
-        if len(source_ids) > 6:
-            raise ValueError("Triagem excedeu o limite de 6 fontes por tema")
+        if len(source_ids) < MIN_REFERENCE_SOURCES_PER_STORY or len(source_ids) > 6:
+            raise ValueError(
+                "Triagem precisa retornar de 3 a 6 fontes por tema candidato"
+            )
 
         if not (topic.adversarial_notes_ptbr or "").strip():
             raise ValueError("Triagem precisa preencher adversarial_notes_ptbr")
@@ -206,6 +358,12 @@ def _validate_triage(output: AITriageOutput, indexed_articles: dict[int, RawArti
         for source_id in source_ids:
             if source_id not in indexed_articles:
                 raise ValueError(f"Triagem retornou source_id inexistente: {source_id}")
+        _validate_distinct_reference_source_ids(
+            source_ids,
+            indexed_articles,
+            context="Triagem",
+            allow_extra_signal_sources=True,
+        )
 
 
 def _validate_plan(plan: AICurationPlanOutput, indexed_articles: dict[int, RawArticle]) -> None:
@@ -238,8 +396,14 @@ def _validate_plan(plan: AICurationPlanOutput, indexed_articles: dict[int, RawAr
         source_ids = list(dict.fromkeys(story.source_ids))
         if source_ids != story.source_ids:
             raise ValueError("Plano editorial retornou source_ids duplicados")
-        if len(source_ids) < 1 or len(source_ids) > 5:
-            raise ValueError("Cada história precisa usar entre 1 e 5 fontes")
+        if (
+            len(source_ids) < MIN_REFERENCE_SOURCES_PER_STORY
+            or len(source_ids) > MAX_SOURCES_PER_STORY
+        ):
+            raise ValueError(
+                f"Cada história precisa usar entre {MIN_REFERENCE_SOURCES_PER_STORY} "
+                f"e {MAX_SOURCES_PER_STORY} fontes de referência"
+            )
         if story.primary_source_id not in source_ids:
             raise ValueError("primary_source_id precisa estar dentro de source_ids")
         min_paragraphs, max_paragraphs = PARAGRAPH_LIMITS_BY_KIND[story.story_kind]
@@ -256,6 +420,12 @@ def _validate_plan(plan: AICurationPlanOutput, indexed_articles: dict[int, RawAr
         for source_id in source_ids:
             if source_id not in indexed_articles:
                 raise ValueError(f"Plano editorial retornou source_id inexistente: {source_id}")
+        _validate_distinct_reference_source_ids(
+            source_ids,
+            indexed_articles,
+            context="Plano editorial",
+            allow_extra_signal_sources=False,
+        )
 
 
 def _validate_writing_output(writing: AIWritingOutput, plan: AICurationPlanOutput) -> None:
@@ -367,6 +537,8 @@ def _build_articles_payload(indexed_articles: dict[int, RawArticle], *, include_
             "url": article.url,
             "source": article.source,
             "collector": article.collector,
+            "is_reference_source": _is_reference_raw_article(article),
+            "source_identity": _source_identity(article.source, article.url),
         }
         snippet = _truncate_text(article.snippet, max_chars=MAX_SNIPPET_CHARS)
         if snippet:

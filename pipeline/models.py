@@ -69,7 +69,7 @@ class AICurationCandidateTopic(BaseModel):
 
     canonical_topic: str
     category: ArticleCategory
-    source_ids: list[int]
+    source_ids: list[int] = Field(min_length=3, max_length=6)
     priority_score: int = Field(ge=0, le=100)
     impact_score: int = Field(ge=1, le=10)
     novelty_score: int = Field(ge=1, le=10)
@@ -93,7 +93,7 @@ class AICurationPlanStory(BaseModel):
     category: ArticleCategory
     story_kind: StoryKind
     primary_source_id: int
-    source_ids: list[int]
+    source_ids: list[int] = Field(min_length=3, max_length=5)
     title_angle_ptbr: str
     why_it_matters_ptbr: str
     editorial_angle_ptbr: str

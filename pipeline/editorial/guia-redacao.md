@@ -22,6 +22,8 @@ Use esta ordem quando fizer sentido:
 
 Cada paragrafo deve carregar pelo menos um destes elementos: fato verificavel, detalhe tecnico, consequencia pratica, risco, limitacao ou leitura editorial.
 
+Antes de escrever, cruze no minimo 3 fontes de referencia distintas da pauta. Use uma fonte primaria como ancora quando houver, mas deixe as demais fontes melhorarem contexto, risco, contradicoes e consequencias. Se o assunto so tem uma fonte forte, ele nao deve virar materia.
+
 ## Regras de estilo
 
 Nao traduza frase por frase do ingles. Interprete a fonte para o leitor brasileiro.

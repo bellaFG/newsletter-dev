@@ -6,6 +6,8 @@ Passe por todas as fontes da semana antes de decidir a pauta. Procure movimentos
 
 Um item singular tambem pode ser importante se tiver consequencia grande: vulnerabilidade relevante, mudanca de preco, deprecation, ruptura de compatibilidade, decisao regulatoria, incidentes de infraestrutura ou release que altera o modo como times constroem software.
 
+Regra de qualidade: uma materia so entra se houver pelo menos 3 fontes de referencia confiaveis, distintas entre si, sustentando o mesmo movimento. Fontes de comunidade e agregadores ajudam a encontrar sinal, mas nao contam como evidencia suficiente para publicar.
+
 ## Fase 2 - Leitura adversarial
 
 Para cada topico candidato, responda mentalmente:
@@ -35,4 +37,4 @@ Monte uma edicao com:
 - 2 a 3 secondary: materias que completam o quadro principal.
 - 2 a 4 briefs: sinais curtos, mas ainda densos.
 
-Nao repita a mesma categoria mais de duas vezes. Prefira fonte primaria quando existir. Reddit, Hacker News e agregadores podem apoiar a leitura editorial, mas so devem ser ancora quando a propria discussao da comunidade for a noticia.
+Nao repita a mesma categoria mais de duas vezes. Prefira fonte primaria quando existir. Reddit, Hacker News, Lobste.rs, dev.to, GitHub Trending e agregadores podem apoiar a leitura editorial, mas nao contam como uma das 3 fontes de referencia da materia final.

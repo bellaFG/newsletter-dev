@@ -219,6 +219,8 @@ O pipeline tenta agir como uma redação pequena:
 6. **Redação:** os artigos finais são escritos em português, com fontes preservadas.
 7. **Publicação:** a edição vira rascunho ou é publicada e enviada por email.
 
+Cada matéria publicada precisa passar com 3 a 5 fontes de referência distintas. Comunidades e agregadores como Hacker News, Reddit, Lobste.rs, dev.to e GitHub Trending ajudam a detectar sinal, mas não contam como fonte de referência para fechar artigo.
+
 Fontes principais configuradas em `pipeline/sources.yaml`:
 
 | Tipo | Fontes |
