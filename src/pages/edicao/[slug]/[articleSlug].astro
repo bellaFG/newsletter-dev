@@ -207,11 +207,11 @@ function getSourceHost(url: string): string {
                 <span class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground">
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <div>
-                  <h3 class="font-serif text-lg font-bold leading-snug text-foreground transition-colors group-hover:text-link">
+                <div class="max-w-2xl">
+                  <h3 class="font-serif text-base font-bold leading-snug text-foreground transition-colors group-hover:text-link sm:text-[1.05rem]">
                     {rel.title_ptbr ?? rel.title}
                   </h3>
-                  <p class="mt-1 text-sm text-foreground/60 line-clamp-2 leading-relaxed">
+                  <p class="mt-1 max-w-xl text-sm text-foreground/55 line-clamp-1 leading-relaxed">
                     {rel.summary_ptbr}
                   </p>
                   <p class="mt-2 font-mono text-[0.5rem] uppercase tracking-[0.12em] text-link">
