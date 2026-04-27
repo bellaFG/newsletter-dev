@@ -113,7 +113,7 @@ function getSourceHost(url: string): string {
           ))}
         </div>
 
-        <section class="mt-10 border-y border-foreground/15 py-5">
+        <section class="mt-10 border-t border-foreground/15 py-5">
           <div class="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
             <div>
               <p class="mb-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.24em] text-muted-foreground">
@@ -148,7 +148,7 @@ function getSourceHost(url: string): string {
           <section class="border-t border-foreground/20 pt-8 mt-4">
             <SectionHeader title="Outras fontes consultadas" />
 
-            <div class="divide-y divide-foreground/10 border-y border-foreground/10">
+            <div class="divide-y divide-foreground/10 border-t border-foreground/10">
               {secondarySources.map((source) => (
                 <a
                   href={source.url}
@@ -200,7 +200,7 @@ function getSourceHost(url: string): string {
             </a>
           </div>
 
-          <div class="divide-y divide-foreground/10 border-y border-foreground/10">
+          <div class="divide-y divide-foreground/10 border-t border-foreground/10">
             {related.map((rel, index) => (
               <a
                 href={`/edicao/${edition.slug}/${rel.slug}`}
