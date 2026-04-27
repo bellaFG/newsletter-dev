@@ -205,7 +205,6 @@ Secrets extras necessários no GitHub Actions para migrations:
 | Secret | Descrição |
 | --- | --- |
 | `SUPABASE_ACCESS_TOKEN` | Token pessoal do Supabase CLI |
-| `SUPABASE_DB_PASSWORD` | Senha do banco remoto |
 | `SUPABASE_PROJECT_REF` | Project ref do Supabase |
 
 ## Pipeline Editorial
@@ -266,7 +265,6 @@ Configure no repositório:
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_ACCESS_TOKEN
-SUPABASE_DB_PASSWORD
 SUPABASE_PROJECT_REF
 OPENAI_API_KEY
 BREVO_API_KEY
