@@ -10,7 +10,8 @@ import { supabase } from '@/lib/supabase'
 import type { Article, Edition } from '@/lib/types'
 import { CATEGORY_SLUGS, getArticleSources, getPrimarySource } from '@/lib/articles'
 import { formatMediumDate, formatEditionNumber } from '@/lib/date'
-import { SITE_NAME } from '@/lib/config'
+import { normalizePublicSiteUrl, SITE_NAME } from '@/lib/config'
+import { readEnv } from '@/lib/env'
 
 const { slug, articleSlug } = Astro.params
 
@@ -48,7 +49,9 @@ const categorySlug = CATEGORY_SLUGS[article.category]
 const sources = getArticleSources(article)
 const primarySource = getPrimarySource(article)
 const secondarySources = sources.filter((source) => !source.is_primary)
-const articleUrl = Astro.url.href
+const siteUrl = normalizePublicSiteUrl(readEnv('SITE_URL'))
+const articlePath = `/edicao/${edition.slug}/${article.slug}`
+const articleUrl = `${siteUrl}${articlePath}`
 
 function getSourceHost(url: string): string {
   try {
@@ -59,7 +62,11 @@ function getSourceHost(url: string): string {
 }
 ---
 
-<Layout title={`${article.title_ptbr ?? article.title} — ${SITE_NAME}`} description={article.summary_ptbr.slice(0, 160)}>
+<Layout
+  title={`${article.title_ptbr ?? article.title} — ${SITE_NAME}`}
+  description={article.summary_ptbr.slice(0, 160)}
+  canonicalUrl={articleUrl}
+>
   <div class="min-h-screen bg-background text-foreground">
     <div class="mx-auto max-w-3xl px-4 py-10 sm:px-6">
 
