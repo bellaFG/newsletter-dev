@@ -113,13 +113,13 @@ function getSourceHost(url: string): string {
           ))}
         </div>
 
-        <section class="mt-10 border-y border-link/25 py-5">
+        <section class="mt-10 border-y border-foreground/15 py-5">
           <div class="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center">
             <div>
-              <p class="mb-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.24em] text-link">
-                Link externo da apuração
+              <p class="mb-2 font-mono text-[0.55rem] font-bold uppercase tracking-[0.24em] text-muted-foreground">
+                Fonte principal
               </p>
-              <h2 class="font-serif text-xl font-bold leading-snug text-foreground">
+              <h2 class="font-serif text-xl font-bold leading-snug text-foreground/90">
                 {primarySource.title ?? article.title}
               </h2>
               <p class="mt-2 text-sm leading-relaxed text-foreground/60">
@@ -132,9 +132,9 @@ function getSourceHost(url: string): string {
               href={primarySource.url}
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center justify-center justify-self-start border border-link/50 px-4 py-2.5 font-mono text-[0.58rem] font-bold uppercase tracking-widest text-link transition-all hover:border-link hover:bg-link hover:text-white sm:justify-self-end"
+              class="inline-flex items-center justify-center justify-self-start font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground transition-colors hover:text-link sm:justify-self-end"
             >
-              Abrir fonte &nearr;
+              Fonte principal &nearr;
             </a>
           </div>
         </section>
