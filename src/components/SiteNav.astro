@@ -7,17 +7,21 @@ const pathname = Astro.url.pathname
 const initialSearchQuery = Astro.url.searchParams.get('q')?.trim() ?? ''
 const isSearchOpen = initialSearchQuery.length > 0
 const showNavSearch = pathname !== '/'
+const pathSegments = pathname.replace(/\/+$/, '').split('/').filter(Boolean)
+const isEditionArticlePath = pathSegments[0] === 'edicao' && pathSegments.length >= 3
+const isEditionPath = pathSegments[0] === 'edicao' && pathSegments.length === 2
 
-const activeSection =
-  pathname === '/'
-    ? 'home'
-    : pathname.startsWith('/archive') || pathname.startsWith('/edicao/')
-      ? 'editions'
-      : pathname.startsWith('/articles')
-        ? 'articles'
-        : pathname.startsWith('/categoria/')
-          ? 'categories'
-          : ''
+let activeSection = ''
+
+if (pathname === '/') {
+  activeSection = 'home'
+} else if (isEditionArticlePath || pathname.startsWith('/articles')) {
+  activeSection = 'articles'
+} else if (pathname.startsWith('/archive') || isEditionPath) {
+  activeSection = 'editions'
+} else if (pathname.startsWith('/categoria/')) {
+  activeSection = 'categories'
+}
 
 const navLinkClasses = (isActive: boolean) =>
   [
