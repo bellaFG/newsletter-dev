@@ -67,9 +67,14 @@ const encodedLinkedInText = encodeURIComponent(`${title}\n\n${url}`)
     try {
       const url = new URL(rawUrl || fallbackPath, window.location.href)
       const hostname = url.hostname.toLowerCase()
+      const isBarePublicOrigin = url.origin === publicShareOrigin && url.pathname === '/'
 
       if (localShareHosts.has(hostname) || hostname.startsWith('127.')) {
         return `${publicShareOrigin}${url.pathname}${url.search}${url.hash}`
+      }
+
+      if (isBarePublicOrigin) {
+        return `${publicShareOrigin}${fallbackPath}`
       }
 
       return url.href
