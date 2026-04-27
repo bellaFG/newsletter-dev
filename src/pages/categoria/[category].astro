@@ -76,16 +76,12 @@ const nextCategory = CATEGORY_ORDER[(currentCategoryIndex + 1) % CATEGORY_ORDER.
         </p>
       )}
 
-      <div class="mt-12 border-t border-foreground/20 pt-8">
-        <a
-          href={`/categoria/${CATEGORY_SLUGS[nextCategory]}`}
-          class="inline-flex min-h-10 items-center justify-center border border-link px-4 font-mono text-[0.55rem] font-bold uppercase tracking-[0.18em] text-link transition-colors hover:bg-link hover:text-background"
-        >
-          Outras categorias &gt;
-        </a>
-      </div>
-
-      <PageFooterNav leftLabel="← Início" leftHref="/" rightHref={null} />
+      <PageFooterNav
+        leftLabel="← Início"
+        leftHref="/"
+        rightLabel="Outras categorias >"
+        rightHref={`/categoria/${CATEGORY_SLUGS[nextCategory]}`}
+      />
 
     </div>
   </div>
