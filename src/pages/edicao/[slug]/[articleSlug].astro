@@ -202,7 +202,7 @@ function getSourceHost(url: string): string {
             {related.map((rel, index) => (
               <a
                 href={`/edicao/${edition.slug}/${rel.slug}`}
-                class="group grid gap-3 py-5 transition-colors hover:text-link sm:grid-cols-[2.5rem_1fr_auto] sm:items-start"
+                class="group grid gap-3 py-5 transition-colors hover:text-link sm:grid-cols-[2.5rem_1fr] sm:items-start"
               >
                 <span class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground">
                   {String(index + 1).padStart(2, '0')}
@@ -220,9 +220,6 @@ function getSourceHost(url: string): string {
                     {rel.reading_time_min ? ` / ${rel.reading_time_min} min` : ''}
                   </p>
                 </div>
-                <span class="font-mono text-[0.55rem] uppercase tracking-[0.18em] text-muted-foreground transition-colors group-hover:text-link sm:text-right">
-                  Ler aqui &rarr;
-                </span>
               </a>
             ))}
           </div>
