@@ -8,7 +8,7 @@ import { createServerClient } from '@/lib/supabase'
  * POST /api/subscribe
  *
  * Registra um novo subscriber ou reativa um que cancelou a inscricao.
- * Resposta identica para email novo, reativado ou ja ativo (anti-enumeracao).
+ * Retorna erro quando o email ja esta ativo e reativa emails cancelados.
  */
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -72,8 +72,10 @@ export const POST: APIRoute = async ({ request }) => {
         }
         return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders })
       }
-      // Ja ativo — retorna sucesso (anti-enumeracao: mesma resposta que novo subscriber)
-      return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders })
+      return new Response(JSON.stringify({ error: 'Este email já está inscrito.' }), {
+        status: 409,
+        headers: jsonHeaders,
+      })
     }
 
     // Novo subscriber
