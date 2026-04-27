@@ -24,11 +24,24 @@ Cada paragrafo deve carregar pelo menos um destes elementos: fato verificavel, d
 
 Antes de escrever, cruze no minimo 3 fontes de referencia distintas da pauta. Use uma fonte primaria como ancora quando houver, mas deixe as demais fontes melhorarem contexto, risco, contradicoes e consequencias. Se o assunto so tem uma fonte forte, ele nao deve virar materia.
 
+## Compreensao em pt-BR
+
+O texto em portugues precisa ser entendido na primeira leitura por um dev brasileiro. Traducao boa aqui nao e fidelidade literal ao ingles; e clareza tecnica em pt-BR.
+
+Antes de finalizar `title_ptbr`, `summary_ptbr` e `content_ptbr`, faca uma revisao de compreensao:
+
+1. Um leitor entende o sujeito, a acao e a consequencia sem conhecer o titulo original?
+2. O titulo diz claramente quem foi afetado e qual e o impacto pratico?
+3. Alguma metafora, piada, imagem ou expressao traduzida do ingles ficou estranha em portugues?
+4. Alguma frase so parece fazer sentido porque voce ainda esta olhando para a fonte em ingles?
+
+Se qualquer resposta indicar ambiguidade, reescreva em portugues direto. Exemplo negativo: "A conta da IA ficou mais torta". Isso nao deixa claro se a "conta" e custo, responsabilidade, balanco ou cobrança. Prefira dizer o efeito concreto: "IA favorece seniors e encarece a formacao de juniors" ou outra formulacao que explique a consequencia sem exigir decodificacao.
+
 ## Regras de estilo
 
 Nao traduza frase por frase do ingles. Interprete a fonte para o leitor brasileiro.
 
-Titulos em portugues precisam soar naturais quando lidos em voz alta. Evite metaforas tortas, traducoes literais ou construcoes que parecem corretas em ingles mas estranhas em pt-BR. Exemplo negativo: "A conta da IA ficou mais torta". Prefira dizer o efeito concreto: "IA favorece seniors e encarece a formacao de juniors" ou outra formulacao direta, sem perder a consequencia.
+Titulos em portugues precisam soar naturais quando lidos em voz alta. Evite metaforas tortas, traducoes literais ou construcoes que parecem corretas em ingles mas estranhas em pt-BR.
 
 Nao enumere fontes como muleta narrativa, por exemplo "como reportado por X, Y e Z". Consolide as fontes em uma narrativa unica e use a fonte primaria como apoio quando houver.
 
