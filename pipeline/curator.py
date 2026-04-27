@@ -1,6 +1,7 @@
 import os
 import re
 from collections import Counter
+from math import ceil, floor
 from time import monotonic
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
@@ -42,6 +43,7 @@ OPENAI_REQUEST_TIMEOUT_SECONDS = float(
 MIN_STORIES = 5
 MAX_STORIES = 8
 MAX_PER_CATEGORY = 2
+WORD_LIMIT_TOLERANCE_RATIO = 0.2
 TRACKING_QUERY_PARAMS = {
     "utm_source",
     "utm_medium",
@@ -284,11 +286,22 @@ def _validate_writing_output(writing: AIWritingOutput, plan: AICurationPlanOutpu
 
         planned_story = planned_by_topic[topic_key]
         min_words, max_words = WORD_LIMITS_BY_KIND[planned_story.story_kind]
+        tolerated_min_words, tolerated_max_words = _word_limits_with_tolerance(
+            min_words,
+            max_words,
+        )
         word_count = _count_words(story.content_ptbr)
-        if not min_words <= word_count <= max_words:
+        if not tolerated_min_words <= word_count <= tolerated_max_words:
             raise ValueError(
                 f"Writer retornou {word_count} palavras para story_kind={planned_story.story_kind} "
-                f"em {story.canonical_topic}; esperado {min_words}-{max_words}"
+                f"em {story.canonical_topic}; esperado {min_words}-{max_words} "
+                f"(tolerancia operacional: {tolerated_min_words}-{tolerated_max_words})"
+            )
+        if not min_words <= word_count <= max_words:
+            logger.warning(
+                f"[Curator] Redacao final fora do alvo de palavras para "
+                f"story_kind={planned_story.story_kind}: {word_count} em "
+                f"{story.canonical_topic}; alvo={min_words}-{max_words}"
             )
 
         paragraphs = _split_paragraphs(story.content_ptbr)
@@ -303,6 +316,13 @@ def _validate_writing_output(writing: AIWritingOutput, plan: AICurationPlanOutpu
 
 def _count_words(value: str) -> int:
     return len(re.findall(r"[^\W_]+(?:[-'][^\W_]+)?", value, flags=re.UNICODE))
+
+
+def _word_limits_with_tolerance(min_words: int, max_words: int) -> tuple[int, int]:
+    return (
+        floor(min_words * (1 - WORD_LIMIT_TOLERANCE_RATIO)),
+        ceil(max_words * (1 + WORD_LIMIT_TOLERANCE_RATIO)),
+    )
 
 
 def _split_paragraphs(value: str) -> list[str]:
