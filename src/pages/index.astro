@@ -54,7 +54,10 @@ const remainingCategories = [...new Set(remainingLatestArticles.map((article) =>
     <div class="mx-auto max-w-6xl px-4 py-6 sm:px-10 sm:py-10">
       <header class="mb-8 sm:mb-10" data-route-fade>
         <div class="flex flex-wrap items-center justify-between gap-3 border-b border-foreground/10 pb-4">
-          <p class="font-mono text-[0.56rem] uppercase tracking-[0.18em] text-muted-foreground sm:text-[0.65rem] sm:tracking-widest">
+          <p
+            class="font-mono text-[0.56rem] uppercase tracking-[0.18em] text-muted-foreground sm:text-[0.65rem] sm:tracking-widest"
+            data-current-date
+          >
             {today}
           </p>
           <p class="hidden font-mono text-[0.65rem] uppercase tracking-widest text-muted-foreground sm:block">

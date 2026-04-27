@@ -106,6 +106,19 @@ function updateThemeToggle() {
   }
 }
 
+function updateCurrentDate() {
+  const currentDate = queryElement<HTMLElement>('[data-current-date]')
+  if (!currentDate) return
+
+  currentDate.textContent = new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'America/Sao_Paulo',
+  }).format(new Date())
+}
+
 function toggleTheme() {
   const nowDark = !document.documentElement.classList.contains('dark')
   localStorage.setItem(THEME_STORAGE_KEY, nowDark ? 'dark' : 'light')
@@ -707,6 +720,7 @@ function bindGlobalHandlers() {
   document.addEventListener('astro:page-load', () => {
     applyTheme()
     updateThemeToggle()
+    updateCurrentDate()
     syncSearchFromUrl()
 
     if (navigationPending) {
@@ -721,6 +735,7 @@ if (!window.__devpulseSiteShellInitialized) {
   bindGlobalHandlers()
   applyTheme()
   updateThemeToggle()
+  updateCurrentDate()
   syncSearchFromUrl()
   setRouteReady(true)
 }
