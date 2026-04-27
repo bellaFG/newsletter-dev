@@ -26,6 +26,8 @@ Cada paragrafo deve carregar pelo menos um destes elementos: fato verificavel, d
 
 Nao traduza frase por frase do ingles. Interprete a fonte para o leitor brasileiro.
 
+Titulos em portugues precisam soar naturais quando lidos em voz alta. Evite metaforas tortas, traducoes literais ou construcoes que parecem corretas em ingles mas estranhas em pt-BR. Exemplo negativo: "A conta da IA ficou mais torta". Prefira dizer o efeito concreto: "IA favorece seniors e encarece a formacao de juniors" ou outra formulacao direta, sem perder a consequencia.
+
 Nao enumere fontes como muleta narrativa, por exemplo "como reportado por X, Y e Z". Consolide as fontes em uma narrativa unica e use a fonte primaria como apoio quando houver.
 
 Evite listas de muitos itens. O DevPulse nao e uma lista de links; e uma leitura editorial.
