@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro'
-import { promises as dns } from 'node:dns'
 import { isValidEmailAddress, normalizeEmailAddress } from '@/lib/email'
 import { jsonHeaders } from '@/lib/http'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -35,29 +34,27 @@ export const POST: APIRoute = async ({ request }) => {
       })
     }
 
-    // Formato, tamanho e dominio com TLD real (min 2 letras)
+    // Formato, tamanho e dominio com TLD real (min 2 letras).
+    // Nao fazemos consulta DNS aqui: em serverless ela pode falhar por resolvedor,
+    // timeout ou dominio com configuracao incomum, bloqueando emails validos.
     if (!isValidEmailAddress(email)) {
       return new Response(JSON.stringify({ error: 'Email inválido' }), { status: 400, headers: jsonHeaders })
     }
 
-    // Verifica se o dominio aceita emails (tem registros MX ou A)
-    const domain = email.split('@')[1]
-    try {
-      await dns.resolveMx(domain)
-    } catch {
-      try {
-        await dns.resolve4(domain)
-      } catch {
-        return new Response(JSON.stringify({ error: 'Domínio de email não existe.' }), { status: 400, headers: jsonHeaders })
-      }
-    }
-
     // Verifica se o email ja existe (ativo ou inativo)
-    const { data: existing } = await supabase
+    const { data: existing, error: existingError } = await supabase
       .from('subscribers')
       .select('id, active')
       .eq('email', email)
-      .single()
+      .maybeSingle()
+
+    if (existingError) {
+      console.error('[subscribe] Erro ao verificar subscriber:', existingError)
+      return new Response(JSON.stringify({ error: 'Erro ao cadastrar. Tente novamente.' }), {
+        status: 500,
+        headers: jsonHeaders,
+      })
+    }
 
     if (existing) {
       // Reativa subscriber que cancelou a inscricao
